@@ -8,7 +8,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <RuntimeIdentifiers>win-arm64;win-x64</RuntimeIdentifiers>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <Company>Motalim</Company>
     <Product>Adawat</Product>
     <Copyright>Motalim · GPL v3</Copyright>
