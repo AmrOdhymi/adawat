@@ -220,6 +220,7 @@
 "Landscape · 16:9" = "عرضي · 16:9";
 "Language" = "اللغة";
 "Launch Adawat at login" = "تشغيل أدوات عند تسجيل الدخول";
+"Layout" = "التخطيط";
 "Leaf" = "ورقة";
 "Left volume" = "صوت اليسار";
 "Light" = "خفيف";
@@ -366,6 +367,7 @@
 "Show results in a Float" = "عرض النتائج في Float";
 "Shown in Finder" = "ظهر في Finder";
 "Silence" = "السكوت";
+"Size" = "الحجم";
 "Size of each file" = "حجم كل ملف";
 "Smaller files with less quality loss." = "ملفات أصغر مع فقد أقل في الجودة.";
 "Smaller files with more quality loss." = "ملفات أصغر مع فقد أكبر في الجودة.";
@@ -457,3 +459,4 @@
 "With Bleeps" = "مع التصفير";
 "You're all set" = "كل شيء جاهز";
 "little to gain" = "التوفير قليل";
+"−16 LUFS is a balanced default for spoken audio and music. The true peak limit helps prevent clipping after encoding." = "‎−16 LUFS قيمة متوازنة للكلام والموسيقى. وحدّ الذروة الحقيقية يساعد على منع التشوّه بعد الترميز.";

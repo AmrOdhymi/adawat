@@ -20,7 +20,8 @@
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4258.31" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="..\..\shared\strings.ar.json" LogicalName="strings.ar.json" />
-    <EmbeddedResource Include="..\..\shared\patterns.ar.json" LogicalName="patterns.ar.json" />
+    <!-- WithCulture="false": the ".ar" in the name would otherwise move the file into an Arabic satellite assembly. -->
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)../../shared/strings.ar.json" LogicalName="strings.ar.json" WithCulture="false" />
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)../../shared/patterns.ar.json" LogicalName="patterns.ar.json" WithCulture="false" />
   </ItemGroup>
 </Project>

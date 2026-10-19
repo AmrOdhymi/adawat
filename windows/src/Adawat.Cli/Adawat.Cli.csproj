@@ -2,7 +2,7 @@
   <!-- adawat.exe: every tool from the command line, and the test modes used to check a build. -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <AssemblyName>adawat</AssemblyName>
+    <AssemblyName>adawat-cli</AssemblyName>
     <RootNamespace>Adawat.Cli</RootNamespace>
     <UseWPF>true</UseWPF>
   </PropertyGroup>

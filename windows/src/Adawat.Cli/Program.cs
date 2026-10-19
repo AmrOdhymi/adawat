@@ -5,9 +5,9 @@ using Adawat.Core.Media;
 namespace Adawat.Cli;
 
 /// <summary>
-/// adawat list &lt;files…&gt;            the wheel choices for these files
-/// adawat run &lt;id&gt; &lt;files…&gt;        runs one choice with its saved defaults
-/// adawat doctor                     versions, tools and encoders, for bug reports
+/// adawat-cli list &lt;files…&gt;            the wheel choices for these files
+/// adawat-cli run &lt;id&gt; &lt;files…&gt;        runs one choice with its saved defaults
+/// adawat-cli doctor                     versions, tools and encoders, for bug reports
 /// Add --lang ar or --lang en to any command to choose the language of its messages.
 /// </summary>
 public static class Program
@@ -43,7 +43,7 @@ public static class Program
 
     private static int Usage()
     {
-        Console.Error.WriteLine("usage: adawat list <files…> | adawat run <operation-id> <files…> | adawat doctor   [--lang ar|en]");
+        Console.Error.WriteLine("usage: adawat-cli list <files…> | adawat-cli run <operation-id> <files…> | adawat-cli doctor   [--lang ar|en]");
         return 2;
     }
 

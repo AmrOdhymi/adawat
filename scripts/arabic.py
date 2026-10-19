@@ -116,6 +116,9 @@ STATIC = {
     "Grid": "شبكة", "Row": "صف", "Column": "عمود", "Featured": "مميزة", "Columns": "الأعمدة", "Canvas": "اللوحة",
     "Width": "العرض", "Image fit": "ملاءمة الصور", "Fill cells (crop edges)": "ملء الخانات (قص الأطراف)",
     "Fit whole images": "إظهار الصور كاملة", "Spacing & background": "المسافات والخلفية", "Spacing": "المسافة",
+    "Size": "الحجم", "Layout": "التخطيط",
+    "−16 LUFS is a balanced default for spoken audio and music. The true peak limit helps prevent clipping after encoding.":
+        "‎−16 LUFS قيمة متوازنة للكلام والموسيقى. وحدّ الذروة الحقيقية يساعد على منع التشوّه بعد الترميز.",
     "Image order": "ترتيب الصور", "Reset Layout": "إعادة ضبط التخطيط", "Creating collage": "جارٍ إنشاء الصورة المجمّعة",
     "Square · 1:1": "مربع · 1:1", "Portrait · 4:5": "طولي · 4:5", "Story · 9:16": "قصة · 9:16",
     "Landscape · 16:9": "عرضي · 16:9", "Classic · 4:3": "كلاسيكي · 4:3", "Portrait · 9:16": "طولي · 9:16",
@@ -280,6 +283,11 @@ WINDOWS_STATIC = {
     "Microsoft Excel is needed for this file.": "يلزم Microsoft Excel لهذا الملف.",
     "Pages, Keynote and Numbers files are not supported on Windows.": "ملفات Pages و Keynote و Numbers غير مدعومة على Windows.",
     "Exit": "خروج", "Exit Adawat": "إنهاء أدوات",
+    "Convert, compress and edit any file while you drag it. Everything stays on your PC.": "حوّل واضغط وعدّل أي ملف وأنت تسحبه. كل شيء يتم على جهازك.",
+    "Something went wrong: ": "حدث خطأ: ", "Create QR Code…": "إنشاء رمز QR…",
+    "Move up": "تحريك لأعلى", "Move down": "تحريك لأسفل", "Fewer": "أقل", "More": "أكثر",
+    "Paste an image with Ctrl+V or choose one. Drag it to move.": "الصق صورة بـ Ctrl+V أو اخترها. اسحبها لتحريكها.",
+    "Could not play the preview. ": "تعذّر تشغيل المعاينة. ",
 }
 WINDOWS_DYNAMIC = {
     "Drag files, then press {1}, {2} or {3}": "اسحب الملفات ثم اضغط {1} أو {2} أو {3}",

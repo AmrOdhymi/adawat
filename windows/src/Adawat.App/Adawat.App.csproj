@@ -8,6 +8,7 @@
     <RootNamespace>Adawat.App</RootNamespace>
     <ApplicationIcon>..\..\assets\Adawat.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Adawat.Core\Adawat.Core.csproj" />
