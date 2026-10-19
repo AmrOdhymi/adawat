@@ -16,14 +16,15 @@
 <p align="center">
   <a href="https://github.com/motalim-ai/adawat/releases/latest"><img alt="Download" src="https://img.shields.io/github/v/release/motalim-ai/adawat?label=Download&color=5B47E6&style=for-the-badge"></a>
   <img alt="macOS 14+" src="https://img.shields.io/badge/macOS-14%2B-111?style=for-the-badge&logo=apple">
+  <img alt="Windows 10 and 11" src="https://img.shields.io/badge/Windows-10%20%C2%B7%2011-0078D4?style=for-the-badge&logo=windows11&logoColor=white">
   <a href="LICENSE"><img alt="License: GPL v3" src="https://img.shields.io/badge/License-GPL%20v3-7CF2C8?style=for-the-badge"></a>
 </p>
 
 ---
 
-**Adawat** (أدوات, "tools") lives in your Mac's menu bar. Start dragging any file, press a key, and a wheel of
-choices opens right under the pointer. Drop the file on a choice and it is done: a new format, a smaller size,
-an edited copy. No upload, no account, no limits. Everything happens on your Mac.
+**Adawat** (أدوات, "tools") lives in your Mac's menu bar or next to the Windows clock. Start dragging any file,
+press a key, and a wheel of choices opens right under the pointer. Drop the file on a choice and it is done: a new
+format, a smaller size, an edited copy. No upload, no account, no limits. Everything happens on your computer.
 
 <p align="center">
   <img src="docs/media/demo-en.gif" alt="Dragging a photo, pressing Shift, and dropping it on WEBP" width="760">
@@ -32,6 +33,8 @@ an edited copy. No upload, no account, no limits. Everything happens on your Mac
 ## Install
 
 > **Video walkthrough, tips and new tools:** [the Motalim channel on YouTube](https://www.youtube.com/@motalim-ai?sub_confirmation=1).
+
+### Mac
 
 1. Download **[Adawat.dmg](https://github.com/motalim-ai/adawat/releases/latest/download/Adawat.dmg)** from the latest release.
 2. Open it and drag **Adawat** into **Applications**.
@@ -56,17 +59,41 @@ On macOS 14 Sonoma, **right-click → Open → Open** also works.
 
 Requires macOS 14 Sonoma or later on Apple silicon.
 
+### Windows
+
+1. Download the installer for your PC from the latest release:
+   - **[Adawat-Setup-x64.exe](https://github.com/motalim-ai/adawat/releases/latest/download/Adawat-Setup-x64.exe)** for most PCs (Intel or AMD).
+   - **[Adawat-Setup-arm64.exe](https://github.com/motalim-ai/adawat/releases/latest/download/Adawat-Setup-arm64.exe)** for ARM PCs (Snapdragon, Surface Pro X…).
+
+   Not sure? Open **Settings → System → About** and look at **System type**.
+2. Open the installer. If Windows shows *Windows protected your PC*, press **More info**, then **Run anyway**.
+   If your browser says the file is not commonly downloaded, choose **Keep**.
+3. Pick **العربية** or **English**, then **Next** and **Install**. No administrator password is needed: Adawat
+   installs for your account only.
+4. Adawat starts next to the clock (look under the **^** arrow if the icon is hidden). The welcome guide lets you
+   practice once.
+
+**Why does Windows warn?** The installer is not code-signed yet, so SmartScreen does not know it. The app is open
+source, and the SHA-256 of each installer is listed in the release notes.
+
+Requires Windows 10 (version 1809) or Windows 11, 64-bit. Remove it any time from **Settings → Apps**.
+
+<p align="center">
+  <img src="docs/media/screens/win-wheel-tools.png" alt="The Tools wheel for a PDF in File Explorer on Windows 11" width="760"><br>
+  <sub>Adawat on Windows 11: the Tools wheel for a PDF, opened while dragging it from File Explorer</sub>
+</p>
+
 ## How it works
 
-1. **Drag** one or more files from Finder, the desktop, or any app.
+1. **Drag** one or more files from Finder or File Explorer, the desktop, or any app.
 2. **While dragging, press a key** to open its wheel. The wheel stays open until you drop.
 3. **Drop** on a choice. The result is saved next to the original (or in Downloads or on the Desktop, as you prefer).
 
-| Key | Wheel | What's in it |
-| :---: | --- | --- |
-| <kbd>⇧ Shift</kbd> | **Convert** | Every format the file can become |
-| <kbd>⌘ Command</kbd> | **Tools** | Compress, edit, crop, trim, organize, and more for that kind of file |
-| <kbd>⌃ Control</kbd> | **Actions** | AirDrop, Float, Copy, Move, Copy Path, open in Terminal |
+| Mac | Windows | Wheel | What's in it |
+| :---: | :---: | --- | --- |
+| <kbd>⇧ Shift</kbd> | <kbd>Shift</kbd> | **Convert** | Every format the file can become |
+| <kbd>⌘ Command</kbd> | <kbd>Ctrl</kbd> | **Tools** | Compress, edit, crop, trim, organize, and more for that kind of file |
+| <kbd>⌃ Control</kbd> | <kbd>Alt</kbd> | **Actions** | Share (AirDrop on Mac), Float, Copy, Move, Copy Path, open in Terminal |
 
 The keys can be changed in Settings. Tools that need choices (Compress, Crop, Edit…) open a small window first;
 the rest run as soon as you drop.
@@ -93,6 +120,9 @@ the rest run as soon as you drop.
 | **Presentations** (PowerPoint, Keynote, ODP) | PDF · Keynote · PNG · JPEG |
 | **Subtitles** (SRT, VTT) | SRT · VTT · Text |
 | **Archives** (ZIP, TAR, TGZ, GZ, RAR, 7Z…) | ZIP · TAR · TGZ, or extract |
+
+On Windows the list is the same, with these differences: PDF also becomes **Excel**; HEIC opens but is not offered
+as an output; Pages, Keynote and Numbers are Mac-only; and presentations need PowerPoint or LibreOffice installed.
 
 ### Tools
 
@@ -133,8 +163,9 @@ to the edge of the screen. Results can open in a Float automatically.
 
 ## Arabic and English
 
-The whole interface is available in Arabic, right to left, and in English. Adawat follows your Mac's language
-on first launch, and you can switch at any time in Settings.
+The whole interface is available in Arabic, right to left, and in English, on Mac and Windows. Adawat follows
+your system's language on first launch (on Windows, the language you pick in the installer), and you can switch
+at any time in Settings.
 
 ## Build from source
 
@@ -151,6 +182,22 @@ scripts/build-app.sh --install     # builds build/Adawat.app and copies it to /A
 `scripts/build-app.sh --dmg` also makes `build/Adawat-<version>.dmg`. The app runs without Homebrew: ffmpeg and
 cwebp travel inside the app bundle.
 
+### Windows
+
+The Windows app is in `windows/`, written in C# with .NET 10 and WPF. It builds on Windows, or on a Mac with the
+.NET 10 SDK.
+
+```bash
+windows/tools/fetch-ffmpeg.sh                                   # the pinned GPL ffmpeg for x64 and ARM64
+dotnet build windows/src/Adawat.App/Adawat.App.csproj -c Release
+windows/tools/build-installer.sh                                # Adawat-Setup-x64.exe and Adawat-Setup-arm64.exe
+```
+
+`build-installer.sh` publishes both versions and compiles `windows/installer/Adawat.iss` with
+[Inno Setup 6](https://jrsoftware.org/isinfo.php) on a Windows machine it reaches over SSH (`ADAWAT_WIN_HOST`).
+`adawat-cli` runs any wheel choice from the command line, for testing: `adawat-cli list photo.jpg`,
+`adawat-cli run image.webp photo.jpg`.
+
 <details>
 <summary>Project layout</summary>
 
@@ -163,19 +210,25 @@ cwebp travel inside the app bundle.
 | `Sources/Adawat/Float` | The Float shelf |
 | `Resources` | App icon and translations (`ar.lproj`) |
 | `scripts` | Build, ffmpeg, icon, banner, translation and screenshot scripts |
+| `windows/src/Adawat.Core` | Windows: every conversion and tool, shared by the app and `adawat-cli` |
+| `windows/src/Adawat.App` | Windows: tray icon, drag watching, the wheel, Floats and the option windows |
+| `windows/src/Adawat.Cli` | Windows: the `adawat-cli` command line |
+| `windows/installer`, `windows/tools` | Windows: the Inno Setup script, ffmpeg and installer scripts |
+| `windows/shared` | Arabic translations for Windows, generated from `scripts/arabic.py` with the Mac's |
 
 </details>
 
 ## Privacy
 
-Adawat never sends your files anywhere. It has no analytics, no account and no network features. Pages, Keynote
-and Numbers are asked (with your permission) only when you convert their formats.
+Adawat never sends your files anywhere, on Mac or Windows. It has no analytics, no account and no network
+features. On Mac, Pages, Keynote and Numbers are asked (with your permission) only when you convert their formats.
 
 ## License
 
 Adawat is free software under the [GNU General Public License v3.0](LICENSE): you can use it, study it, share it
 and change it. If you distribute a modified version, it has to stay free under the same license.
-The bundled ffmpeg and cwebp keep their own licenses; see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+The bundled ffmpeg, cwebp and Windows libraries keep their own licenses; see
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 The name **Adawat** and its icon identify this project and are not covered by the license.
 

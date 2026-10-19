@@ -16,6 +16,7 @@
 <p align="center">
   <a href="https://github.com/motalim-ai/adawat/releases/latest"><img alt="تحميل" src="https://img.shields.io/github/v/release/motalim-ai/adawat?label=Download&color=5B47E6&style=for-the-badge"></a>
   <img alt="macOS 14+" src="https://img.shields.io/badge/macOS-14%2B-111?style=for-the-badge&logo=apple">
+  <img alt="Windows 10 و 11" src="https://img.shields.io/badge/Windows-10%20%C2%B7%2011-0078D4?style=for-the-badge&logo=windows11&logoColor=white">
   <a href="LICENSE"><img alt="الرخصة GPL v3" src="https://img.shields.io/badge/License-GPL%20v3-7CF2C8?style=for-the-badge"></a>
 </p>
 
@@ -23,8 +24,8 @@
 
 <div dir="rtl">
 
-**أدوات** تطبيق صغير بيعيش في شريط القوائم على الماك. ابدأ اسحب أي ملف، واضغط مفتاح، فتظهر عجلة اختيارات تحت
-الماوس على طول. أفلت الملف على الاختيار اللي عاوزه وخلاص: صيغة جديدة، أو حجم أصغر، أو نسخة معدّلة.
+**أدوات** تطبيق صغير بيعيش في شريط القوائم على الماك، أو جنب الساعة على الويندوز. ابدأ اسحب أي ملف، واضغط
+مفتاح، فتظهر عجلة اختيارات تحت الماوس على طول. أفلت الملف على الاختيار اللي عاوزه وخلاص: صيغة جديدة، أو حجم أصغر، أو نسخة معدّلة.
 من غير رفع ملفات، ومن غير حساب، ومن غير حد استخدامات. كل حاجة بتحصل على جهازك.
 
 </div>
@@ -38,6 +39,8 @@
 ## التثبيت
 
 > **شرح بالفيديو ونصايح وأدوات جديدة:** على [قناة متعلم على يوتيوب](https://www.youtube.com/@motalim-ai?sub_confirmation=1).
+
+### الماك
 
 1. حمّل **[Adawat.dmg](https://github.com/motalim-ai/adawat/releases/latest/download/Adawat.dmg)** من آخر إصدار.
 2. افتحه واسحب **Adawat** لمجلد **Applications**.
@@ -66,21 +69,44 @@ xattr -dr com.apple.quarantine /Applications/Adawat.app && open /Applications/Ad
 
 محتاج macOS 14 Sonoma أو أحدث على أجهزة Apple silicon.
 
+### الويندوز
+
+1. حمّل ملف التثبيت المناسب لجهازك من آخر إصدار:
+   - **[Adawat-Setup-x64.exe](https://github.com/motalim-ai/adawat/releases/latest/download/Adawat-Setup-x64.exe)** لمعظم الأجهزة (Intel أو AMD).
+   - **[Adawat-Setup-arm64.exe](https://github.com/motalim-ai/adawat/releases/latest/download/Adawat-Setup-arm64.exe)** لأجهزة ARM (زي Snapdragon و Surface Pro X).
+
+   مش متأكد؟ افتح **الإعدادات ← النظام ← حول (Settings ← System ← About)** وبص على **نوع النظام (System type)**.
+2. افتح ملف التثبيت. لو الويندوز قالك *Windows protected your PC*، اضغط **More info** وبعدين **Run anyway**.
+   ولو المتصفح قالك إن الملف مش بيتحمّل كتير، اختار **Keep**.
+3. اختار **العربية** أو **English**، وبعدين **التالي** و **تثبيت**. مش محتاج باسورد المسؤول، لأن أدوات بيتثبت
+   على حسابك انت بس.
+4. أدوات هيشتغل جنب الساعة (لو الأيقونة مستخبية، دوّر تحت السهم **^**)، ودليل البداية بيخليك تجرّب مرة.
+
+**ليه الويندوز بيحذّر؟** لأن ملف التثبيت لسه مش موقّع رقميًا، فـ SmartScreen مش عارفه. والتطبيق مفتوح المصدر،
+وبصمة SHA-256 لكل ملف تثبيت مكتوبة في صفحة الإصدار.
+
+محتاج Windows 10 (إصدار 1809) أو Windows 11، نسخة 64 بت. وتقدر تشيله في أي وقت من **الإعدادات ← التطبيقات**.
+
 </div>
+
+<p align="center">
+  <img src="docs/media/screens/win-wheel-tools.png" alt="عجلة الأدوات لملف PDF في مستكشف الملفات على Windows 11" width="760"><br>
+  <sub>أدوات على Windows 11: عجلة الأدوات لملف PDF، وهي مفتوحة أثناء سحبه من مستكشف الملفات</sub>
+</p>
 
 <div dir="rtl">
 
 ## بيشتغل إزاي؟
 
-1. **اسحب** ملف أو أكتر من Finder أو سطح المكتب أو أي برنامج.
+1. **اسحب** ملف أو أكتر من Finder أو مستكشف الملفات أو سطح المكتب أو أي برنامج.
 2. **وانت بتسحب، اضغط مفتاح** فتظهر عجلته. العجلة بتفضل مفتوحة لحد ما تفلت الملف.
 3. **أفلت** على الاختيار. النتيجة بتتحفظ جنب الملف الأصلي (أو في التنزيلات أو على سطح المكتب حسب اختيارك).
 
-| المفتاح | العجلة | فيها إيه |
-| :---: | --- | --- |
-| <kbd>⇧ Shift</kbd> | **تحويل** | كل الصيغ اللي الملف ممكن يتحوّل لها |
-| <kbd>⌘ Command</kbd> | **أدوات** | ضغط وتعديل وقص وترتيب وغيرهم حسب نوع الملف |
-| <kbd>⌃ Control</kbd> | **إجراءات** | AirDrop و Float ونسخ ونقل ونسخ المسار وفتح Terminal |
+| الماك | الويندوز | العجلة | فيها إيه |
+| :---: | :---: | --- | --- |
+| <kbd>⇧ Shift</kbd> | <kbd>Shift</kbd> | **تحويل** | كل الصيغ اللي الملف ممكن يتحوّل لها |
+| <kbd>⌘ Command</kbd> | <kbd>Ctrl</kbd> | **أدوات** | ضغط وتعديل وقص وترتيب وغيرهم حسب نوع الملف |
+| <kbd>⌃ Control</kbd> | <kbd>Alt</kbd> | **إجراءات** | المشاركة (AirDrop على الماك) و Float ونسخ ونقل ونسخ المسار وفتح Terminal |
 
 تقدر تغيّر المفاتيح من الإعدادات. الأدوات اللي محتاجة اختيارات (زي الضغط والقص والتعديل) بتفتح نافذة صغيرة
 الأول، والباقي بيشتغل أول ما تفلت الملف.
@@ -111,6 +137,9 @@ xattr -dr com.apple.quarantine /Applications/Adawat.app && open /Applications/Ad
 | **العروض التقديمية** (PowerPoint و Keynote و ODP) | PDF · Keynote · PNG · JPEG |
 | **الترجمة** (SRT و VTT) | SRT · VTT · نص |
 | **الملفات المضغوطة** (ZIP و TAR و TGZ و GZ و RAR و 7Z…) | ZIP · TAR · TGZ، أو فك الضغط |
+
+وعلى الويندوز القايمة نفسها، مع الفروق دي: الـ PDF بيتحوّل كمان لـ **Excel**، وملفات HEIC بتتفتح بس مش بيتحوّل
+ليها، و Pages و Keynote و Numbers على الماك بس، والعروض التقديمية محتاجة PowerPoint أو LibreOffice متثبتين.
 
 ### الأدوات
 
@@ -154,8 +183,8 @@ xattr -dr com.apple.quarantine /Applications/Adawat.app && open /Applications/Ad
 
 ## عربي وإنجليزي
 
-الواجهة كلها متاحة بالعربي من اليمين للشمال، وبالإنجليزي. أول مرة بيشتغل التطبيق بلغة جهازك، وتقدر تغيّرها
-في أي وقت من الإعدادات.
+الواجهة كلها متاحة بالعربي من اليمين للشمال، وبالإنجليزي، على الماك والويندوز. أول مرة بيشتغل التطبيق بلغة
+جهازك (وعلى الويندوز باللغة اللي تختارها في التثبيت)، وتقدر تغيّرها في أي وقت من الإعدادات.
 
 ## البناء من الكود
 
@@ -176,16 +205,36 @@ scripts/build-app.sh --install     # بيبني التطبيق وينسخه لم
 والأمر `scripts/build-app.sh --dmg` بيعمل كمان ملف `build/Adawat-<version>.dmg`. التطبيق مش محتاج Homebrew
 عشان يشتغل، لأن ffmpeg و cwebp موجودين جوه التطبيق نفسه.
 
+### الويندوز
+
+نسخة الويندوز موجودة في `windows/`، ومكتوبة بـ C# على .NET 10 و WPF. تقدر تبنيها على الويندوز، أو على الماك لو
+عندك .NET 10 SDK.
+
+</div>
+
+```bash
+windows/tools/fetch-ffmpeg.sh                                   # نسخة ffmpeg الحرة لـ x64 و ARM64
+dotnet build windows/src/Adawat.App/Adawat.App.csproj -c Release
+windows/tools/build-installer.sh                                # بيعمل Adawat-Setup-x64.exe و Adawat-Setup-arm64.exe
+```
+
+<div dir="rtl">
+
+السكربت `build-installer.sh` بيجهّز النسختين، وبيبني ملف التثبيت `windows/installer/Adawat.iss` بـ
+[Inno Setup 6](https://jrsoftware.org/isinfo.php) على جهاز ويندوز بيوصله بـ SSH (`ADAWAT_WIN_HOST`).
+وأداة `adawat-cli` بتشغّل أي اختيار من العجلة من سطر الأوامر للتجربة، زي `adawat-cli list photo.jpg`
+و `adawat-cli run image.webp photo.jpg`.
+
 ## الخصوصية
 
-أدوات عمره ما بيبعت ملفاتك لأي مكان. مافيهوش تتبّع ولا حساب ولا أي خاصية إنترنت. وبيكلّم Pages و Keynote
-و Numbers (بإذنك) بس لما تحوّل صيغهم.
+أدوات عمره ما بيبعت ملفاتك لأي مكان، لا على الماك ولا على الويندوز. مافيهوش تتبّع ولا حساب ولا أي خاصية
+إنترنت. وعلى الماك بيكلّم Pages و Keynote و Numbers (بإذنك) بس لما تحوّل صيغهم.
 
 ## الرخصة
 
 أدوات برنامج حر تحت رخصة [GNU General Public License v3.0](LICENSE): تقدر تستخدمه وتدرسه وتشاركه وتعدّل
-فيه. ولو وزّعت نسخة معدّلة، لازم تفضل حرة بنفس الرخصة. ونسخ ffmpeg و cwebp اللي جوه التطبيق ليهم رخصهم
-الخاصة، تفاصيلها في [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+فيه. ولو وزّعت نسخة معدّلة، لازم تفضل حرة بنفس الرخصة. ونسخ ffmpeg و cwebp ومكتبات الويندوز اللي جوه
+التطبيق ليهم رخصهم الخاصة، تفاصيلها في [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 اسم **أدوات** وأيقونته خاصين بالمشروع ده ومش داخلين في الرخصة.
 
