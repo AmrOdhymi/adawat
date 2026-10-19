@@ -10,14 +10,13 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/motalim-ai/adawat/releases/latest"><img alt="Download" src="https://img.shields.io/github/v/release/motalim-ai/adawat?label=Download&color=5B47E6&style=for-the-badge"></a>
-  <img alt="macOS 14+" src="https://img.shields.io/badge/macOS-14%2B-111?style=for-the-badge&logo=apple">
-  <a href="LICENSE"><img alt="License: GPL v3" src="https://img.shields.io/badge/License-GPL%20v3-7CF2C8?style=for-the-badge"></a>
+  <a href="https://www.youtube.com/@motalim-ai?sub_confirmation=1"><img alt="Subscribe to Motalim on YouTube" src="https://img.shields.io/badge/YouTube-Subscribe%20to%20Motalim-FF0000?style=for-the-badge&logo=youtube&logoColor=white"></a>
 </p>
 
 <p align="center">
-  <a href="https://www.youtube.com/@motalim-ai"><img alt="YouTube: Motalim" src="https://img.shields.io/badge/YouTube-Motalim-FF0000?style=flat-square&logo=youtube&logoColor=white"></a>
-  <a href="https://by-wow.com"><img alt="by-wow.com" src="https://img.shields.io/badge/Website-by--wow.com-5B47E6?style=flat-square&logo=safari&logoColor=white"></a>
+  <a href="https://github.com/motalim-ai/adawat/releases/latest"><img alt="Download" src="https://img.shields.io/github/v/release/motalim-ai/adawat?label=Download&color=5B47E6&style=for-the-badge"></a>
+  <img alt="macOS 14+" src="https://img.shields.io/badge/macOS-14%2B-111?style=for-the-badge&logo=apple">
+  <a href="LICENSE"><img alt="License: GPL v3" src="https://img.shields.io/badge/License-GPL%20v3-7CF2C8?style=for-the-badge"></a>
 </p>
 
 ---
@@ -29,6 +28,33 @@ an edited copy. No upload, no account, no limits. Everything happens on your Mac
 <p align="center">
   <img src="docs/media/demo-en.gif" alt="Dragging a photo, pressing Shift, and dropping it on WEBP" width="760">
 </p>
+
+## Install
+
+> **Video walkthrough, tips and new tools:** [the Motalim channel on YouTube](https://www.youtube.com/@motalim-ai?sub_confirmation=1).
+
+1. Download **[Adawat.dmg](https://github.com/motalim-ai/adawat/releases/latest/download/Adawat.dmg)** from the latest release.
+2. Open it and drag **Adawat** into **Applications**.
+3. Open **Adawat** from Applications. macOS shows *"Adawat" Not Opened*. Press **Done**, not Move to Trash.
+4. Open **System Settings → Privacy & Security**, scroll down to **Security**, and press **Open Anyway** next to
+   *"Adawat" was blocked to protect your Mac*.
+5. Press **Open Anyway** again and enter your Mac password. Adawat opens, and macOS will not ask again.
+6. Look for the wheel icon in the menu bar. The welcome guide lets you practice once.
+
+<details>
+<summary>Prefer Terminal? One command does steps 3 to 5</summary>
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Adawat.app && open /Applications/Adawat.app
+```
+
+</details>
+
+**Why does macOS ask?** Adawat is not notarized by Apple yet, so macOS asks once before opening any app
+downloaded outside the App Store. The app is open source: you can read every line here, or build it yourself.
+On macOS 14 Sonoma, **right-click → Open → Open** also works.
+
+Requires macOS 14 Sonoma or later on Apple silicon.
 
 ## How it works
 
@@ -110,17 +136,6 @@ to the edge of the screen. Results can open in a Float automatically.
 The whole interface is available in Arabic, right to left, and in English. Adawat follows your Mac's language
 on first launch, and you can switch at any time in Settings.
 
-## Install
-
-1. Download **Adawat.dmg** from the [latest release](https://github.com/motalim-ai/adawat/releases/latest).
-2. Open it and drag **Adawat** into **Applications**.
-3. The first time, open it with **right-click → Open**, then **Open** again.
-   This build is not notarized by Apple, so macOS asks once. If it still refuses, go to
-   **System Settings → Privacy & Security** and press **Open Anyway**.
-4. Look for the wheel icon in the menu bar. The welcome guide lets you practice once.
-
-Requires macOS 14 Sonoma or later on Apple silicon.
-
 ## Build from source
 
 You need Xcode 15.3 or later (or its command line tools), plus `cmake` and `pkgconf` for the bundled ffmpeg.
@@ -166,9 +181,12 @@ The name **Adawat** and its icon identify this project and are not covered by th
 
 ## Made by Motalim
 
-<p>
-  <a href="https://www.youtube.com/@motalim-ai"><b>Motalim on YouTube</b></a> ·
-  <a href="https://by-wow.com"><b>by-wow.com</b></a>
+<p align="center">
+  <a href="https://www.youtube.com/@motalim-ai?sub_confirmation=1"><img alt="Subscribe to Motalim on YouTube" src="https://img.shields.io/badge/YouTube-Subscribe%20to%20Motalim-FF0000?style=for-the-badge&logo=youtube&logoColor=white"></a>
 </p>
+
+Adawat is made by **Motalim**. Tutorials, new tools and behind-the-scenes videos are on
+**[the Motalim YouTube channel](https://www.youtube.com/@motalim-ai?sub_confirmation=1)**. Subscribe to follow
+what comes next. Also by [by-wow.com](https://by-wow.com).
 
 Ideas, bugs or translations? [Open an issue](https://github.com/motalim-ai/adawat/issues).

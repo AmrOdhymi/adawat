@@ -10,14 +10,13 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/motalim-ai/adawat/releases/latest"><img alt="تحميل" src="https://img.shields.io/github/v/release/motalim-ai/adawat?label=Download&color=5B47E6&style=for-the-badge"></a>
-  <img alt="macOS 14+" src="https://img.shields.io/badge/macOS-14%2B-111?style=for-the-badge&logo=apple">
-  <a href="LICENSE"><img alt="الرخصة GPL v3" src="https://img.shields.io/badge/License-GPL%20v3-7CF2C8?style=for-the-badge"></a>
+  <a href="https://www.youtube.com/@motalim-ai?sub_confirmation=1"><img alt="اشترك في قناة متعلم على يوتيوب" src="https://img.shields.io/badge/YouTube-%D8%A7%D8%B4%D8%AA%D8%B1%D9%83%20%D9%81%D9%8A%20%D9%82%D9%86%D8%A7%D8%A9%20%D9%85%D8%AA%D8%B9%D9%84%D9%85-FF0000?style=for-the-badge&logo=youtube&logoColor=white"></a>
 </p>
 
 <p align="center">
-  <a href="https://www.youtube.com/@motalim-ai"><img alt="قناة متعلم على يوتيوب" src="https://img.shields.io/badge/YouTube-Motalim-FF0000?style=flat-square&logo=youtube&logoColor=white"></a>
-  <a href="https://by-wow.com"><img alt="by-wow.com" src="https://img.shields.io/badge/Website-by--wow.com-5B47E6?style=flat-square&logo=safari&logoColor=white"></a>
+  <a href="https://github.com/motalim-ai/adawat/releases/latest"><img alt="تحميل" src="https://img.shields.io/github/v/release/motalim-ai/adawat?label=Download&color=5B47E6&style=for-the-badge"></a>
+  <img alt="macOS 14+" src="https://img.shields.io/badge/macOS-14%2B-111?style=for-the-badge&logo=apple">
+  <a href="LICENSE"><img alt="الرخصة GPL v3" src="https://img.shields.io/badge/License-GPL%20v3-7CF2C8?style=for-the-badge"></a>
 </p>
 
 ---
@@ -33,6 +32,41 @@
 <p align="center">
   <img src="docs/media/demo-ar.gif" alt="سحب صورة والضغط على Shift وإفلاتها على WEBP" width="760">
 </p>
+
+<div dir="rtl">
+
+## التثبيت
+
+> **شرح بالفيديو ونصايح وأدوات جديدة:** على [قناة متعلم على يوتيوب](https://www.youtube.com/@motalim-ai?sub_confirmation=1).
+
+1. حمّل **[Adawat.dmg](https://github.com/motalim-ai/adawat/releases/latest/download/Adawat.dmg)** من آخر إصدار.
+2. افتحه واسحب **Adawat** لمجلد **Applications**.
+3. افتح **Adawat** من Applications. هتظهر رسالة *"Adawat" Not Opened*. اضغط **Done**، ومتضغطش Move to Trash.
+4. افتح **إعدادات النظام (System Settings) ← الخصوصية والأمان (Privacy & Security)**، وانزل لتحت لحد جزء
+   **Security**، واضغط **Open Anyway** جنب جملة *"Adawat" was blocked to protect your Mac*.
+5. اضغط **Open Anyway** تاني، واكتب باسورد الماك. التطبيق هيفتح، ومش هيسألك تاني خالص.
+6. هتلاقي أيقونة العجلة في شريط القوائم، ودليل البداية بيخليك تجرّب مرة.
+
+</div>
+
+<details dir="rtl">
+<summary>بتحب Terminal؟ أمر واحد بيعمل الخطوات من 3 لـ 5</summary>
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Adawat.app && open /Applications/Adawat.app
+```
+
+</details>
+
+<div dir="rtl">
+
+**ليه الماك بيسأل؟** لأن أدوات لسه مش موثّق من أبل، فالماك بيسأل مرة واحدة قبل ما يفتح أي برنامج متحمّل من
+برا App Store. والتطبيق مفتوح المصدر: تقدر تقرا كل سطر فيه هنا، أو تبنيه بنفسك.
+وعلى macOS 14 Sonoma، طريقة **كليك يمين ← Open ← Open** بتشتغل كمان.
+
+محتاج macOS 14 Sonoma أو أحدث على أجهزة Apple silicon.
+
+</div>
 
 <div dir="rtl">
 
@@ -123,17 +157,6 @@
 الواجهة كلها متاحة بالعربي من اليمين للشمال، وبالإنجليزي. أول مرة بيشتغل التطبيق بلغة جهازك، وتقدر تغيّرها
 في أي وقت من الإعدادات.
 
-## التثبيت
-
-1. حمّل **Adawat.dmg** من [آخر إصدار](https://github.com/motalim-ai/adawat/releases/latest).
-2. افتحه واسحب **Adawat** لمجلد **Applications**.
-3. أول مرة، افتحه بـ **كليك يمين ← Open**، وبعدين **Open** تاني.
-   النسخة دي مش موثّقة من Apple، فالنظام بيسأل مرة واحدة بس. لو لسه رافض، روح
-   **إعدادات النظام ← الخصوصية والأمان** واضغط **Open Anyway**.
-4. هتلاقي أيقونة العجلة في شريط القوائم، ودليل البداية بيخليك تجرّب مرة.
-
-محتاج macOS 14 Sonoma أو أحدث على أجهزة Apple silicon.
-
 ## البناء من الكود
 
 محتاج Xcode 15.3 أو أحدث (أو أدوات سطر الأوامر بتاعته)، ومعاه `cmake` و `pkgconf` عشان نسخة ffmpeg اللي جوه التطبيق.
@@ -170,12 +193,15 @@ scripts/build-app.sh --install     # بيبني التطبيق وينسخه لم
 
 </div>
 
-<p dir="rtl">
-  <a href="https://www.youtube.com/@motalim-ai"><b>قناة متعلم على يوتيوب</b></a> ·
-  <a href="https://by-wow.com"><b>by-wow.com</b></a>
+<p align="center">
+  <a href="https://www.youtube.com/@motalim-ai?sub_confirmation=1"><img alt="اشترك في قناة متعلم على يوتيوب" src="https://img.shields.io/badge/YouTube-%D8%A7%D8%B4%D8%AA%D8%B1%D9%83%20%D9%81%D9%8A%20%D9%82%D9%86%D8%A7%D8%A9%20%D9%85%D8%AA%D8%B9%D9%84%D9%85-FF0000?style=for-the-badge&logo=youtube&logoColor=white"></a>
 </p>
 
 <div dir="rtl">
+
+أدوات من صنع **متعلم**. الشروحات والأدوات الجديدة وكواليس الشغل موجودين على
+**[قناة متعلم على يوتيوب](https://www.youtube.com/@motalim-ai?sub_confirmation=1)**. اشترك عشان تتابع اللي جاي.
+ومن [by-wow.com](https://by-wow.com) كمان.
 
 عندك فكرة أو مشكلة أو ترجمة؟ [افتح Issue](https://github.com/motalim-ai/adawat/issues).
 
