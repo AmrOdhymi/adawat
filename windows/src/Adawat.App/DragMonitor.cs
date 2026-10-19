@@ -83,6 +83,10 @@ public sealed class DragMonitor : IDisposable
             if (_buttonDown) Finish();
             return;
         }
+        // Pointers moved without input events (remote sessions, pen drivers, automation) never reach the hook.
+        if (!_moved && Native.GetCursorPos(out var now)
+            && (Math.Abs(now.X - _downAt.X) > Native.GetSystemMetrics(Native.SM_CXDRAG) || Math.Abs(now.Y - _downAt.Y) > Native.GetSystemMetrics(Native.SM_CYDRAG)))
+            _moved = true;
         Check(Native.VK_SHIFT, ref _shiftWas, ModifierKey.Shift);
         Check(Native.VK_CONTROL, ref _ctrlWas, ModifierKey.Ctrl);
         Check(Native.VK_MENU, ref _altWas, ModifierKey.Alt);
@@ -91,6 +95,7 @@ public sealed class DragMonitor : IDisposable
     private void Check(int key, ref bool was, ModifierKey modifier)
     {
         var down = Native.IsDown(key);
+        if (down && !was && File.Exists(Path.Combine(Settings.Folder, "debug-drag"))) Log.Write($"key {modifier} moved={_moved} shellDrag={Native.ShellDragInProgress()}");
         if (down && !was && _moved && Native.ShellDragInProgress() && Native.GetCursorPos(out var point))
             KeyDuringDrag?.Invoke(modifier, new System.Windows.Point(point.X, point.Y));
         was = down;

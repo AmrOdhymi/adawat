@@ -92,7 +92,9 @@ public static class WheelGeometry
 public sealed class WheelWindow : Window
 {
     private readonly Grid _root = new() { Width = WheelGeometry.Size, Height = WheelGeometry.Size, Background = Brushes.Transparent };
-    private readonly Canvas _petals = new() { Width = WheelGeometry.Size, Height = WheelGeometry.Size };
+    // Petals are redrawn as the hover moves; were they hit-testable, the element under the pointer would vanish mid-drag and
+    // Windows would show "no drop". The steady background takes the drag, and the angle decides the petal.
+    private readonly Canvas _petals = new() { Width = WheelGeometry.Size, Height = WheelGeometry.Size, IsHitTestVisible = false };
     private readonly TextBlock _center = new() { TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap, Foreground = Brushes.Black, MaxWidth = 64 };
     private readonly ScaleTransform _scale = new(0.9, 0.9, WheelGeometry.Size / 2, WheelGeometry.Size / 2);
     private IReadOnlyList<AdawatOperation> _operations = [];
@@ -119,7 +121,7 @@ public sealed class WheelWindow : Window
         {
             Width = (WheelGeometry.OuterRadius + 6.5) * 2, Height = (WheelGeometry.OuterRadius + 6.5) * 2,
             Stroke = new SolidColorBrush(Color.FromArgb(0x55, 0xFF, 0xFF, 0xFF)), StrokeThickness = 1,
-            Fill = Theme.Disc, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
+            Fill = Theme.Disc, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, IsHitTestVisible = false,
             Effect = new DropShadowEffect { BlurRadius = 18, ShadowDepth = 5, Direction = 270, Opacity = 0.18, Color = Color.FromRgb(0x26, 0x34, 0x38) },
         };
         var hole = new EllipseGeometry(new Point(WheelGeometry.Size / 2, WheelGeometry.Size / 2), WheelGeometry.InnerRadius - 6, WheelGeometry.InnerRadius - 6);
@@ -130,7 +132,7 @@ public sealed class WheelWindow : Window
         {
             Child = _center, Background = new SolidColorBrush(Color.FromArgb(0xEE, 0xFF, 0xFF, 0xFF)), CornerRadius = new CornerRadius(24),
             BorderBrush = new SolidColorBrush(Color.FromArgb(0xB3, 0xFF, 0xFF, 0xFF)), BorderThickness = new Thickness(1),
-            Padding = new Thickness(8, 6, 8, 6), MinHeight = 32, MinWidth = 70,
+            Padding = new Thickness(8, 6, 8, 6), MinHeight = 32, MinWidth = 70, IsHitTestVisible = false,
             HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
             Effect = new DropShadowEffect { BlurRadius = 6, ShadowDepth = 2, Direction = 270, Opacity = 0.1 },
         };
@@ -142,7 +144,12 @@ public sealed class WheelWindow : Window
         _root.AllowDrop = true;
         _root.DragEnter += (_, e) => OnDrag(e, entering: true);
         _root.DragOver += (_, e) => OnDrag(e, entering: false);
-        _root.DragLeave += (_, _) => SetHovered(null);
+        _root.DragLeave += (_, e) =>
+        {
+            // Moving between the disc and the centre label also raises DragLeave; only leaving the wheel clears the hover.
+            var p = e.GetPosition(_root);
+            if (p.X <= 0 || p.Y <= 0 || p.X >= _root.ActualWidth || p.Y >= _root.ActualHeight) SetHovered(null);
+        };
         _root.Drop += OnDrop;
         Content = _root;
         SourceInitialized += (_, _) => Native.MakeToolWindow(new WindowInteropHelper(this).Handle);
