@@ -244,13 +244,14 @@ extension MediaOps {
         var args: [String]
         if let image {
             args = ["-loop", "1", "-framerate", "15", "-i", image.path, "-i", file.path, "-filter_complex",
-                    "[0:v]scale=\(w):\(h):force_original_aspect_ratio=decrease,pad=\(w):\(h):(ow-iw)/2:(oh-ih)/2:black,format=yuv420p[v]",
+                    "[0:v]scale=\(w):\(h):force_original_aspect_ratio=decrease:force_divisible_by=2,format=rgba,pad=\(w):\(h):(ow-iw)/2:(oh-ih)/2:black,format=yuv420p[v]",
                     "-map", "[v]", "-map", "1:a:0"]
         } else {
-            let waveHeight = h / 3
+            // draw=full paints the chosen colour as is; the default blending adds overlapping samples until the colour overflows.
+            let waveWidth = (w - w / 8) / 2 * 2, waveHeight = h / 3 / 2 * 2
             args = ["-i", file.path, "-filter_complex",
-                    "[0:a]showwaves=s=\(w - w / 8)x\(waveHeight):mode=cline:rate=30:colors=\(hex):scale=sqrt,"
-                        + "pad=\(w):\(h):(ow-iw)/2:(oh-ih)/2:black,format=yuv420p[v]",
+                    "[0:a]showwaves=s=\(waveWidth)x\(waveHeight):mode=cline:rate=30:colors=\(hex):scale=sqrt:draw=full,"
+                        + "format=rgba,pad=\(w):\(h):(ow-iw)/2:(oh-ih)/2:black,format=yuv420p[v]",
                     "-map", "[v]", "-map", "0:a:0"]
         }
         args += ["-c:v", "h264_videotoolbox", "-q:v", "65", "-c:a", FFmpeg.aac, "-b:a", "192k", "-shortest",
