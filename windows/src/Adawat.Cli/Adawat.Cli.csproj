@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- adawat.exe: every tool from the command line, and the test modes used to check a build. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>adawat</AssemblyName>
+    <RootNamespace>Adawat.Cli</RootNamespace>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Adawat.Core\Adawat.Core.csproj" />
+  </ItemGroup>
+</Project>

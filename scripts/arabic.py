@@ -267,6 +267,24 @@ DYNAMIC = {
     "Choose where to move {1}": "اختر مكان نقل {1}", "{1} × {2} modules": "{1} × {2} وحدة", "{1} items": "{1} عناصر",
 }
 
+# Text only the Windows app shows.
+WINDOWS_STATIC = {
+    "Ctrl": "Ctrl", "Alt": "Alt", "Windows": "Windows", "File Explorer": "مستكشف الملفات",
+    "Show in File Explorer": "إظهار في مستكشف الملفات", "Shown in File Explorer": "ظهر في مستكشف الملفات",
+    "Share": "مشاركة", "Sharing": "جارٍ المشاركة", "Open in Terminal": "فتح في Terminal",
+    "Start Adawat when Windows starts": "تشغيل أدوات مع بدء Windows",
+    "Adawat lives next to the clock, so it is ready whenever you drag a file.": "تطبيق أدوات يعيش بجانب الساعة، فهو جاهز كلما سحبت ملفًا.",
+    "Find the Adawat icon next to the clock for Floats, Settings and this guide.": "ستجد أيقونة أدوات بجانب الساعة، ومنها الـ Floats والإعدادات وهذا الدليل.",
+    "Microsoft Word is needed for this file.": "يلزم Microsoft Word لهذا الملف.",
+    "Microsoft PowerPoint is needed for this file.": "يلزم Microsoft PowerPoint لهذا الملف.",
+    "Microsoft Excel is needed for this file.": "يلزم Microsoft Excel لهذا الملف.",
+    "Pages, Keynote and Numbers files are not supported on Windows.": "ملفات Pages و Keynote و Numbers غير مدعومة على Windows.",
+    "Exit": "خروج", "Exit Adawat": "إنهاء أدوات",
+}
+WINDOWS_DYNAMIC = {
+    "Drag files, then press {1}, {2} or {3}": "اسحب الملفات ثم اضغط {1} أو {2} أو {3}",
+}
+
 
 def regex(english):
     """'Converting {1} of {2}' → 'Converting (.+?) of (.+?)' with everything else matched literally."""
@@ -289,6 +307,14 @@ def main():
     (root / "Patterns.strings").write_text(patterns, encoding="utf-8")
     # The app's own name in Finder, the Dock and Launchpad.
     (root / "InfoPlist.strings").write_text('"CFBundleDisplayName" = "أدوات";\n"CFBundleName" = "أدوات";\n', encoding="utf-8")
+    # The Windows app reads the same translations as JSON; {1}, {2}… stay as written.
+    import json
+    shared = root.parent.parent / "windows" / "shared"
+    if shared.parent.exists():
+        shared.mkdir(exist_ok=True)
+        merged = {**STATIC, **WINDOWS_STATIC}
+        (shared / "strings.ar.json").write_text(json.dumps(merged, ensure_ascii=False, indent=1, sort_keys=True), encoding="utf-8")
+        (shared / "patterns.ar.json").write_text(json.dumps({**DYNAMIC, **WINDOWS_DYNAMIC}, ensure_ascii=False, indent=1, sort_keys=True), encoding="utf-8")
     print(f"{len(STATIC)} strings, {len(DYNAMIC)} patterns")
 
 

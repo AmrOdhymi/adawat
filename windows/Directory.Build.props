@@ -1,0 +1,22 @@
+<Project>
+  <!-- Shared by every Adawat for Windows project. Builds on macOS too (EnableWindowsTargeting), runs on Windows 10 1809+. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <RuntimeIdentifiers>win-arm64;win-x64</RuntimeIdentifiers>
+    <Version>1.0.0</Version>
+    <Company>Motalim</Company>
+    <Product>Adawat</Product>
+    <Copyright>Motalim · GPL v3</Copyright>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)GlobalUsings.cs" Link="GlobalUsings.cs" />
+  </ItemGroup>
+</Project>
