@@ -94,11 +94,11 @@ xattr -dr com.apple.quarantine /Applications/Adawat.app && open /Applications/Ad
 
 | التوزيعة | التحميل | التثبيت |
 | --- | --- | --- |
-| Ubuntu و Debian و Linux Mint و Pop!_OS | [adawat_1.1.0_amd64.deb](https://github.com/motalim-ai/adawat/releases/latest/download/adawat_1.1.0_amd64.deb) | دوس عليه مرتين، أو `sudo apt install ./adawat_1.1.0_amd64.deb` |
-| Fedora و openSUSE | [adawat-1.1.0-1.x86_64.rpm](https://github.com/motalim-ai/adawat/releases/latest/download/adawat-1.1.0-1.x86_64.rpm) | `sudo dnf install ./adawat-1.1.0-1.x86_64.rpm` |
+| Ubuntu و Debian و Linux Mint و Pop!_OS | [Adawat-linux-amd64.deb](https://github.com/motalim-ai/adawat/releases/latest/download/Adawat-linux-amd64.deb) | دوس عليه مرتين، أو `sudo apt install ./Adawat-linux-amd64.deb` |
+| Fedora و openSUSE | [Adawat-linux-x86_64.rpm](https://github.com/motalim-ai/adawat/releases/latest/download/Adawat-linux-x86_64.rpm) | `sudo dnf install ./Adawat-linux-x86_64.rpm` |
 | أي توزيعة تانية | [Adawat-x86_64.AppImage](https://github.com/motalim-ai/adawat/releases/latest/download/Adawat-x86_64.AppImage) | خليه قابل للتشغيل (`chmod +x`) وافتحه. مش محتاج تثبيت. |
 
-ملفات ARM64 آخرها `arm64.deb` و `aarch64.rpm` و `aarch64.AppImage`. وملفات .deb و .rpm بتثبّت كمان البرامج اللي
+ملفات ARM64 آخرها `Adawat-linux-arm64.deb` و `Adawat-linux-aarch64.rpm` و `Adawat-aarch64.AppImage`. وملفات .deb و .rpm بتثبّت كمان البرامج اللي
 أدوات بيقرا بيها النص وبيعمل بيها المستندات (Tesseract و WeasyPrint و LibreOffice)، أما مع الـ AppImage فأدوات
 بيقولك تثبّت إيه أول ما أداة تحتاجه.
 

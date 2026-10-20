@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>أدوات · Adawat</title>
-<meta name="description" content="أدوات تطبيق مجاني ومفتوح المصدر للماك و Windows: اسحب أي ملف واضغط مفتاحًا، فتظهر عجلة اختيارات تحت المؤشر. حوّل واضغط وعدّل ملفاتك على جهازك، بلا رفع ولا حساب. Adawat: convert, compress and edit any file while you drag it.">
+<meta name="description" content="أدوات تطبيق مجاني ومفتوح المصدر للماك و Windows ولينكس: اسحب أي ملف واضغط مفتاحًا، فتظهر عجلة اختيارات تحت المؤشر. حوّل واضغط وعدّل ملفاتك على جهازك، بلا رفع ولا حساب. Adawat: convert, compress and edit any file while you drag it.">
 <meta name="theme-color" content="#0B0919">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Adawat · أدوات">
-<meta property="og:description" content="Convert, compress and edit any file while you drag it. Free and open source for Mac and Windows. حوّل واضغط وعدّل أي ملف وأنت تسحبه.">
+<meta property="og:description" content="Convert, compress and edit any file while you drag it. Free and open source for Mac, Windows and Linux. حوّل واضغط وعدّل أي ملف وأنت تسحبه.">
 <meta property="og:url" content="https://motalim-ai.github.io/adawat/">
 <meta property="og:image" content="https://motalim-ai.github.io/adawat/media/banner-light.png">
 <meta property="og:image:width" content="3200">
@@ -30,6 +30,7 @@
   if(q.get('static')==='1'){d.classList.add('static')}
   else if(!reduce&&'IntersectionObserver' in window){d.classList.add('anim')}
   if(/Windows/i.test(navigator.userAgent)){d.classList.add('is-win')}
+  else if(/Linux|X11/i.test(navigator.userAgent)&&!/Android/i.test(navigator.userAgent)){d.classList.add('is-linux')}
 })();
 </script>
 <style>
@@ -135,7 +136,17 @@ html[lang="ar"] .hero h1{font-weight:700;letter-spacing:0;line-height:1.28;font-
 .hero-cta{display:flex;justify-content:center;gap:12px;margin-top:36px;flex-wrap:wrap}
 .is-win .hero-cta .cta-mac{order:2}
 .is-win .hero-cta .cta-mac{background:rgba(255,255,255,.07);box-shadow:none;border:1px solid rgba(255,255,255,.16)}
-.is-win .hero-cta .cta-win{background:linear-gradient(180deg,#6B58F0,#5B47E6);border-color:transparent;box-shadow:0 10px 30px -8px rgba(91,71,230,.75)}
+.is-win .hero-cta .cta-win,.is-linux .hero-cta .cta-linux{background:linear-gradient(180deg,#6B58F0,#5B47E6);border-color:transparent;box-shadow:0 10px 30px -8px rgba(91,71,230,.75)}
+.is-linux .hero-cta .cta-mac{order:2;background:rgba(255,255,255,.07);box-shadow:none;border:1px solid rgba(255,255,255,.16)}
+.is-linux .hero-cta .cta-linux{order:-1}
+/* the note that appears once a download starts */
+.dl-note{display:none;margin-top:14px;padding:12px 14px;border-radius:14px;background:rgba(142,235,198,.10);border:1px solid rgba(142,235,198,.28);font-size:14px;line-height:1.6;color:rgba(255,255,255,.88)}
+.dl-note.on{display:block}
+.dl-note b{color:#fff}
+.hero .dl-note{max-width:620px;margin:16px auto 0;text-align:start}
+.isteps code{font:500 12.5px/1.9 "SFMono-Regular",Menlo,Consolas,monospace;background:rgba(255,255,255,.08);padding:2px 7px;border-radius:6px;color:#fff;white-space:nowrap;direction:ltr}
+.dl-more{margin-top:10px;font-size:13.5px;color:var(--muted)}
+.dl-more a{color:#fff;text-decoration:underline;text-underline-offset:3px;font-family:"Inter",sans-serif}
 .hero-meta{display:flex;justify-content:center;flex-wrap:wrap;gap:6px 22px;margin-top:22px;font-size:14px;color:rgba(255,255,255,.55)}
 .hero-meta>span{display:inline-flex;align-items:center;gap:8px}
 .hero-meta>span::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--mint)}
@@ -311,7 +322,8 @@ button.krow:hover{border-color:var(--line-strong)}
 .dl{background:#0B0919;overflow:hidden;isolation:isolate;border-block:1px solid rgba(255,255,255,.06)}
 .dl::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(50% 55% at 50% 0%,rgba(91,71,230,.55),transparent 70%),radial-gradient(30% 40% at 90% 90%,rgba(142,235,198,.10),transparent 70%)}
 .dl-icon{width:112px;height:112px;margin:0 auto 22px;filter:drop-shadow(0 18px 40px rgba(91,71,230,.7))}
-.dl-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:56px}
+.dl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:56px}
+@media (max-width:1100px){.dl-grid{grid-template-columns:1fr 1fr}}
 .dlc{border-radius:28px;padding:clamp(24px,3vw,36px);background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.12);display:flex;flex-direction:column}
 .dlc-head{display:flex;align-items:center;gap:14px}
 .os-ic{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);font-size:24px}
@@ -469,6 +481,7 @@ footer{border-top:1px solid var(--line);padding:36px 0 48px;font-size:14px;color
       <a href="#story"><span class="ar">الأدوات</span><span class="en">Tools</span></a>
       <a href="#formats"><span class="ar">الصيغ</span><span class="en">Formats</span></a>
       <a href="#windows">Windows</a>
+      <a href="#download-linux">Linux</a>
       <a href="#download"><span class="ar">التحميل</span><span class="en">Download</span></a>
     </nav>
     <div class="nav-tools">
@@ -491,7 +504,7 @@ footer{border-top:1px solid var(--line);padding:36px 0 48px;font-size:14px;color
   <div class="hero-bg" aria-hidden="true"></div>
   <div class="wrap">
     <div class="hero-copy">
-      <div class="pill"><b><span class="ar">مجاني</span><span class="en">Free</span></b><span class="ar">ومفتوح المصدر · للماك و Windows</span><span class="en">Open source · for Mac and Windows</span></div>
+      <div class="pill"><b><span class="ar">مجاني</span><span class="en">Free</span></b><span class="ar">ومفتوح المصدر · للماك و Windows ولينكس</span><span class="en">Open source · for Mac, Windows and Linux</span><!--ws--></div>
       <h1>
         <span class="ar">حوّل واضغط وعدّل أي ملف<br class="brd"> <span class="glow-text">وأنت تسحبه.</span></span>
         <span class="en">Convert, compress and edit<br class="brd"> any file <span class="glow-text">while you drag it.</span></span>
@@ -505,14 +518,20 @@ footer{border-top:1px solid var(--line);padding:36px 0 48px;font-size:14px;color
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>
           <span class="ar">تحميل للماك</span><span class="en">Download for Mac</span>
         </a>
-        <a class="btn btn-ghost cta-win" href="#download-win">
+        <a class="btn btn-ghost cta-win" href="https://github.com/motalim-ai/adawat/releases/latest/download/Adawat-Setup-x64.exe" data-win-installer>
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.3l7.4-1v7.2H3zM11.4 4.1L21 2.8v8.7h-9.6zM3 12.5h7.4v7.2l-7.4-1zM11.4 12.5H21v8.7l-9.6-1.3z"/></svg>
           <span class="ar">تحميل لـ Windows</span><span class="en">Download for Windows</span>
         </a>
+        <a class="btn btn-ghost cta-linux" href="#download-linux">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c-2.2 0-3.6 1.9-3.6 4.6 0 1.4.4 2.4-.4 3.9-.9 1.6-2.9 3.6-2.9 6.6 0 .6.1 1.1.3 1.6-.8.4-1.9.9-1.9 1.8 0 1 1.6 1.2 3.3 1.5 1.1.2 2 .9 3 .9.8 0 1.4-.4 1.8-.9h.8c.4.5 1 .9 1.8.9 1 0 1.9-.7 3-.9 1.7-.3 3.3-.5 3.3-1.5 0-.9-1.1-1.4-1.9-1.8.2-.5.3-1 .3-1.6 0-3-2-5-2.9-6.6-.8-1.5-.4-2.5-.4-3.9C15.6 3.9 14.2 2 12 2zm-1.6 4.2c.5 0 .8.6.8 1.2s-.3 1.1-.8 1.1-.8-.5-.8-1.1.3-1.2.8-1.2zm3.2 0c.5 0 .8.6.8 1.2s-.3 1.1-.8 1.1-.8-.5-.8-1.1.3-1.2.8-1.2zM12 9.4c.9 0 2 .6 2 1.1 0 .4-1 1.1-2 1.1s-2-.7-2-1.1c0-.5 1.1-1.1 2-1.1z"/></svg>
+          <span class="ar">تحميل لـ Linux</span><span class="en">Download for Linux</span>
+        </a>
       </div>
+      <p class="dl-note" data-win-note role="status"><span class="ar"><b>بدأ التحميل.</b> إذا لم يظهر الملف أو قال المتصفح إنه <span class="ltr">“isn’t commonly downloaded”</span>، فافتح التنزيلات بـ <b>Ctrl+J</b>، واضغط <b>…</b> بجانب الملف ثم <b>Keep</b> (في Edge: <b>Show more</b> ثم <b>Keep anyway</b>). الملف آمن ومفتوح المصدر، لكنه غير موقّع رقميًا بعد.</span><span class="en"><b>Your download has started.</b> If nothing appears, or the browser says the file <em>isn’t commonly downloaded</em>, open your downloads with <b>Ctrl+J</b>, press <b>…</b> next to the file, then <b>Keep</b> (in Edge: <b>Show more</b>, then <b>Keep anyway</b>). The installer is open source but not code-signed yet.</span></p>
       <div class="hero-meta">
         <span>macOS 14+ · Apple silicon</span>
         <span>Windows 10 · 11</span>
+        <span>Linux · x64 · ARM64</span>
         <span><span class="ar">عربي وإنجليزي</span><span class="en">Arabic &amp; English</span></span>
         <span>GPL v3</span>
       </div>
@@ -823,12 +842,12 @@ footer{border-top:1px solid var(--line);padding:36px 0 48px;font-size:14px;color
       <article class="pcard rv">
         <div class="big">0<small> <span class="ar">ملفات تُرفع</span><span class="en">uploads</span></small></div>
         <h3><span class="ar">ملفاتك لا تغادر جهازك</span><span class="en">Your files never leave</span></h3>
-        <p><span class="ar">لا يرسل أدوات ملفاتك إلى أي مكان، لا على الماك ولا على Windows. لا تتبّع، ولا حساب، ولا أي ميزة تعمل عبر الإنترنت. وعلى الماك يستعين بـ Pages و Keynote و Numbers (بإذنك) فقط عند تحويل صيغها.</span><span class="en">Adawat never sends your files anywhere, on Mac or Windows. No analytics, no account and no network features. On Mac, Pages, Keynote and Numbers are asked (with your permission) only when you convert their formats.</span></p>
+        <p><span class="ar">لا يرسل أدوات ملفاتك إلى أي مكان، لا على الماك ولا على Windows ولا على لينكس. لا تتبّع، ولا حساب، ولا أي ميزة تعمل عبر الإنترنت. وعلى الماك يستعين بـ Pages و Keynote و Numbers (بإذنك) فقط عند تحويل صيغها.</span><span class="en">Adawat never sends your files anywhere, on Mac, Windows or Linux. No analytics, no account and no network features. On Mac, Pages, Keynote and Numbers are asked (with your permission) only when you convert their formats.</span></p>
       </article>
       <article class="pcard rv d1">
         <span class="badge"><span class="ar">من اليمين إلى اليسار</span><span class="en">Right to left, done right</span></span>
         <h3><span class="ar">بالعربية وبالإنجليزية</span><span class="en">Arabic and English</span></h3>
-        <p><span class="ar">الواجهة كلها بالعربية من اليمين إلى اليسار، وبالإنجليزية، على الماك و Windows. يبدأ التطبيق بلغة جهازك، ويمكنك تغييرها في أي وقت من الإعدادات.</span><span class="en">The whole interface is in Arabic, right to left, and in English, on Mac and Windows. Adawat starts in your system’s language, and you can switch at any time in Settings.</span></p>
+        <p><span class="ar">الواجهة كلها بالعربية من اليمين إلى اليسار، وبالإنجليزية، على الماك و Windows ولينكس. يبدأ التطبيق بلغة جهازك، ويمكنك تغييرها في أي وقت من الإعدادات.</span><span class="en">The whole interface is in Arabic, right to left, and in English, on Mac, Windows and Linux. Adawat starts in your system’s language, and you can switch at any time in Settings.</span></p>
         <div class="pair">
           <figure><img src="media/screens/ar-wheel-tools.png" alt="عجلة الأدوات بالعربية" loading="lazy" width="696" height="696"><figcaption>العربية</figcaption></figure>
           <figure><img src="media/screens/en-wheel-tools.png" alt="The Tools wheel in English" loading="lazy" width="696" height="696"><figcaption>English</figcaption></figure>
@@ -884,21 +903,51 @@ footer{border-top:1px solid var(--line);padding:36px 0 48px;font-size:14px;color
           <div><h3>Windows</h3><small><span class="ar">Windows 10 (إصدار 1809) أو Windows 11، نسخة 64 بت</span><span class="en">Windows 10 (version 1809) or Windows 11, 64-bit</span></small></div>
         </div>
         <div class="dl-btns">
-          <a class="dl-btn" href="https://github.com/motalim-ai/adawat/releases/latest/download/Adawat-Setup-x64.exe">
+          <a class="dl-btn" href="https://github.com/motalim-ai/adawat/releases/latest/download/Adawat-Setup-x64.exe" data-win-installer>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>
             <span><b><span class="ar">لمعظم الأجهزة (Intel أو AMD)</span><span class="en">For most PCs (Intel or AMD)</span></b><small>Adawat-Setup-x64.exe</small></span>
           </a>
-          <a class="dl-btn alt" href="https://github.com/motalim-ai/adawat/releases/latest/download/Adawat-Setup-arm64.exe">
+          <a class="dl-btn alt" href="https://github.com/motalim-ai/adawat/releases/latest/download/Adawat-Setup-arm64.exe" data-win-installer>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>
             <span><b><span class="ar">لأجهزة ARM (Snapdragon، Surface Pro X…)</span><span class="en">For ARM PCs (Snapdragon, Surface Pro X…)</span></b><small>Adawat-Setup-arm64.exe</small></span>
           </a>
         </div>
+        <p class="dl-note" data-win-note role="status"><span class="ar"><b>بدأ التحميل.</b> إذا لم يظهر الملف أو قال المتصفح إنه <span class="ltr">“isn’t commonly downloaded”</span>، فافتح التنزيلات بـ <b>Ctrl+J</b>، واضغط <b>…</b> بجانب الملف ثم <b>Keep</b> (في Edge: <b>Show more</b> ثم <b>Keep anyway</b>). الملف آمن ومفتوح المصدر، لكنه غير موقّع رقميًا بعد.</span><span class="en"><b>Your download has started.</b> If nothing appears, or the browser says the file <em>isn’t commonly downloaded</em>, open your downloads with <b>Ctrl+J</b>, press <b>…</b> next to the file, then <b>Keep</b> (in Edge: <b>Show more</b>, then <b>Keep anyway</b>). The installer is open source but not code-signed yet.</span></p>
         <ol class="isteps">
+          <li><span class="ar">إذا قال المتصفح إن الملف <em class="ltr">isn’t commonly downloaded</em> أو قد يكون خطرًا، فافتح قائمة التنزيلات (<b>Ctrl+J</b>)، واضغط <b>…</b> بجانب الملف، ثم <b>Keep</b> (في Edge: <b>Show more</b> ثم <b>Keep anyway</b>).</span><span class="en">If the browser says the file <em>isn’t commonly downloaded</em> or may be dangerous, open the downloads list (<b>Ctrl+J</b>), press <b>…</b> next to the file, then <b>Keep</b> (in Edge: <b>Show more</b>, then <b>Keep anyway</b>).</span></li>
           <li><span class="ar">افتح ملف التثبيت. إذا ظهرت رسالة <em class="ltr">Windows protected your PC</em> فاضغط <b>More info</b> ثم <b>Run anyway</b>.</span><span class="en">Open the installer. If Windows shows <em>Windows protected your PC</em>, press <b>More info</b>, then <b>Run anyway</b>.</span></li>
           <li><span class="ar">اختر <b>العربية</b> أو <b>English</b>، ثم <b>التالي</b> و<b>تثبيت</b>. لا حاجة إلى كلمة مرور المسؤول، فالتثبيت لحسابك فقط.</span><span class="en">Pick <b>العربية</b> or <b>English</b>, then <b>Next</b> and <b>Install</b>. No administrator password: it installs for your account only.</span></li>
           <li><span class="ar">يعمل أدوات بجانب الساعة. إن كانت الأيقونة مخفية فابحث تحت السهم <b>^</b>.</span><span class="en">Adawat starts next to the clock. If the icon is hidden, look under the <b>^</b> arrow.</span></li>
         </ol>
-        <p class="why"><b><span class="ar">لست متأكدًا من نوع جهازك؟</span><span class="en">Not sure which one?</span></b> <span class="ar">افتح الإعدادات ← النظام ← حول، وانظر إلى نوع النظام.</span><span class="en">Open Settings → System → About and look at System type.</span><br><b><span class="ar">لماذا يحذّر Windows؟</span><span class="en">Why does Windows warn?</span></b> <span class="ar">لأن ملف التثبيت غير موقّع رقميًا بعد. بصمة SHA-256 لكل ملف مكتوبة في صفحة الإصدار.</span><span class="en">The installer is not code-signed yet. The SHA-256 of each installer is in the release notes.</span></p>
+        <p class="why"><b><span class="ar">لست متأكدًا من نوع جهازك؟</span><span class="en">Not sure which one?</span></b> <span class="ar">افتح الإعدادات ← النظام ← حول، وانظر إلى نوع النظام.</span><span class="en">Open Settings → System → About and look at System type.</span><br><b><span class="ar">لماذا يحذّر Windows؟</span><span class="en">Why does Windows warn?</span></b> <span class="ar">لأن ملف التثبيت غير موقّع رقميًا بعد، فلا يعرفه SmartScreen. بصمة SHA-256 لكل ملف مكتوبة في صفحة الإصدار.</span><span class="en">The installer is not code-signed yet, so SmartScreen does not know it. The SHA-256 of each installer is in the release notes.</span></p>
+      </article>
+
+      <article class="dlc rv d2" id="download-linux">
+        <div class="dlc-head">
+          <div class="os-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c-2.2 0-3.6 1.9-3.6 4.6 0 1.4.4 2.4-.4 3.9-.9 1.6-2.9 3.6-2.9 6.6 0 .6.1 1.1.3 1.6-.8.4-1.9.9-1.9 1.8 0 1 1.6 1.2 3.3 1.5 1.1.2 2 .9 3 .9.8 0 1.4-.4 1.8-.9h.8c.4.5 1 .9 1.8.9 1 0 1.9-.7 3-.9 1.7-.3 3.3-.5 3.3-1.5 0-.9-1.1-1.4-1.9-1.8.2-.5.3-1 .3-1.6 0-3-2-5-2.9-6.6-.8-1.5-.4-2.5-.4-3.9C15.6 3.9 14.2 2 12 2zm-1.6 4.2c.5 0 .8.6.8 1.2s-.3 1.1-.8 1.1-.8-.5-.8-1.1.3-1.2.8-1.2zm3.2 0c.5 0 .8.6.8 1.2s-.3 1.1-.8 1.1-.8-.5-.8-1.1.3-1.2.8-1.2zM12 9.4c.9 0 2 .6 2 1.1 0 .4-1 1.1-2 1.1s-2-.7-2-1.1c0-.5 1.1-1.1 2-1.1z"/></svg></div>
+          <div><h3>Linux</h3><small><span class="ar">x64 و ARM64، على X11 أو Wayland</span><span class="en">x64 and ARM64, on X11 or Wayland</span></small></div>
+        </div>
+        <div class="dl-btns">
+          <a class="dl-btn" href="https://github.com/motalim-ai/adawat/releases/latest/download/Adawat-linux-amd64.deb">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>
+            <span><b><span class="ar">Ubuntu و Debian و Mint</span><span class="en">Ubuntu, Debian, Mint</span></b><small>Adawat-linux-amd64.deb</small></span>
+          </a>
+          <a class="dl-btn alt" href="https://github.com/motalim-ai/adawat/releases/latest/download/Adawat-linux-x86_64.rpm">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>
+            <span><b><span class="ar">Fedora و openSUSE</span><span class="en">Fedora, openSUSE</span></b><small>Adawat-linux-x86_64.rpm</small></span>
+          </a>
+          <a class="dl-btn alt" href="https://github.com/motalim-ai/adawat/releases/latest/download/Adawat-x86_64.AppImage">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>
+            <span><b><span class="ar">أي توزيعة (AppImage)</span><span class="en">Any distribution (AppImage)</span></b><small>Adawat-x86_64.AppImage</small></span>
+          </a>
+        </div>
+        <p class="dl-more"><span class="ar">لأجهزة ARM64:</span><span class="en">For ARM64:</span> <a href="https://github.com/motalim-ai/adawat/releases/latest/download/Adawat-linux-arm64.deb">.deb</a> · <a href="https://github.com/motalim-ai/adawat/releases/latest/download/Adawat-linux-aarch64.rpm">.rpm</a> · <a href="https://github.com/motalim-ai/adawat/releases/latest/download/Adawat-aarch64.AppImage">AppImage</a></p>
+        <ol class="isteps">
+          <li><span class="ar">ثبّت الملف بالنقر عليه مرتين، أو بالأمر:<br><bdi dir="ltr"><code>sudo apt install ./Adawat-linux-amd64.deb</code></bdi><br>أو على Fedora:<br><bdi dir="ltr"><code>sudo dnf install ./Adawat-linux-x86_64.rpm</code></bdi><br>والـ AppImage: اجعله قابلًا للتشغيل وافتحه.</span><span class="en">Double-click the file, or run:<br><code>sudo apt install ./Adawat-linux-amd64.deb</code><br>or on Fedora:<br><code>sudo dnf install ./Adawat-linux-x86_64.rpm</code><br>For the AppImage, make it executable and open it.</span></li>
+          <li><span class="ar">افتح <b>Adawat</b> من التطبيقات، فتظهر أيقونته في الشريط العلوي.</span><span class="en">Open <b>Adawat</b> from your apps. Its icon appears in the top bar.</span></li>
+          <li><span class="ar">على GNOME مع Wayland (Ubuntu و Fedora): سجّل الخروج ثم الدخول مرة واحدة ليحمّل GNOME إضافة أدوات. وعلى X11 تعمل العجلة مباشرة.</span><span class="en">On GNOME with Wayland (Ubuntu, Fedora): sign out and back in once so GNOME loads the Adawat extension. On X11 the wheel works right away.</span></li>
+        </ol>
+        <p class="why"><b><span class="ar">KDE أو سطح مكتب آخر؟</span><span class="en">KDE or another desktop?</span></b> <span class="ar">انقر الملفات بالزر الأيمن واختر <b>فتح بأدوات</b> لتظهر العجلة. ملفات .deb و .rpm تثبّت معها Tesseract و WeasyPrint و LibreOffice، والـ AppImage يحمل ffmpeg بداخله.</span><span class="en">Right-click files and choose <b>Open with Adawat</b> to open the wheel. The .deb and .rpm also install Tesseract, WeasyPrint and LibreOffice; the AppImage carries its own ffmpeg.</span></p>
       </article>
     </div>
   </div>
@@ -1023,6 +1072,22 @@ footer{border-top:1px solid var(--line);padding:36px 0 48px;font-size:14px;color
     document.querySelectorAll('.rv').forEach(function(el){rio.observe(el)});
     setTimeout(function(){document.querySelectorAll('.rv').forEach(function(el){el.classList.add('in')})},6000);
   }
+
+  // Windows downloads: the installer that fits this PC (Chromium tells ARM from x64), and a note on what the browser
+  // asks once the download starts, since an unsigned installer is held back until the visitor chooses Keep.
+  var installers=[].slice.call(document.querySelectorAll('a[data-win-installer]'));
+  try{
+    // Only on Windows itself: a Mac visitor may be downloading for another PC.
+    if(d.classList.contains('is-win')&&navigator.userAgentData&&navigator.userAgentData.getHighEntropyValues){
+      navigator.userAgentData.getHighEntropyValues(['architecture']).then(function(v){
+        if(v&&v.architecture==='arm'){var hero=document.querySelector('.cta-win'); if(hero)hero.href=hero.href.replace('Setup-x64','Setup-arm64')}
+      },function(){});
+    }
+  }catch(e){}
+  installers.forEach(function(a){a.addEventListener('click',function(){
+    var card=a.closest('.dlc,.hero'), note=card&&card.querySelector('[data-win-note]');
+    if(note){note.classList.add('on')}
+  })});
 
   applyLang();
 })();

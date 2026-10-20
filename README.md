@@ -90,11 +90,11 @@ Pick the download for your distribution from the latest release. Each comes for 
 
 | Distribution | Download | Install |
 | --- | --- | --- |
-| Ubuntu, Debian, Linux Mint, Pop!_OS | [adawat_1.1.0_amd64.deb](https://github.com/motalim-ai/adawat/releases/latest/download/adawat_1.1.0_amd64.deb) | Double-click it, or `sudo apt install ./adawat_1.1.0_amd64.deb` |
-| Fedora, openSUSE | [adawat-1.1.0-1.x86_64.rpm](https://github.com/motalim-ai/adawat/releases/latest/download/adawat-1.1.0-1.x86_64.rpm) | `sudo dnf install ./adawat-1.1.0-1.x86_64.rpm` |
+| Ubuntu, Debian, Linux Mint, Pop!_OS | [Adawat-linux-amd64.deb](https://github.com/motalim-ai/adawat/releases/latest/download/Adawat-linux-amd64.deb) | Double-click it, or `sudo apt install ./Adawat-linux-amd64.deb` |
+| Fedora, openSUSE | [Adawat-linux-x86_64.rpm](https://github.com/motalim-ai/adawat/releases/latest/download/Adawat-linux-x86_64.rpm) | `sudo dnf install ./Adawat-linux-x86_64.rpm` |
 | Any other | [Adawat-x86_64.AppImage](https://github.com/motalim-ai/adawat/releases/latest/download/Adawat-x86_64.AppImage) | Make it executable (`chmod +x`), then open it. Nothing to install. |
 
-ARM64 files end in `arm64.deb`, `aarch64.rpm` and `aarch64.AppImage`. The .deb and .rpm also install the tools
+ARM64 files end in `Adawat-linux-arm64.deb`, `Adawat-linux-aarch64.rpm` and `Adawat-aarch64.AppImage`. The .deb and .rpm also install the tools
 Adawat reads text and makes documents with (Tesseract, WeasyPrint, LibreOffice); with the AppImage, Adawat says
 which one to install the first time a tool needs it.
 

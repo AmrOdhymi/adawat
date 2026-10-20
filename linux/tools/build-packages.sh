@@ -1,15 +1,16 @@
 #!/bin/bash
 # Builds Adawat for Linux on x64 and ARM64:
-#   build/packages/adawat_<version>_amd64.deb, …_arm64.deb   (Ubuntu, Debian, Mint, Pop!_OS: system ffmpeg)
-#   build/packages/adawat-<version>.x86_64.rpm, ….aarch64.rpm (Fedora, openSUSE: system ffmpeg)
-#   build/packages/Adawat-x86_64.AppImage, Adawat-aarch64.AppImage (any distribution, ffmpeg inside)
+#   build/packages/Adawat-linux-amd64.deb, Adawat-linux-arm64.deb       (Ubuntu, Debian, Mint, Pop!_OS: system ffmpeg)
+#   build/packages/Adawat-linux-x86_64.rpm, Adawat-linux-aarch64.rpm    (Fedora, openSUSE: system ffmpeg)
+#   build/packages/Adawat-x86_64.AppImage, Adawat-aarch64.AppImage      (any distribution, ffmpeg inside)
+# The names carry no version, so releases/latest/download/<name> links on the website keep working.
 # Needs the .NET 10 SDK, nfpm and squashfs-tools (brew install nfpm squashfs on a Mac).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 VERSION=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' Directory.Build.props)
 DOTNET=${DOTNET:-$(command -v dotnet || echo ~/.dotnet/dotnet)}
 OUT=build/packages
-mkdir -p "$OUT" build/runtime
+rm -rf "$OUT" && mkdir -p "$OUT" build/runtime
 tools/fetch-models.sh
 tools/fetch-ffmpeg.sh >/dev/null
 
@@ -25,7 +26,8 @@ for pair in linux-x64:amd64:x86_64 linux-arm64:arm64:aarch64; do
   # .deb and .rpm use the distribution's ffmpeg.
   config="build/nfpm-$rid.yaml"
   sed -e "s|\${ARCH}|$debarch|" -e "s|\${VERSION}|$VERSION|" -e "s|\${PUBLISH}|$publish|" packaging/nfpm.yaml > "$config"
-  for format in deb rpm; do nfpm package --config "$config" --packager $format --target "$OUT/" >/dev/null; done
+  nfpm package --config "$config" --packager deb --target "$OUT/Adawat-linux-$debarch.deb" >/dev/null
+  nfpm package --config "$config" --packager rpm --target "$OUT/Adawat-linux-$appimagearch.rpm" >/dev/null
 
   # The AppImage carries its own ffmpeg next to the app, in tools/, where Adawat looks first.
   appdir="build/AppDir-$rid"
