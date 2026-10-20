@@ -1,5 +1,9 @@
 package com.motalim.adawat.core
 
+import com.motalim.adawat.docs.DocumentOps
+import com.motalim.adawat.docs.DocumentTarget
+import com.motalim.adawat.docs.SheetOps
+import com.motalim.adawat.docs.SubtitleOps
 import com.motalim.adawat.media.AudioOps
 import com.motalim.adawat.media.MediaFormatChoice
 import com.motalim.adawat.media.MediaTools
@@ -59,11 +63,33 @@ object Catalog {
             ops + Operation("image.pdf", "To PDF", Icons.Pdf, ImageOps::makePdf, badge = "PDF")
         }
         FileKind.Pdf -> listOf(
+            Operation("pdf.docx", "To Word", Icons.Document, { f, c -> DocumentOps.convert(f, DocumentTarget.Docx, c) }, badge = "DOCX"),
+            Operation("pdf.pptx", "To PowerPoint", Icons.Document, PdfOps::toPowerPoint, badge = "PPTX"),
+            Operation("pdf.epub", "To EPUB", Icons.Document, { f, c -> DocumentOps.convert(f, DocumentTarget.Epub, c) }, badge = "EPUB"),
             Operation("pdf.md", "To Markdown", Icons.Document, PdfOps::toMarkdown, badge = "MD"),
             Operation("pdf.png", "Pages to PNG", Icons.Photo, { f, c -> PdfOps.pagesToPictures(f, ImageFormat.Png, c) }, badge = "PNG"),
             Operation("pdf.jpg", "Pages to JPEG", Icons.Photo, { f, c -> PdfOps.pagesToPictures(f, ImageFormat.Jpeg, c) }, badge = "JPG"),
             Operation("pdf.txt", "To Text", Icons.Text, PdfOps::toText, badge = "TXT"),
+            Operation("pdf.xlsx", "To Excel", Icons.Document, PdfOps::toExcel, badge = "XLSX"),
         )
+        FileKind.Document -> {
+            val sources = files.map { when (it.ext) { "markdown" -> "md"; "htm" -> "html"; else -> it.ext } }.toSet()
+            DocumentTarget.entries.filter { !(sources.size == 1 && it.ext in sources) }.map { target ->
+                Operation("doc.${target.ext}", "To ${target.title}", Icons.Document, { f, c -> DocumentOps.convert(f, target, c) }, badge = target.title)
+            }
+        }
+        FileKind.Spreadsheet -> {
+            val sources = files.map { it.ext }.toSet()
+            SheetOps.targets.filter { !(sources.size == 1 && it in sources) }.map { target ->
+                Operation("sheet.$target", "To ${SheetOps.title(target)}", Icons.Document, { f, c -> SheetOps.convert(f, target, c) }, badge = SheetOps.title(target))
+            }
+        }
+        FileKind.Subtitle -> {
+            val sources = files.map { it.ext }.toSet()
+            SubtitleOps.targets.filter { !(sources.size == 1 && it in sources) }.map { target ->
+                Operation("subtitle.$target", "To ${SubtitleOps.title(target)}", Icons.Text, { f, c -> SubtitleOps.convert(f, target, c) }, badge = SubtitleOps.title(target))
+            }
+        }
         FileKind.Archive -> {
             val current = if (files.size == 1) ArchiveOps.formatOf(files[0]) else null
             listOf("zip", "tar", "tgz").filter { it != current }.map { format ->

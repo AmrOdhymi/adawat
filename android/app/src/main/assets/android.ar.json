@@ -141,5 +141,15 @@
  "Cut at the nearest key frame": "قُصّ عند أقرب إطار مفتاحي",
  "Mark at least one part to bleep.": "حدّد جزءًا واحدًا على الأقل للصفير.",
  "Adding bleeps": "جارٍ إضافة الصفير",
- "Saved 1 clip": "حُفظ مقطع واحد"
+ "Saved 1 clip": "حُفظ مقطع واحد",
+ "Old Word documents (.doc) cannot be read on this phone. Save them as .docx first.": "لا يمكن قراءة مستندات Word القديمة (.doc) على هذا الهاتف. احفظها بصيغة .docx أولًا.",
+ "Old Excel files (.xls) cannot be read on this phone. Save them as .xlsx first.": "لا يمكن قراءة ملفات Excel القديمة (.xls) على هذا الهاتف. احفظها بصيغة .xlsx أولًا.",
+ "The archive could not be written.": "تعذّرت كتابة الأرشيف.",
+ "Packing 1 item": "جارٍ ضغط عنصر واحد",
+ "To Excel": "إلى Excel",
+ "Creating visualization": "جارٍ إنشاء الفيديو المرئي",
+ "The MP3 encoder could not start.": "تعذّر تشغيل مُرمّز MP3.",
+ "The MP3 encoder failed.": "فشل مُرمّز MP3.",
+ "This action needs the app.": "يحتاج هذا الإجراء إلى التطبيق.",
+ "Type the text": "اكتب النص"
 }

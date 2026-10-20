@@ -85,7 +85,10 @@ object PdfOps {
     // Text
 
     /** One line of text, in logical order, with how big it is, for headings in Markdown. */
-    data class Line(val text: String, val size: Float, val bold: Boolean)
+    data class Line(val text: String, val size: Float, val bold: Boolean, val top: Float = 0f, val bottom: Float = 0f, val words: List<Word> = emptyList())
+
+    /** A word of a line in reading order, with where it sits across the page. */
+    data class Word(val text: String, val left: Float, val right: Float)
 
     /** Collects every glyph with its position; the lines are built from them below. */
     private class Glyphs : PDFTextStripper() {
@@ -126,18 +129,21 @@ object PdfOps {
             val arabic = row.sumOf { g -> g.unicode.count(::isArabic) }
             val rtl = arabic > letters / 2
             val inOrder = if (rtl) words.reversed() else words
+            val placed = mutableListOf<Word>()
             val text = inOrder.joinToString(" ") { word ->
                 val isArabicWord = word.any { g -> g.unicode.any(::isArabic) }
                 val text = (if (isArabicWord) word.reversed() else word).joinToString("") { it.unicode }
                 // In a right-to-left line, punctuation after a number or a Latin word is drawn to its left.
-                if (rtl && !isArabicWord) {
+                val logical = if (rtl && !isArabicWord) {
                     val leading = text.takeWhile { it in ".,:;!?،؛" }
                     text.drop(leading.length) + leading.reversed()
                 } else text
+                placed += Word(java.text.Normalizer.normalize(logical, java.text.Normalizer.Form.NFKC), word.first().xDirAdj, word.last().xDirAdj + word.last().widthDirAdj)
+                logical
             }.let { java.text.Normalizer.normalize(it, java.text.Normalizer.Form.NFKC) }
             val size = row.map { it.fontSizeInPt }.average().toFloat()
             val bold = row.count { it.font?.name?.contains("Bold", true) == true } > row.size / 2
-            Line(text, size, bold)
+            Line(text, size, bold, row.minOf { it.yDirAdj - it.heightDir }, row.maxOf { it.yDirAdj }, placed)
         }.filter { it.text.isNotBlank() }
     }
 
@@ -205,6 +211,110 @@ object PdfOps {
             }
         }
         context.pathFor(file, "md").apply { writeText(blocks.filter { it.isNotEmpty() }.joinToString("\n\n") + "\n") }
+    }
+
+    /**
+     * A PDF as a document, as on the desktop: paragraphs from the text layout, headings from larger type, pictures, and a
+     * page break between pages. Scanned pages are recognised.
+     */
+    suspend fun readDocument(file: File, context: OperationContext? = null): com.motalim.adawat.docs.Doc {
+        val doc = com.motalim.adawat.docs.Doc(file.nameWithoutExtension)
+        open(file).use { document ->
+            val pages = (0 until document.numberOfPages).map { pageLines(document, it) }
+            val sizes = pages.filterNotNull().flatten().map { it.size }.sorted()
+            val body = if (sizes.isEmpty()) 10f else sizes[sizes.size / 2]
+            pages.forEachIndexed { index, lines ->
+                coroutineContext.ensureActive()
+                context?.progress(index.toDouble() / pages.size)
+                if (index > 0) doc.blocks += com.motalim.adawat.docs.PageBreak
+                if (lines == null) {
+                    recognizePage(file, index).split("\n\n").map { it.trim() }.filter { it.isNotEmpty() }
+                        .forEach { doc.blocks += com.motalim.adawat.docs.Paragraph(listOf(com.motalim.adawat.docs.Span(it))) }
+                    return@forEachIndexed
+                }
+                val paragraph = mutableListOf<Line>()
+                fun flush() {
+                    if (paragraph.isEmpty()) return
+                    val text = paragraph.joinToString(" ") { it.text.trim() }
+                    val size = paragraph.map { it.size }.average().toFloat()
+                    val span = listOf(com.motalim.adawat.docs.Span(text))
+                    doc.blocks += when {
+                        size > body * 1.6f && text.length < 160 -> com.motalim.adawat.docs.Heading(1, span)
+                        size > body * 1.25f && text.length < 160 -> com.motalim.adawat.docs.Heading(2, span)
+                        paragraph.all { it.bold } && text.length < 100 && paragraph.size == 1 -> com.motalim.adawat.docs.Heading(3, span)
+                        text.startsWith("•") || text.startsWith("- ") -> com.motalim.adawat.docs.ListItem(listOf(com.motalim.adawat.docs.Span(text.trimStart('•', '-', ' '))), false)
+                        else -> com.motalim.adawat.docs.Paragraph(span)
+                    }
+                    paragraph.clear()
+                }
+                for (line in lines) {
+                    paragraph.lastOrNull()?.let { previous ->
+                        val gap = line.top - previous.bottom
+                        val height = max(1f, previous.bottom - previous.top)
+                        if (gap > height * 0.9f || kotlin.math.abs(line.size - previous.size) > 1.5f || previous.bold != line.bold || line.text.trimStart().startsWith("•")) flush()
+                    }
+                    paragraph += line
+                }
+                flush()
+                pictures(document, index).forEach { doc.blocks += it }
+            }
+        }
+        return doc
+    }
+
+    /** Tables on each page become a sheet: text lines are rows, and wide gaps between words split the cells. */
+    suspend fun toExcel(files: List<File>, context: OperationContext): List<File> = files.map { file ->
+        val sheets = mutableListOf<com.motalim.adawat.docs.Sheet>()
+        open(file).use { document ->
+            for (index in 0 until document.numberOfPages) {
+                coroutineContext.ensureActive()
+                context.report("Page ${index + 1} of ${document.numberOfPages}")
+                val lines = pageLines(document, index).orEmpty()
+                val rtl = lines.sumOf { l -> l.text.count(::isArabic) } > lines.sumOf { it.text.length } / 3
+                val rows = lines.map { line ->
+                    val words = line.words
+                    if (words.isEmpty()) return@map emptyList<Any?>()
+                    val averageChar = words.map { (it.right - it.left) / max(1, it.text.length) }.average().toFloat()
+                    val cells = mutableListOf(mutableListOf(words[0]))
+                    for (i in 1 until words.size) {
+                        val gap = if (rtl) words[i - 1].left - words[i].right else words[i].left - words[i - 1].right
+                        if (gap > averageChar * 2.2f) cells += mutableListOf(words[i]) else cells.last() += words[i]
+                    }
+                    cells.map { cell ->
+                        val value = cell.joinToString(" ") { it.text }
+                        value.replace(",", "").toDoubleOrNull()?.takeIf { !value.startsWith("0") || value == "0" } ?: value
+                    }
+                }
+                sheets += com.motalim.adawat.docs.Sheet("Page ${index + 1}", rows)
+            }
+        }
+        if (sheets.isEmpty()) sheets += com.motalim.adawat.docs.Sheet("Page 1", emptyList())
+        context.pathFor(file, "xlsx").also { com.motalim.adawat.docs.SheetOps.write(sheets, "xlsx", it, file.nameWithoutExtension) }
+    }
+
+    /** Each page as a picture on its own slide. */
+    suspend fun toPowerPoint(files: List<File>, context: OperationContext): List<File> = files.map { file ->
+        val slides = renderPages(file, 200, maxSide = 3000) { index, count, bitmap ->
+            context.report("Building slide ${index + 1} of $count")
+            context.progress(index.toDouble() / count)
+            val png = java.io.ByteArrayOutputStream().also { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }.toByteArray()
+            Triple(png, bitmap.width * 914400L / 200, bitmap.height * 914400L / 200)
+        }
+        context.pathFor(file, "pptx").also { com.motalim.adawat.docs.Pptx.write(slides, it) }
+    }
+
+    /** The larger pictures on a page, as PNG or their own JPEG bytes. */
+    private fun pictures(document: PDDocument, index: Int): List<com.motalim.adawat.docs.Picture> {
+        val resources = document.getPage(index).resources ?: return emptyList()
+        return resources.xObjectNames.mapNotNull { name ->
+            val image = runCatching { resources.getXObject(name) }.getOrNull() as? PDImageXObject ?: return@mapNotNull null
+            if (image.width < 40 || image.height < 40) return@mapNotNull null
+            if (image.suffix == "jpg") runCatching { image.createInputStream(listOf(COSName.DCT_DECODE.name)).use { it.readBytes() } }.getOrNull()
+                ?.let { return@mapNotNull com.motalim.adawat.docs.Picture(it, "jpg", image.width, image.height) }
+            val bitmap = runCatching { image.image }.getOrNull() ?: return@mapNotNull null
+            val bytes = java.io.ByteArrayOutputStream().also { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }.toByteArray()
+            com.motalim.adawat.docs.Picture(bytes, "png", bitmap.width, bitmap.height)
+        }
     }
 
     // Editing
