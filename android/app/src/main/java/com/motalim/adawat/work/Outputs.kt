@@ -24,14 +24,44 @@ object Outputs {
                 else -> "application/octet-stream"
             }
 
-    /** Saves a result; a folder of results (pages, for instance) becomes a folder of the same name inside Adawat. */
-    fun saveAll(context: Context, file: File): List<Saved> =
-        if (file.isDirectory) file.listFiles().orEmpty().sortedWith(compareBy({ it.name.length }, { it.name })).map { save(context, it, file.name) }
-        else listOf(save(context, file))
+    /**
+     * Saves a result; a folder of results (pages, an unpacked archive) becomes a folder of the same name inside Adawat,
+     * with its own folders kept. A folder of only pictures, videos or music goes with them; any other folder goes to Download.
+     */
+    fun saveAll(context: Context, file: File): List<Saved> {
+        if (!file.isDirectory) return listOf(save(context, file))
+        val all = file.walkTopDown().filter { it.isFile }.sortedWith(compareBy({ it.path.length }, { it.path })).toList()
+        val kinds = all.map { it.kind }.toSet()
+        val shared = kinds.singleOrNull()?.takeIf { it == FileKind.Image || it == FileKind.Video || it == FileKind.Audio } ?: FileKind.Other
+        // A folder of the same name from before gets a number, rather than the two being mixed.
+        val top = uniqueFolder(context, root(shared), file.name)
+        return all.map { child ->
+            val relative = top + child.parentFile!!.relativeTo(file).path.let { if (it.isEmpty()) "" else "/$it" }
+            save(context, child, relative, shared)
+        }
+    }
 
-    fun save(context: Context, file: File, subfolder: String? = null): Saved {
+    private fun root(kind: FileKind) = when (kind) {
+        FileKind.Image -> Environment.DIRECTORY_PICTURES
+        FileKind.Video -> Environment.DIRECTORY_MOVIES
+        FileKind.Audio -> Environment.DIRECTORY_MUSIC
+        else -> Environment.DIRECTORY_DOWNLOADS
+    }
+
+    private fun uniqueFolder(context: Context, root: String, name: String): String {
+        val files = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+        fun taken(candidate: String) = context.contentResolver.query(
+            files, arrayOf(MediaStore.MediaColumns._ID), "${MediaStore.MediaColumns.RELATIVE_PATH} LIKE ?", arrayOf("$root/Adawat/$candidate/%"), null,
+        )?.use { it.count > 0 } ?: false
+        if (!taken(name)) return name
+        var n = 2
+        while (taken("$name $n")) n++
+        return "$name $n"
+    }
+
+    fun save(context: Context, file: File, subfolder: String? = null, kind: FileKind = file.kind): Saved {
         val mime = mime(file)
-        val (collection, folder) = when (file.kind) {
+        val (collection, folder) = when (kind) {
             FileKind.Image -> MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY) to Environment.DIRECTORY_PICTURES
             FileKind.Video -> MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY) to Environment.DIRECTORY_MOVIES
             FileKind.Audio -> MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY) to Environment.DIRECTORY_MUSIC

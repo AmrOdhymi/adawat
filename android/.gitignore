@@ -7,5 +7,5 @@ local.properties
 captures/
 *.keystore
 *.jks
-app/src/main/cpp/lame/
+app/src/main/cpp/third_party/
 .cxx/

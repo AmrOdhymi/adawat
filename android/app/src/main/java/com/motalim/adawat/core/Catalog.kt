@@ -6,6 +6,7 @@ import com.motalim.adawat.media.MediaTools
 import com.motalim.adawat.media.Visualizer
 import com.motalim.adawat.media.VideoOps
 import com.motalim.adawat.ops.Adjustments
+import com.motalim.adawat.ops.ArchiveOps
 import com.motalim.adawat.ops.AnnotationRenderer
 import com.motalim.adawat.ops.FileActions
 import com.motalim.adawat.ops.PhotoMetadata
@@ -63,9 +64,22 @@ object Catalog {
             Operation("pdf.jpg", "Pages to JPEG", Icons.Photo, { f, c -> PdfOps.pagesToPictures(f, ImageFormat.Jpeg, c) }, badge = "JPG"),
             Operation("pdf.txt", "To Text", Icons.Text, PdfOps::toText, badge = "TXT"),
         )
+        FileKind.Archive -> {
+            val current = if (files.size == 1) ArchiveOps.formatOf(files[0]) else null
+            listOf("zip", "tar", "tgz").filter { it != current }.map { format ->
+                Operation("archive.to-$format", "To ${ArchiveOps.title(format)}", Icons.Archive, { f, c -> ArchiveOps.convert(f, format, c) }, badge = ArchiveOps.title(format))
+            }
+        }
         FileKind.Video -> MediaFormatChoice.video.filter { it.ext != files[0].ext || files.size > 1 }.map(::mediaConversion)
         FileKind.Audio -> MediaFormatChoice.audio.filter { it.ext != files[0].ext || files.size > 1 }.map(::mediaConversion)
-        else -> emptyList()
+        else -> {
+            // Mixed selections, and files Adawat has no converter for, can always be packed.
+            val formats = mutableListOf("zip", "tar", "tgz")
+            if (files.size == 1) formats += "gz"
+            formats.map { format ->
+                Operation("archive.$format", "To ${ArchiveOps.title(format)}", Icons.Archive, { f, c -> ArchiveOps.pack(f, format, c) }, badge = ArchiveOps.title(format))
+            }
+        }
     }
 
     private fun mediaConversion(format: MediaFormatChoice) =
@@ -141,6 +155,8 @@ object Catalog {
                 ops += tool("audio.mono", "To Mono", "Mono", Icons.Channels, AudioOps::toMono)
             }
         }
+
+        if (kinds == setOf(FileKind.Archive)) ops += tool("archive.extract", "Extract", null, Icons.Extract, ArchiveOps::extract)
 
         if (QrCode.canEncode(files)) ops += tool("text.qr", "Create QR Code", "Make QR", Icons.Qr, QrCode::quick, "qr")
 

@@ -163,7 +163,12 @@ The Android app (`android/`) is written in Kotlin and uses:
 | ZXing core | Apache 2.0 | https://github.com/zxing/zxing |
 | PdfBox-Android | Apache 2.0 | https://github.com/TomRoush/PdfBox-Android |
 | AndroidX Media3 (Transformer, Effect, Muxer) | Apache 2.0 | https://github.com/androidx/media |
-| LAME 3.100, built into `libadawat-mp3.so` from the source `android/tools/fetch-lame.sh` downloads | LGPL 2.0 | https://lame.sourceforge.io |
+| LAME 3.100, built into `libadawat-mp3.so` | LGPL 2.0 | https://lame.sourceforge.io |
+| libarchive 3.8.9, built into `libadawat-archive.so` | BSD 2-Clause | https://www.libarchive.org |
+| xz 5.8.4 (liblzma), in `libadawat-archive.so` | 0BSD | https://tukaani.org/xz |
+| bzip2 1.0.8, in `libadawat-archive.so` | BSD-style (bzip2 license) | https://sourceware.org/bzip2 |
+
+The C libraries are not in the repository; `android/tools/fetch-native.sh` downloads them, each pinned by its SHA-256, before the NDK build.
 | Tesseract4Android (Tesseract, Leptonica) | Apache 2.0 (Leptonica: BSD 2-Clause) | https://github.com/adaptech-cz/Tesseract4Android |
 | tessdata_fast Arabic and English models | Apache 2.0 | https://github.com/tesseract-ocr/tessdata_fast |
 | Noto Sans Arabic UI font | SIL Open Font License 1.1 | https://github.com/notofonts |
