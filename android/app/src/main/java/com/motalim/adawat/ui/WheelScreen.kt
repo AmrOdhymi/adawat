@@ -98,6 +98,8 @@ fun WheelScreen(model: WheelModel, onRun: (Operation, Map<String, String>) -> Un
     LaunchedEffect(Unit) { shown = true }
     val scrim by animateFloatAsState(if (shown) 0.42f else 0f, tween(180), label = "scrim")
     val job = jobId?.let { jobs[it] }
+    // Back from a tool's screen returns to the wheel, rather than closing everything.
+    androidx.activity.compose.BackHandler(enabled = (choosing != null || details) && jobId == null) { choosing = null; details = false }
     val testOpen by model.testOpen.collectAsState()
     LaunchedEffect(files, testOpen) {
         val staged = files ?: return@LaunchedEffect

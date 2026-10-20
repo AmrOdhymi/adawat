@@ -109,7 +109,7 @@ object VideoOps {
     suspend fun normalize(files: List<File>, context: OperationContext): List<File> = files.mapIndexed { index, file ->
         context.report("Measuring ${index + 1} of ${files.size}")
         val levels = AudioOps.levels(file) { context.progressFor(index, files.size)(it / 3) }
-        val gain = AudioOps.normalizeGain(levels)
+        val gain = AudioOps.normalizeGain(levels, context.float("target", -16f).toDouble())
         context.report("Normalizing ${index + 1} of ${files.size}")
         val mixer = ChannelMixingAudioProcessor()
         for (channels in 1..8) mixer.putChannelMixingMatrix(ChannelMixingMatrix.createForConstantGain(channels, channels).scaleBy(gain))

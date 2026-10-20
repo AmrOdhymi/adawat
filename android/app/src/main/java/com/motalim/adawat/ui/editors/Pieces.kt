@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -99,7 +100,7 @@ fun CropFrame(area: Area, onChange: (Area) -> Unit, picture: Rect, ratio: Float?
     val density = LocalDensity.current
     val grab = with(density) { 28.dp.toPx() }
     Canvas(
-        Modifier.fillMaxSize().pointerInput(picture) {
+        Modifier.fillMaxSize().systemGestureExclusion().pointerInput(picture) {
             // Which part was grabbed: corners and edges by flags, or the middle to move.
             var left = false; var right = false; var top = false; var bottom = false; var move = false
             detectDragGestures(

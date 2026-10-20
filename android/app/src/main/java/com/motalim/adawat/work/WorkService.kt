@@ -81,6 +81,7 @@ class WorkService : LifecycleService() {
             } catch (e: CancellationException) {
                 Jobs.change(id) { it.copy(finished = true, error = L10n.t("Cancelled")) }
             } catch (e: AdawatException) {
+                android.util.Log.w("Adawat", "$operationId failed: ${e.message}")
                 Jobs.change(id) { it.copy(finished = true, error = e.message) }
                 notifyDone(id)
             } catch (e: Throwable) {

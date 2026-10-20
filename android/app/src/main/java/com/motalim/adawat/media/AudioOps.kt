@@ -53,8 +53,15 @@ object AudioOps {
         stereo: Boolean = false,
         fromUs: Long = 0,
         toUs: Long = Long.MAX_VALUE,
+        speed: Float = 1f,
+        /** Changes the samples in place, given the first frame's number (in the output's rate) and the shape. */
+        filter: ((samples: ShortArray, firstFrame: Long, rate: Int, channels: Int) -> Unit)? = null,
     ) {
         var reshaper: Reshaper? = null
+        var sonic: androidx.media3.common.audio.SonicAudioProcessor? = null
+        var outRate = 44100
+        var outChannels = 2
+        var written = 0L
         var opened = false
         try {
             PcmDecoder.decode(source, fromUs, toUs, progress, onShape = { shape ->
@@ -62,16 +69,48 @@ object AudioOps {
                 val (rate, channels) = sink.accepts(shape.sampleRate, wanted)
                 val count = if (mono) 1 else channels
                 reshaper = Reshaper(shape.sampleRate, shape.channels, rate, count)
+                outRate = rate; outChannels = count
+                if (speed != 1f) sonic = androidx.media3.common.audio.SonicAudioProcessor().apply {
+                    // Sonic changes the speed and keeps the pitch.
+                    setSpeed(speed)
+                    configure(androidx.media3.common.audio.AudioProcessor.AudioFormat(rate, count, android.media.AudioFormat.ENCODING_PCM_16BIT))
+                    flush()
+                }
                 sink.open(rate, count)
                 opened = true
             }) { pcm ->
                 var chunk = reshaper!!.apply(pcm)
-                if (gain != 1f) {
-                    val samples = chunk.samples
-                    for (i in samples.indices) samples[i] = (samples[i] * gain).toInt().coerceIn(-32768, 32767).toShort()
-                    chunk = Pcm(samples, chunk.frames)
-                }
-                if (chunk.frames > 0) sink.write(chunk)
+                sonic?.let { chunk = stretch(it, chunk, outChannels, end = false) }
+                write(sink, chunk, gain, filter, written, outRate, outChannels)
+                written += chunk.frames
+            }
+            if (!opened) throw AdawatException("This file has no audio track")
+            sonic?.let { write(sink, stretch(it, Pcm(ShortArray(0), 0), outChannels, end = true), gain, filter, written, outRate, outChannels) }
+            sink.close()
+        } catch (e: Throwable) {
+            sink.abandon()
+            throw e
+        }
+    }
+
+    /** Several ranges of one file into one output, in order. */
+    suspend fun transcodeRanges(source: File, sink: AudioSink, ranges: List<Pair<Long, Long>>, progress: (Double) -> Unit) {
+        // One sink stays open across the ranges: decode each and pass it on.
+        val total = ranges.sumOf { it.second - it.first }.coerceAtLeast(1)
+        var done = 0L
+        var opened = false
+        var reshaper: Reshaper? = null
+        try {
+            for ((from, to) in ranges) {
+                PcmDecoder.decode(source, from, to, progress = { progress((done + it * (to - from)) / total) }, onShape = { shape ->
+                    if (!opened) {
+                        val (rate, channels) = sink.accepts(shape.sampleRate, shape.channels)
+                        reshaper = Reshaper(shape.sampleRate, shape.channels, rate, channels)
+                        sink.open(rate, channels)
+                        opened = true
+                    }
+                }) { pcm -> reshaper!!.apply(pcm).let { if (it.frames > 0) sink.write(it) } }
+                done += to - from
             }
             if (!opened) throw AdawatException("This file has no audio track")
             sink.close()
@@ -79,6 +118,26 @@ object AudioOps {
             sink.abandon()
             throw e
         }
+    }
+
+    private fun write(sink: AudioSink, chunk: Pcm, gain: Float, filter: ((ShortArray, Long, Int, Int) -> Unit)?, first: Long, rate: Int, channels: Int) {
+        if (chunk.frames == 0) return
+        val samples = chunk.samples
+        if (gain != 1f) for (i in samples.indices) samples[i] = (samples[i] * gain).toInt().coerceIn(-32768, 32767).toShort()
+        filter?.invoke(samples, first, rate, channels)
+        sink.write(chunk)
+    }
+
+    private fun stretch(sonic: androidx.media3.common.audio.SonicAudioProcessor, pcm: Pcm, channels: Int, end: Boolean): Pcm {
+        if (pcm.frames > 0) {
+            val input = java.nio.ByteBuffer.allocateDirect(pcm.samples.size * 2).order(java.nio.ByteOrder.nativeOrder())
+            input.asShortBuffer().put(pcm.samples)
+            while (input.hasRemaining()) sonic.queueInput(input)
+        }
+        if (end) sonic.queueEndOfStream()
+        val out = sonic.output.order(java.nio.ByteOrder.nativeOrder()).asShortBuffer()
+        val samples = ShortArray(out.remaining()).also { out.get(it) }
+        return Pcm(samples, samples.size / channels)
     }
 
     suspend fun convert(files: List<File>, format: MediaFormatChoice, context: OperationContext): List<File> = files.mapIndexed { index, file ->
@@ -130,8 +189,8 @@ object AudioOps {
     }
 
     /** Brings speech and music to a steady level (about −16 LUFS) without letting peaks pass −1 dBFS. */
-    fun normalizeGain(levels: Levels): Float {
-        val wanted = -16.0 - (levels.rmsDb + 0.7) // RMS of program material sits close to its loudness
+    fun normalizeGain(levels: Levels, target: Double = -16.0): Float {
+        val wanted = target - (levels.rmsDb + 0.7) // RMS of program material sits close to its loudness
         val room = -1.0 - levels.peakDb
         val gainDb = min(wanted, room).coerceIn(-20.0, 30.0)
         return 10.0.pow(gainDb / 20).toFloat()
@@ -142,7 +201,8 @@ object AudioOps {
         val levels = levels(file) { context.progressFor(index, files.size)(it / 2) }
         context.report("Normalizing ${index + 1} of ${files.size}")
         val output = context.pathFor(file, outputExt(file), "normalized")
-        transcode(file, sinkFor(output.extension, output), { context.progressFor(index, files.size)(0.5 + it / 2) }, gain = normalizeGain(levels))
+        transcode(file, sinkFor(output.extension, output), { context.progressFor(index, files.size)(0.5 + it / 2) },
+                  gain = normalizeGain(levels, context.float("target", -16f).toDouble()))
         output
     }
 

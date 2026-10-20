@@ -22,6 +22,8 @@ object Remux {
         audio: Boolean = true,
         rotation: Int? = null,
         webm: Boolean = false,
+        fromUs: Long = 0,
+        toUs: Long = Long.MAX_VALUE,
         progress: (Double) -> Unit = {},
     ) {
         val info = MediaInfo.of(source)
@@ -45,15 +47,24 @@ object Remux {
             started = true
             val buffer = ByteBuffer.allocate(4 shl 20)
             val bufferInfo = MediaCodec.BufferInfo()
+            // A range starts at the key frame at or before it, so the copy needs no re-encoding; times then start at zero.
+            if (fromUs > 0) extractor.seekTo(fromUs, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
+            var offset = -1L
+            val span = (minOf(toUs, info.durationUs) - fromUs).coerceAtLeast(1)
             while (true) {
                 currentCoroutineContext().ensureActive()
                 val size = extractor.readSampleData(buffer, 0)
                 if (size < 0) break
+                val time = extractor.sampleTime
+                if (time > toUs) { if (extractor.sampleTrackIndex == info.videoTrack || !video) break else { extractor.advance(); continue } }
                 val track = map[extractor.sampleTrackIndex]
                 if (track != null) {
-                    bufferInfo.set(0, size, extractor.sampleTime, if (extractor.sampleFlags and MediaExtractor.SAMPLE_FLAG_SYNC != 0) MediaCodec.BUFFER_FLAG_KEY_FRAME else 0)
-                    muxer.writeSampleData(track, buffer, bufferInfo)
-                    if (info.durationUs > 0) progress(extractor.sampleTime.toDouble() / info.durationUs)
+                    if (offset < 0) offset = if (fromUs > 0) time else 0
+                    if (time >= offset) {
+                        bufferInfo.set(0, size, time - offset, if (extractor.sampleFlags and MediaExtractor.SAMPLE_FLAG_SYNC != 0) MediaCodec.BUFFER_FLAG_KEY_FRAME else 0)
+                        muxer.writeSampleData(track, buffer, bufferInfo)
+                    }
+                    progress(((time - fromUs).toDouble() / span).coerceIn(0.0, 1.0))
                 }
                 extractor.advance()
             }

@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
@@ -35,7 +36,7 @@ fun BoxLayer(boxes: List<Area>, selected: Int?, onChange: (List<Area>, Int?) -> 
     fun screen(a: Area) = Rect(picture.left + a.x * picture.width, picture.top + a.y * picture.height,
                                picture.left + (a.x + a.w) * picture.width, picture.top + (a.y + a.h) * picture.height)
     Canvas(
-        Modifier.fillMaxSize()
+        Modifier.fillMaxSize().systemGestureExclusion()
             .pointerInput(picture) {
                 detectTapGestures { at ->
                     val hit = current.indexOfLast { screen(it).inflate(grab / 3).contains(at) }
@@ -46,9 +47,12 @@ fun BoxLayer(boxes: List<Area>, selected: Int?, onChange: (List<Area>, Int?) -> 
                 var mode = 0 // 1 draw, 2 move, 3 resize from the bottom-right corner, 4 from the top-left
                 var index = -1
                 var anchor = Offset.Zero
+                // The list as this gesture changed it; the composed one may not have caught up between events.
+                var working = emptyList<Area>()
                 detectDragGestures(
                     onDragStart = { at ->
                         val list = current
+                        working = list
                         val corner = list.indexOfLast { val r = screen(it); (r.bottomRight - at).getDistance() < grab || (r.topLeft - at).getDistance() < grab }
                         val inside = list.indexOfLast { screen(it).contains(at) }
                         when {
@@ -61,14 +65,15 @@ fun BoxLayer(boxes: List<Area>, selected: Int?, onChange: (List<Area>, Int?) -> 
                                 anchor = toShare(at)
                                 index = list.size
                                 mode = 1
-                                change(list + Area(anchor.x, anchor.y, 0f, 0f), index)
+                                working = list + Area(anchor.x, anchor.y, 0f, 0f)
+                                change(working, index)
                             }
                         }
                         if (mode != 1) change(list, index)
                     },
                     onDrag = { pointer, drag ->
                         pointer.consume()
-                        val list = current.toMutableList()
+                        val list = working.toMutableList()
                         if (index !in list.indices) return@detectDragGestures
                         val a = list[index]
                         val dx = drag.x / picture.width
@@ -86,11 +91,12 @@ fun BoxLayer(boxes: List<Area>, selected: Int?, onChange: (List<Area>, Int?) -> 
                                 Area(nx, ny, a.w + a.x - nx, a.h + a.y - ny)
                             }
                         }
+                        working = list
                         change(list, index)
                     },
                     onDragEnd = {
                         // A tap-sized scribble is not a box.
-                        val list = current
+                        val list = working
                         if (mode == 1 && index in list.indices && (list[index].w < 0.01f || list[index].h < 0.01f)) change(list.dropLast(1), null)
                     },
                 )

@@ -27,7 +27,8 @@ import com.motalim.adawat.ui.Look
 import java.io.File
 
 /** The editors that take the whole screen, by the window name the catalog gives a tool. */
-val editorScreens = setOf("crop", "edit", "redact", "metadata", "organize", "merge", "join")
+val editorScreens = setOf("crop", "edit", "redact", "metadata", "organize", "merge", "join", "trim", "speed", "crop-video", "split", "frames",
+                          "redact-video", "bleep", "normalize", "annotate", "visualizer")
 
 @Composable
 fun EditorHost(operation: Operation, files: List<File>, onRun: (Map<String, String>) -> Unit, onBack: () -> Unit) {
@@ -39,6 +40,16 @@ fun EditorHost(operation: Operation, files: List<File>, onRun: (Map<String, Stri
         "organize" -> OrganizeEditor(files, onRun, onBack)
         "merge" -> MergeEditor(files, onRun, onBack)
         "join" -> JoinEditor(files, onRun, onBack)
+        "trim" -> TrimEditor(files, onRun, onBack)
+        "speed" -> SpeedEditor(files, onRun, onBack)
+        "crop-video" -> CropVideoEditor(files, onRun, onBack)
+        "split" -> SplitEditor(files, onRun, onBack)
+        "frames" -> FramesEditor(files, onRun, onBack)
+        "redact-video" -> RedactVideoEditor(files, onRun, onBack)
+        "bleep" -> BleepEditor(files, onRun, onBack)
+        "normalize" -> NormalizeEditor(files, onRun, onBack)
+        "annotate" -> AnnotateEditor(files, onRun, onBack)
+        "visualizer" -> VisualizerEditor(files, onRun, onBack)
         else -> onBack()
     }
 }

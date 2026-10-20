@@ -172,7 +172,10 @@ class WheelActivity : ComponentActivity() {
         val id = intent.getStringExtra("adawat.test.operation") ?: return
         lifecycleScope.launch {
             val files = model.files.filterNotNull().first()
-            Catalog.find(id, files)?.let { model.run(it) }
+            // Options as "key=value;key=value".
+            val options = intent.getStringExtra("adawat.test.options").orEmpty().split(';').filter { it.contains('=') }
+                .associate { it.substringBefore('=') to it.substringAfter('=') }
+            Catalog.find(id, files)?.let { model.run(it, options) }
         }
     }
 

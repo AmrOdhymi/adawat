@@ -88,12 +88,16 @@ object Transcoder {
         audioMime?.let { builder.setAudioMimeType(it) }
         if (webm) builder.setMuxerFactory(WebmFactory)
         suspendCancellableCoroutine { continuation ->
+            // The progress loop is a child of this scope; it must stop before the result is handed back, or the call never returns.
+            var poll: kotlinx.coroutines.Job? = null
             val transformer = builder.addListener(object : Transformer.Listener {
                 override fun onCompleted(composition: Composition, exportResult: ExportResult) {
+                    poll?.cancel()
                     if (continuation.isActive) continuation.resume(exportResult)
                 }
 
                 override fun onError(composition: Composition, exportResult: ExportResult, exportException: ExportException) {
+                    poll?.cancel()
                     output.delete()
                     android.util.Log.w("Adawat", "Transformer failed (software decoders: $software)", exportException)
                     val decoding = exportException.errorCode in setOf(ExportException.ERROR_CODE_DECODING_FAILED, ExportException.ERROR_CODE_DECODER_INIT_FAILED)
@@ -102,7 +106,7 @@ object Transcoder {
             }).build()
             transformer.start(composition, output.path)
             val holder = ProgressHolder()
-            val poll = launch {
+            poll = launch {
                 // A watchdog: an encoder that stops producing frames would otherwise hold the job forever.
                 var last = -1
                 var since = System.currentTimeMillis()
@@ -115,17 +119,16 @@ object Transcoder {
                         transformer.cancel()
                         output.delete()
                         if (continuation.isActive) continuation.resumeWithException(AdawatException("The video stopped converting on this phone. Try another format."))
-                        break
+                        return@launch
                     }
                     delay(250)
                 }
             }
             continuation.invokeOnCancellation {
-                poll.cancel()
+                poll?.cancel()
                 transformer.cancel()
                 output.delete()
             }
-            continuation.context[kotlinx.coroutines.Job]?.invokeOnCompletion { poll.cancel() }
         }
     }
 
@@ -143,6 +146,10 @@ object Transcoder {
             // WebM has no place for the creation time and other entries Transformer adds, and the muxer throws on them.
             return object : Muxer by webm {
                 override fun addMetadataEntry(metadataEntry: androidx.media3.common.Metadata.Entry) = Unit
+
+                // The WebM muxer insists on a language for every track; encoded tracks often have none.
+                override fun addTrack(format: androidx.media3.common.Format): Int =
+                    webm.addTrack(if (format.language == null) format.buildUpon().setLanguage("und").build() else format)
             }
         }
 

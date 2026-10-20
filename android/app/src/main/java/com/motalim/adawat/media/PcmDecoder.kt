@@ -91,6 +91,12 @@ object PcmDecoder {
                             val skip = minOf(chunk.size, skipFrames * shape.channels)
                             chunk = chunk.copyOfRange(skip, chunk.size)
                         }
+                        // And what lies past the end of the range.
+                        if (end != Long.MAX_VALUE && chunk.isNotEmpty()) {
+                            val startUs = maxOf(info.presentationTimeUs, fromUs)
+                            val keepFrames = ((end - startUs) * shape.sampleRate / 1_000_000).coerceAtLeast(0)
+                            if (keepFrames < chunk.size / shape.channels) chunk = chunk.copyOfRange(0, (keepFrames * shape.channels).toInt())
+                        }
                         if (chunk.isNotEmpty() && info.presentationTimeUs <= end) each(Pcm(chunk, chunk.size / shape.channels))
                         if (duration > 0) progress(((info.presentationTimeUs - fromUs).toDouble() / (minOf(end, duration) - fromUs)).coerceIn(0.0, 1.0))
                         if (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) break

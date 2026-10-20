@@ -2,8 +2,11 @@ package com.motalim.adawat.core
 
 import com.motalim.adawat.media.AudioOps
 import com.motalim.adawat.media.MediaFormatChoice
+import com.motalim.adawat.media.MediaTools
+import com.motalim.adawat.media.Visualizer
 import com.motalim.adawat.media.VideoOps
 import com.motalim.adawat.ops.Adjustments
+import com.motalim.adawat.ops.AnnotationRenderer
 import com.motalim.adawat.ops.FileActions
 import com.motalim.adawat.ops.PhotoMetadata
 import com.motalim.adawat.ops.ImageFormat
@@ -81,7 +84,10 @@ object Catalog {
         if (kinds == setOf(FileKind.Image)) {
             ops += tool("image.compress", "Compress", null, Icons.Compress, { f, c -> ImageTools.compress(f, c) }, "compress")
             ops += tool("image.metadata", "Edit Metadata", "Metadata", Icons.Metadata, PhotoMetadata::save, if (single) "metadata" else null)
-            if (single) ops += tool("image.edit", "Edit Photo", "Edit", Icons.Edit, Adjustments::save, "edit")
+            if (single) {
+                ops += tool("image.edit", "Edit Photo", "Edit", Icons.Edit, Adjustments::save, "edit")
+                ops += tool("image.annotate", "Annotate", null, Icons.Annotate, AnnotationRenderer::save, "annotate")
+            }
             ops += tool("image.frame", "Add Background", "Add BG", Icons.Background, { f, c -> ImageTools.addBackground(f, c) }, "frame")
             ops += tool("image.crop", "Crop", null, Icons.Crop, ImageTools::cropTool, "crop")
             if (single) ops += tool("image.redact", "Redact", null, Icons.Redact, ImageTools::redact, "redact")
@@ -106,18 +112,30 @@ object Catalog {
         if (kinds == setOf(FileKind.Video)) {
             ops += tool("video.compress", "Compress", null, Icons.Compress, { f, c -> VideoOps.compress(f, c) }, "compress")
             ops += tool("video.metadata", "Remove Metadata", "Metadata", Icons.Metadata, AudioOps::stripMetadata)
-            if (!single) ops += tool("video.join", "Join Videos", "Join", Icons.Join, VideoOps::join, "join")
+            if (single) {
+                ops += tool("video.trim", "Trim", null, Icons.Trim, MediaTools::trim, "trim")
+                ops += tool("video.crop", "Crop Video", "Crop", Icons.Crop, MediaTools::crop, "crop-video")
+                ops += tool("video.speed", "Change Speed", "Speed", Icons.Speed, MediaTools::speed, "speed")
+                ops += tool("video.frames", "Save Frames", "Frames", Icons.Camera, MediaTools::frames, "frames")
+                ops += tool("video.split", "Split Video", "Split", Icons.Split, MediaTools::split, "split")
+                ops += tool("video.redact", "Redact Video", "Redact", Icons.Redact, MediaTools::redact, "redact-video")
+            } else {
+                ops += tool("video.join", "Join Videos", "Join", Icons.Join, VideoOps::join, "join")
+            }
             ops += tool("video.rotate", "Rotate", null, Icons.Rotate, VideoOps::rotate)
             ops += tool("video.mute", "Mute", null, Icons.Mute, VideoOps::mute)
-            ops += tool("video.normalize", "Normalize Volume", "Normalize", Icons.Volume, VideoOps::normalize)
+            ops += tool("video.normalize", "Normalize Volume", "Normalize", Icons.Volume, VideoOps::normalize, if (single) "normalize" else null)
         }
 
         if (kinds == setOf(FileKind.Audio)) {
             ops += tool("audio.compress", "Compress", null, Icons.Compress, { f, c -> AudioOps.compress(f, c) }, "compress")
             ops += tool("audio.metadata", "Remove Metadata", "Metadata", Icons.Metadata, AudioOps::stripMetadata)
-            ops += tool("audio.normalize", "Normalize Volume", "Normalize", Icons.Volume, AudioOps::normalize)
+            ops += tool("audio.normalize", "Normalize Volume", "Normalize", Icons.Volume, AudioOps::normalize, if (single) "normalize" else null)
             if (single) {
+                ops += tool("audio.visualizer", "Audio Visualizer", "Visualizer", Icons.Waveform, Visualizer::make, "visualizer")
+                ops += tool("audio.trim", "Trim", null, Icons.Trim, MediaTools::trim, "trim")
                 ops += tool("audio.channels", "Convert Channels", "Channels", Icons.Channels, AudioOps::toMono, "channels")
+                ops += tool("audio.bleep", "Bleep Audio", "Bleep", Icons.Bleep, MediaTools::bleep, "bleep")
             } else {
                 ops += tool("audio.silence", "Trim Silence", "Silence", Icons.Silence, AudioOps::trimSilence)
                 ops += tool("audio.mono", "To Mono", "Mono", Icons.Channels, AudioOps::toMono)

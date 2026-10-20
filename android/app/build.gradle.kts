@@ -16,8 +16,21 @@ android {
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64") }
     }
 
+    // The upload key stays outside the repository: its path and passwords come from ~/.gradle/gradle.properties
+    // (adawat.storeFile, adawat.storePassword, adawat.keyAlias, adawat.keyPassword). Without them, release builds are unsigned.
+    val upload = providers.gradleProperty("adawat.storeFile").orNull
+    signingConfigs {
+        if (upload != null) create("upload") {
+            storeFile = file(upload)
+            storePassword = providers.gradleProperty("adawat.storePassword").get()
+            keyAlias = providers.gradleProperty("adawat.keyAlias").get()
+            keyPassword = providers.gradleProperty("adawat.keyPassword").get()
+        }
+    }
+
     buildTypes {
         release {
+            if (upload != null) signingConfig = signingConfigs.getByName("upload")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -67,6 +80,8 @@ dependencies {
     implementation(libs.media3.effect)
     implementation(libs.media3.common)
     implementation(libs.media3.muxer)
+    implementation(libs.media3.exoplayer)
+    implementation(libs.media3.ui)
     implementation(libs.kotlinx.coroutines.android)
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
