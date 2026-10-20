@@ -69,6 +69,8 @@ import com.motalim.adawat.core.Operation
 import com.motalim.adawat.core.WheelMode
 import com.motalim.adawat.core.kind
 import com.motalim.adawat.wheel.Wheel
+import com.motalim.adawat.ui.editors.EditorHost
+import com.motalim.adawat.ui.editors.editorScreens
 import com.motalim.adawat.work.JobState
 import com.motalim.adawat.work.Jobs
 import com.motalim.adawat.work.Outputs
@@ -96,6 +98,13 @@ fun WheelScreen(model: WheelModel, onRun: (Operation, Map<String, String>) -> Un
     LaunchedEffect(Unit) { shown = true }
     val scrim by animateFloatAsState(if (shown) 0.42f else 0f, tween(180), label = "scrim")
     val job = jobId?.let { jobs[it] }
+    val testOpen by model.testOpen.collectAsState()
+    LaunchedEffect(files, testOpen) {
+        val staged = files ?: return@LaunchedEffect
+        val id = testOpen ?: return@LaunchedEffect
+        choosing = Catalog.find(id, staged)
+        model.testOpen.value = null
+    }
     val busy = job != null && !job.finished
 
     Box(
@@ -111,6 +120,7 @@ fun WheelScreen(model: WheelModel, onRun: (Operation, Map<String, String>) -> Un
             files == null -> "loading"
             jobId != null -> "job"
             details -> "details"
+            choosing?.window in editorScreens -> "editor"
             choosing != null -> "options"
             else -> "wheel"
         }
@@ -124,6 +134,7 @@ fun WheelScreen(model: WheelModel, onRun: (Operation, Map<String, String>) -> Un
                 }
                 "job" -> job?.let { JobCard(it, onDismiss) }
                 "details" -> files?.let { DetailsCard(it) { details = false } }
+                "editor" -> files?.let { staged -> choosing?.let { op -> EditorHost(op, staged, onRun = { onRun(op, it) }, onBack = { choosing = null }) } }
                 "options" -> files?.let { staged -> choosing?.let { op -> OptionsCard(op, staged, onRun = { onRun(op, it) }, onBack = { choosing = null }) } }
                 else -> files?.let { staged ->
                     val operations = remember(mode, staged) { Catalog.forMode(mode, staged) }
@@ -136,7 +147,7 @@ fun WheelScreen(model: WheelModel, onRun: (Operation, Map<String, String>) -> Un
                             onChoose = {
                                 when {
                                     it.id == "action.details" -> details = true
-                                    it.window in optionScreens -> choosing = it
+                                    it.window in optionScreens || it.window in editorScreens -> choosing = it
                                     else -> onRun(it, emptyMap())
                                 }
                             },

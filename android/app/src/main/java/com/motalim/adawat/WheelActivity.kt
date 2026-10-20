@@ -42,6 +42,8 @@ class WheelModel(application: Application) : AndroidViewModel(application) {
     val failed = MutableStateFlow(false)
     val mode = MutableStateFlow(WheelMode.Convert)
     val job = MutableStateFlow<String?>(null)
+    /** Debug builds only: a tool whose screen opens as soon as the files are ready. */
+    val testOpen = MutableStateFlow<String?>(null)
     var started = false
         private set
 
@@ -166,6 +168,7 @@ class WheelActivity : ComponentActivity() {
     /** Debug builds can run a tool straight away, for tests driven over adb. */
     private fun runTestOperation(intent: Intent) {
         if (!BuildConfig.DEBUG) return
+        intent.getStringExtra("adawat.test.open")?.let { model.testOpen.value = it }
         val id = intent.getStringExtra("adawat.test.operation") ?: return
         lifecycleScope.launch {
             val files = model.files.filterNotNull().first()

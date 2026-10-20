@@ -152,6 +152,46 @@ object ImageTools {
         output
     }
 
+    /** The crop screen's rectangle, or the largest centred square without it. */
+    suspend fun cropTool(files: List<File>, context: OperationContext): List<File> {
+        val area = context.options["area"]?.split(',')?.map { it.toFloat() } ?: return squareCrop(files, context)
+        return crop(files, RectF(area[0], area[1], area[0] + area[2], area[1] + area[3]), context)
+    }
+
+    // Redact
+
+    /** Covers areas with solid boxes or a heavy pixelated blur; the copy keeps no camera or place details either. */
+    suspend fun redact(files: List<File>, context: OperationContext): List<File> {
+        context.report("Saving redacted copy")
+        val file = files[0]
+        val boxes = context.text("boxes", "").split('|').filter { it.isNotBlank() }.map { b -> b.split(',').map { it.toFloat() } }
+        val blur = context.bool("blur", false)
+        val photo = Images.decode(file).copy(Bitmap.Config.ARGB_8888, true)
+        val canvas = Canvas(photo)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        for ((x, y, w, h) in boxes) {
+            val rect = android.graphics.Rect((x * photo.width).roundToInt(), (y * photo.height).roundToInt(),
+                                             ((x + w) * photo.width).roundToInt(), ((y + h) * photo.height).roundToInt())
+            if (rect.width() < 1 || rect.height() < 1) continue
+            if (blur) {
+                // Pixelate first so blurred text cannot be sharpened back.
+                val part = Bitmap.createBitmap(photo, rect.left, rect.top, rect.width(), rect.height())
+                val tiny = Bitmap.createScaledBitmap(part, max(2, part.width / 16), max(2, part.height / 16), true)
+                val back = Bitmap.createScaledBitmap(tiny, part.width, part.height, true)
+                val px = IntArray(back.width * back.height).also { back.getPixels(it, 0, back.width, 0, 0, back.width, back.height) }
+                val soft = Adjustments.blur(px, back.width, back.height, max(2, min(back.width, back.height) / 12))
+                canvas.drawBitmap(Bitmap.createBitmap(soft, back.width, back.height, Bitmap.Config.ARGB_8888), rect.left.toFloat(), rect.top.toFloat(), null)
+            } else {
+                paint.color = Color.BLACK
+                canvas.drawRect(rect, paint)
+            }
+        }
+        val format = editedFormat(file)
+        val output = context.pathFor(file, format.ext, "redacted")
+        ImageOps.write(photo, format, output, quality = 92)
+        return listOf(output)
+    }
+
     // Background
 
     /** Two-stop diagonal gradients, warm to cool, the same as the desktop apps. */

@@ -3,7 +3,9 @@ package com.motalim.adawat.core
 import com.motalim.adawat.media.AudioOps
 import com.motalim.adawat.media.MediaFormatChoice
 import com.motalim.adawat.media.VideoOps
+import com.motalim.adawat.ops.Adjustments
 import com.motalim.adawat.ops.FileActions
+import com.motalim.adawat.ops.PhotoMetadata
 import com.motalim.adawat.ops.ImageFormat
 import com.motalim.adawat.ops.ImageOps
 import com.motalim.adawat.ops.ImageTools
@@ -78,9 +80,11 @@ object Catalog {
         val ops = mutableListOf<Operation>()
         if (kinds == setOf(FileKind.Image)) {
             ops += tool("image.compress", "Compress", null, Icons.Compress, { f, c -> ImageTools.compress(f, c) }, "compress")
-            ops += tool("image.metadata", "Remove Metadata", "Metadata", Icons.Metadata, ImageOps::removeMetadata)
+            ops += tool("image.metadata", "Edit Metadata", "Metadata", Icons.Metadata, PhotoMetadata::save, if (single) "metadata" else null)
+            if (single) ops += tool("image.edit", "Edit Photo", "Edit", Icons.Edit, Adjustments::save, "edit")
             ops += tool("image.frame", "Add Background", "Add BG", Icons.Background, { f, c -> ImageTools.addBackground(f, c) }, "frame")
-            ops += tool("image.crop", "Crop", null, Icons.Crop, ImageTools::squareCrop)
+            ops += tool("image.crop", "Crop", null, Icons.Crop, ImageTools::cropTool, "crop")
+            if (single) ops += tool("image.redact", "Redact", null, Icons.Redact, ImageTools::redact, "redact")
             ops += tool("image.rotate", "Rotate", null, Icons.Rotate, ImageTools::rotate)
             ops += tool("image.ocr", "Copy Text", "Text", Icons.Text, ImageTools::extractText)
             ops += tool("image.qr", "Read QR Code", "QR Code", Icons.Qr, ImageTools::readCodes, producesFiles = false)

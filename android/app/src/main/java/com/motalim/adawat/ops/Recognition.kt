@@ -43,6 +43,38 @@ object Recognition {
         }
     }
 
+    /** Faces, as pixel rectangles, found by Android's own face detector. */
+    fun faces(bitmap: Bitmap): List<android.graphics.RectF> {
+        // The detector wants RGB 565 with an even width.
+        val width = bitmap.width and 1.inv()
+        val small = Bitmap.createBitmap(width, bitmap.height, Bitmap.Config.RGB_565)
+        android.graphics.Canvas(small).drawBitmap(bitmap, 0f, 0f, null)
+        val found = arrayOfNulls<android.media.FaceDetector.Face>(32)
+        val count = android.media.FaceDetector(width, bitmap.height, found.size).findFaces(small, found)
+        small.recycle()
+        return found.take(count).filterNotNull().map { face ->
+            val middle = android.graphics.PointF().also { face.getMidPoint(it) }
+            val eyes = face.eyesDistance()
+            android.graphics.RectF(middle.x - eyes * 1.25f, middle.y - eyes * 1.2f, middle.x + eyes * 1.25f, middle.y + eyes * 1.9f)
+        }
+    }
+
+    /** Lines of text, as pixel rectangles. */
+    fun textBoxes(bitmap: Bitmap): List<android.graphics.RectF> = synchronized(lock) {
+        val api = TessBaseAPI()
+        try {
+            if (!api.init(dataPath, "ara+eng")) return emptyList()
+            api.setImage(bitmap)
+            api.utF8Text
+            val lines = api.textlines
+            val boxes = lines.boxRects.map { android.graphics.RectF(it) }
+            lines.recycle()
+            boxes
+        } finally {
+            api.recycle()
+        }
+    }
+
     fun codes(bitmap: Bitmap): List<String> {
         val w = bitmap.width
         val h = bitmap.height
