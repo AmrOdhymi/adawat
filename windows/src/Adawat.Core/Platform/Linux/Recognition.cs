@@ -47,7 +47,8 @@ public static partial class Recognition
         Task.Run(() => FaceDetector.Detect(image));
 
     private static string Tesseract() =>
-        ProcessRunner.Find("tesseract") ?? throw new AdawatException("Text recognition needs Tesseract. Install it with: sudo apt install tesseract-ocr tesseract-ocr-ara");
+        ProcessRunner.Find("tesseract") ?? throw new AdawatException("Text recognition needs Tesseract. Install it with: " +
+            Desktop.Install("tesseract-ocr tesseract-ocr-ara", "tesseract tesseract-langpack-ara", "tesseract-ocr tesseract-ocr-traineddata-arabic", "tesseract tesseract-data-ara"));
 
     /// <summary>Arabic and English when both are installed, as Windows reads with both of its engines.</summary>
     private static string Languages()

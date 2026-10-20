@@ -51,6 +51,17 @@ public static class Desktop
         return null;
     }
 
+    /// <summary>The command that installs a program with this distribution's package manager. Package names differ:
+    /// <paramref name="apt"/> for Debian and Ubuntu, <paramref name="dnf"/> for Fedora, and so on (null means the same as apt).</summary>
+    public static string Install(string apt, string? dnf = null, string? zypper = null, string? pacman = null)
+    {
+        if (ProcessRunner.Find("apt") != null) return $"sudo apt install {apt}";
+        if (ProcessRunner.Find("dnf") != null) return $"sudo dnf install {dnf ?? apt}";
+        if (ProcessRunner.Find("zypper") != null) return $"sudo zypper install {zypper ?? dnf ?? apt}";
+        if (ProcessRunner.Find("pacman") != null) return $"sudo pacman -S {pacman ?? apt}";
+        return apt;
+    }
+
     /// <summary>Opens the file manager with <paramref name="path"/> selected, through the freedesktop FileManager1 interface.</summary>
     public static void ShowInFileManager(string path)
     {

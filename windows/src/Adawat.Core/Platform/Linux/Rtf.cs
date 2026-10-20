@@ -20,7 +20,7 @@ public static class Rtf
 
     private static string Convert(string path, string filter, TempFolder temp, string extension, bool writer = false)
     {
-        var soffice = Office.LibreOffice ?? throw new AdawatException("Rich Text needs LibreOffice. Install it with: sudo apt install libreoffice-writer");
+        var soffice = Office.LibreOffice ?? throw new AdawatException($"Rich Text needs LibreOffice. Install it with: {Desktop.Install("libreoffice-writer", pacman: "libreoffice-fresh")}");
         var folder = temp.File("out");
         Directory.CreateDirectory(folder);
         // HTML opens in Writer/Web unless the Writer import filter is named; RTF written from Writer/Web loses its styles.

@@ -27,7 +27,13 @@ public static class ProcessRunner
     public static string Require(string name) =>
         Find(name) ?? throw new AdawatException(OperatingSystem.IsWindows()
             ? $"{name} is not installed. Install it with: winget install {name}"
-            : $"{name} is not installed. Install it with: sudo apt install {name}");
+            : $"{name} is not installed. Install it with: {InstallCommand(name)}");
+
+#if WINDOWS
+    private static string InstallCommand(string name) => name;
+#else
+    private static string InstallCommand(string name) => Desktop.Install(name);
+#endif
 
     public sealed record Result(int ExitCode, string Output, string Error);
 

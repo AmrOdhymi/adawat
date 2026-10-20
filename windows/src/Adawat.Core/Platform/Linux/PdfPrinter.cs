@@ -28,6 +28,6 @@ public static class PdfPrinter
             var pdf = temp.File("page.pdf");
             if (result.ExitCode == 0 && File.Exists(pdf)) { File.Move(pdf, output, true); return; }
         }
-        throw new AdawatException("Making PDFs needs WeasyPrint. Install it with: sudo apt install weasyprint");
+        throw new AdawatException($"Making PDFs needs WeasyPrint. Install it with: {Desktop.Install("weasyprint", pacman: "python-weasyprint")}");
     }
 }

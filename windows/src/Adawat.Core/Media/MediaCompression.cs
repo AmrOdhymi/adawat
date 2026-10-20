@@ -22,11 +22,8 @@ public static partial class Compression
             // Bitrate targets overshoot short clips; with a size target, retry at a proportionally lower rate.
             for (var attempt = 0; attempt < 3; attempt++)
             {
-                var bits = ((long)videoBits).ToString();
-                var args = new List<string> { "-map", "0:v:0", "-map", "0:a?", "-map_metadata", "0",
-                    "-c:v", "libx265", "-preset", "medium", "-b:v", bits, "-maxrate", ((long)(videoBits * 1.1)).ToString(), "-bufsize", bits,
-                    "-tag:v", "hvc1", "-x265-params", "log-level=error" };
-                args.AddRange(["-pix_fmt", info.IsHighDepth ? "yuv420p10le" : "yuv420p"]);
+                var args = new List<string> { "-map", "0:v:0", "-map", "0:a?", "-map_metadata", "0" };
+                args.AddRange(FFmpeg.AtBitrate((long)videoBits, info.IsHighDepth));
                 if (settings.VideoMaxHeight is { } height && info.Height > height) args.AddRange(["-vf", $"scale=-2:{height}"]);
                 if (info.HasAudio) args.AddRange(["-c:a", FFmpeg.Aac, "-b:a", "128k"]);
                 args.AddRange(["-movflags", "+faststart"]);

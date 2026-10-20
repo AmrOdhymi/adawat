@@ -113,7 +113,11 @@ public static class Office
         throw new AdawatException(OperatingSystem.IsWindows() ? "Microsoft PowerPoint is needed for this file." : Missing);
     }
 
-    private const string Missing = "LibreOffice is needed for this file. Install it with: sudo apt install libreoffice";
+#if WINDOWS
+    private const string Missing = "LibreOffice is needed for this file.";
+#else
+    private static string Missing => $"LibreOffice is needed for this file. Install it with: {Desktop.Install("libreoffice", pacman: "libreoffice-fresh")}";
+#endif
 
     private static async Task Convert(string soffice, string path, string format, string folder)
     {

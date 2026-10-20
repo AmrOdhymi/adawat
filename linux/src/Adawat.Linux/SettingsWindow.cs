@@ -70,7 +70,7 @@ public static class SettingsWindow
         restartNote.IsVisible = false;
         stack.Children.Add(restartRow);
         var ffmpeg = ProcessRunner.Find("ffmpeg");
-        stack.Children.Add(UI.Caption(ffmpeg != null ? $"ffmpeg: {ffmpeg}" : "ffmpeg is not installed. Install it with: sudo apt install ffmpeg").Pad(0, 8));
+        stack.Children.Add(UI.Caption(ffmpeg != null ? $"ffmpeg: {ffmpeg}" : $"ffmpeg is not installed. Install it with: {Core.Desktop.Install("ffmpeg")}").Pad(0, 8));
 
         window.Body = stack;
         window.Leading(UI.Button("Restore Defaults", () =>

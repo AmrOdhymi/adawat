@@ -48,12 +48,14 @@ public static class Clipboard
         return result.ExitCode == 0 ? result.Output : null;
     }
 
-    /// <summary>wl-copy and xclip stay running to serve the clipboard, so they are started and left, not awaited.</summary>
+    /// <summary>wl-copy and xclip stay running to serve the clipboard, so they are started and left, not awaited. With no
+    /// display (a terminal over SSH) there is no clipboard, and nothing is copied.</summary>
     private static void Put(string type, byte[] data)
     {
+        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DISPLAY")) && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY"))) return;
         var wayland = Desktop.IsWayland && ProcessRunner.Find("wl-copy") != null;
         var tool = (wayland ? ProcessRunner.Find("wl-copy") : ProcessRunner.Find("xclip"))
-            ?? throw new AdawatException("Copying needs xclip or wl-clipboard. Install it with: sudo apt install xclip");
+            ?? throw new AdawatException($"Copying needs xclip or wl-clipboard. Install it with: {Desktop.Install("wl-clipboard xclip", "wl-clipboard xclip")}");
         // Its own output pipes: inherited ones would stay open as long as it serves the clipboard.
         var info = new ProcessStartInfo(tool) { UseShellExecute = false, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true };
         foreach (var argument in wayland ? ["--type", type] : new[] { "-selection", "clipboard", "-t", type, "-i" }) info.ArgumentList.Add(argument);

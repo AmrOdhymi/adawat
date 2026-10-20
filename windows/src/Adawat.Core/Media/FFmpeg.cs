@@ -163,7 +163,7 @@ public static class FFmpeg
             var set = new HashSet<string>();
             if (ProcessRunner.Find("ffmpeg") is { } ffmpeg)
             {
-                var result = ProcessRunner.Run(ffmpeg, ["-hide_banner", "-encoders"]).GetAwaiter().GetResult();
+                var result = Task.Run(() => ProcessRunner.Run(ffmpeg, ["-hide_banner", "-encoders"])).GetAwaiter().GetResult();
                 foreach (var line in result.Output.Split('\n'))
                 {
                     var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -187,9 +187,28 @@ public static class FFmpeg
         _ => hevc ? 28 : 26,
     };
 
-    public static string[] H264 => ["-c:v", "libx264", "-preset", "medium", "-crf", Crf(false).ToString(), "-pix_fmt", "yuv420p"];
-    public static string[] Hevc10 => ["-c:v", "libx265", "-preset", "medium", "-crf", Crf(true).ToString(), "-pix_fmt", "yuv420p10le", "-tag:v", "hvc1",
-                                      "-x265-params", "log-level=error"];
+    /// <summary>H.264 with x264 where the build has it. Fedora's ffmpeg-free has no x264 but has OpenH264, which takes a
+    /// bitrate instead of a quality level.</summary>
+    public static string[] H264 => Encoders.Contains("libx264") || !Encoders.Contains("libopenh264")
+        ? ["-c:v", "libx264", "-preset", "medium", "-crf", Crf(false).ToString(), "-pix_fmt", "yuv420p"]
+        : ["-c:v", "libopenh264", "-rc_mode", "quality", "-b:v", OpenH264Bitrate, "-pix_fmt", "yuv420p"];
+
+    private static string OpenH264Bitrate => Settings.Current.VideoQuality switch { VideoQuality.High => "8M", VideoQuality.Balanced => "5M", _ => "2500k" };
+
+    /// <summary>10-bit HEVC for HDR and deep-colour video; 8-bit H.264 when the build has no x265.</summary>
+    public static string[] Hevc10 => Encoders.Contains("libx265") || Encoders.Count == 0
+        ? ["-c:v", "libx265", "-preset", "medium", "-crf", Crf(true).ToString(), "-pix_fmt", "yuv420p10le", "-tag:v", "hvc1", "-x265-params", "log-level=error"]
+        : H264;
+
+    /// <summary>Video at an average bitrate (compression to a size): HEVC where the build has x265, otherwise H.264.</summary>
+    public static string[] AtBitrate(long bits, bool deep)
+    {
+        string[] rate = ["-b:v", bits.ToString(), "-maxrate", ((long)(bits * 1.1)).ToString(), "-bufsize", bits.ToString()];
+        if (Encoders.Contains("libx265") || Encoders.Count == 0)
+            return ["-c:v", "libx265", "-preset", "medium", .. rate, "-tag:v", "hvc1", "-x265-params", "log-level=error", "-pix_fmt", deep ? "yuv420p10le" : "yuv420p"];
+        if (Encoders.Contains("libx264")) return ["-c:v", "libx264", "-preset", "medium", .. rate, "-pix_fmt", "yuv420p"];
+        return ["-c:v", "libopenh264", "-rc_mode", "bitrate", .. rate, "-pix_fmt", "yuv420p"];
+    }
 
     public static Task Run(string input, string output, IEnumerable<string> arguments, double duration, Action<double>? progress,
                            IEnumerable<string>? inputOptions = null, CancellationToken cancellation = default) =>

@@ -311,19 +311,18 @@ LINUX_STATIC = {
     "Send to your phone": "إرسال إلى هاتفك", "Paste the files in any app": "ألصق الملفات في أي تطبيق",
     "No phone is connected to KDE Connect": "لا يوجد هاتف متصل بـ KDE Connect", "Sent to your phone": "أُرسل إلى هاتفك",
     "No terminal app was found.": "لم يُعثر على تطبيق طرفية.",
+    "LibreOffice is needed for this file.": "يلزم LibreOffice لهذا الملف.",
     "The face detector is missing from this installation.": "كاشف الوجوه غير موجود في هذا التثبيت.",
     "No audio player was found (pw-play or paplay).": "لم يُعثر على مشغّل صوت (pw-play أو paplay).",
-    "Text recognition needs Tesseract. Install it with: sudo apt install tesseract-ocr tesseract-ocr-ara":
-        "قراءة النص تحتاج Tesseract. ثبّته بالأمر: sudo apt install tesseract-ocr tesseract-ocr-ara",
-    "Making PDFs needs WeasyPrint. Install it with: sudo apt install weasyprint": "إنشاء ملفات PDF يحتاج WeasyPrint. ثبّته بالأمر: sudo apt install weasyprint",
-    "Rich Text needs LibreOffice. Install it with: sudo apt install libreoffice-writer": "ملفات RTF تحتاج LibreOffice. ثبّته بالأمر: sudo apt install libreoffice-writer",
-    "LibreOffice is needed for this file. Install it with: sudo apt install libreoffice": "يلزم LibreOffice لهذا الملف. ثبّته بالأمر: sudo apt install libreoffice",
-    "Copying needs xclip or wl-clipboard. Install it with: sudo apt install xclip": "النسخ يحتاج xclip أو wl-clipboard. ثبّته بالأمر: sudo apt install xclip",
-    "ffmpeg is not installed. Install it with: sudo apt install ffmpeg": "ffmpeg غير مثبّت. ثبّته بالأمر: sudo apt install ffmpeg",
 }
 LINUX_DYNAMIC = {
     "Text recognition failed: {1}": "تعذّرت قراءة النص: {1}",
-    "{1} is not installed. Install it with: sudo apt install {2}": "{1} غير مثبّت. ثبّته بالأمر: sudo apt install {2}",
+    "{1} is not installed. Install it with: {2}": "{1} غير مثبّت. ثبّته بالأمر: {2}",
+    "Text recognition needs Tesseract. Install it with: {1}": "قراءة النص تحتاج Tesseract. ثبّته بالأمر: {1}",
+    "Making PDFs needs WeasyPrint. Install it with: {1}": "إنشاء ملفات PDF يحتاج WeasyPrint. ثبّته بالأمر: {1}",
+    "Rich Text needs LibreOffice. Install it with: {1}": "ملفات RTF تحتاج LibreOffice. ثبّته بالأمر: {1}",
+    "LibreOffice is needed for this file. Install it with: {1}": "يلزم LibreOffice لهذا الملف. ثبّته بالأمر: {1}",
+    "Copying needs xclip or wl-clipboard. Install it with: {1}": "النسخ يحتاج xclip أو wl-clipboard. ثبّته بالأمر: {1}",
     "LibreOffice could not convert {1}.": "تعذّر على LibreOffice تحويل {1}.",
 }
 
