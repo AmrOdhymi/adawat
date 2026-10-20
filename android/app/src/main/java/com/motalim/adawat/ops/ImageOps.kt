@@ -28,24 +28,25 @@ object ImageOps {
             target
         }
 
-    fun write(bitmap: Bitmap, format: ImageFormat, target: File) {
+    fun write(bitmap: Bitmap, format: ImageFormat, target: File, quality: Int = 90) {
         when (format) {
             ImageFormat.Png -> target.outputStream().buffered().use { Encoders.compress(bitmap, Bitmap.CompressFormat.PNG, 100, it) }
-            ImageFormat.Jpeg -> target.outputStream().buffered().use { Encoders.compress(Images.flatten(bitmap), Bitmap.CompressFormat.JPEG, 90, it) }
-            ImageFormat.WebP -> target.outputStream().buffered().use { Encoders.compress(bitmap, Bitmap.CompressFormat.WEBP_LOSSY, 90, it) }
-            ImageFormat.Heic -> heic(bitmap, target)
+            ImageFormat.Jpeg -> target.outputStream().buffered().use { Encoders.compress(Images.flatten(bitmap), Bitmap.CompressFormat.JPEG, quality, it) }
+            ImageFormat.WebP -> target.outputStream().buffered().use { Encoders.compress(bitmap, Bitmap.CompressFormat.WEBP_LOSSY, quality, it) }
+            ImageFormat.Heic -> heic(bitmap, target, quality)
             ImageFormat.Tiff -> Encoders.tiff(bitmap, target)
             ImageFormat.Bmp -> Encoders.bmp(bitmap, target)
             ImageFormat.Ico -> Encoders.ico(bitmap, target)
+            ImageFormat.Gif -> Gif.write(bitmap, target)
             else -> throw AdawatException("${format.title} is not supported on this phone.")
         }
     }
 
-    private fun heic(bitmap: Bitmap, target: File) {
+    fun heic(bitmap: Bitmap, target: File, quality: Int = 90) {
         // HEVC encoders want even sizes.
         val even = if (bitmap.width % 2 == 0 && bitmap.height % 2 == 0) bitmap
                    else Bitmap.createBitmap(bitmap, 0, 0, bitmap.width and 1.inv().coerceAtLeast(2), bitmap.height and 1.inv().coerceAtLeast(2))
-        HeifWriter.Builder(target.path, even.width, even.height, HeifWriter.INPUT_MODE_BITMAP).setQuality(90).build().use { writer ->
+        HeifWriter.Builder(target.path, even.width, even.height, HeifWriter.INPUT_MODE_BITMAP).setQuality(quality).build().use { writer ->
             writer.start()
             writer.addBitmap(even)
             writer.stop(30_000)
@@ -64,7 +65,7 @@ object ImageOps {
     )
 
     /** Carries the camera details across a conversion. Pixels are already upright, so the orientation becomes normal. */
-    private fun copyMetadata(source: File, target: File) {
+    fun copyMetadata(source: File, target: File) {
         if (target.extension.lowercase() !in setOf("jpg", "png", "webp")) return
         runCatching {
             val from = ExifInterface(source)
@@ -75,17 +76,6 @@ object ImageOps {
             to.setAttribute(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL.toString())
             to.saveAttributes()
         }
-    }
-
-    suspend fun rotate(files: List<File>, context: OperationContext): List<File> = files.mapIndexed { index, file ->
-        coroutineContext.ensureActive()
-        val format = ImageFormat.of(file)?.takeIf { it.canWrite } ?: ImageFormat.Png
-        val rotated = Images.rotate(Images.decode(file), 90f)
-        val target = context.pathFor(file, format.ext, "rotated")
-        write(rotated, format, target)
-        copyMetadata(file, target)
-        context.progress((index + 1.0) / files.size)
-        target
     }
 
     /** One PDF with a page per picture, each page the picture's own size. */
@@ -165,7 +155,7 @@ private object Metadata {
                 }
             }
         }
-        if (orientation != 1) {
+        if (orientation in 2..8) {
             ExifInterface(target).apply { setAttribute(ExifInterface.TAG_ORIENTATION, orientation.toString()); saveAttributes() }
         }
     }

@@ -25,6 +25,20 @@ object Images {
         throw AdawatException("Could not read ${file.name}.")
     }
 
+    /** Upright width and height without decoding the pixels. */
+    fun size(file: File): Pair<Int, Int> {
+        var result = 0 to 0
+        try {
+            ImageDecoder.decodeBitmap(ImageDecoder.createSource(file)) { decoder, info, _ ->
+                result = info.size.width to info.size.height
+                decoder.setTargetSize(1, 1)
+            }
+        } catch (e: Exception) {
+            if (result.first == 0) throw AdawatException("Could not read ${file.name}.")
+        }
+        return result
+    }
+
     /** The picture on white, for formats without transparency. */
     fun flatten(bitmap: Bitmap): Bitmap {
         if (!bitmap.hasAlpha()) return bitmap

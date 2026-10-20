@@ -13,6 +13,7 @@ data class JobState(
     val finished: Boolean = false,
     val error: String? = null,
     val message: String? = null,
+    val link: String? = null,
     val saved: List<Saved> = emptyList(),
 )
 

@@ -72,7 +72,7 @@ class WorkService : LifecycleService() {
             try {
                 val results = withContext(Dispatchers.Default) { operation.run(files, context) }
                 val saved = withContext(Dispatchers.IO) { results.map { Outputs.save(this@WorkService, it) } }
-                Jobs.change(id) { it.copy(finished = true, progress = 1.0, saved = saved, message = context.message) }
+                Jobs.change(id) { it.copy(finished = true, progress = 1.0, saved = saved, message = context.message, link = context.link) }
                 notifyDone(id)
             } catch (e: CancellationException) {
                 Jobs.change(id) { it.copy(finished = true, error = L10n.t("Cancelled")) }

@@ -281,6 +281,11 @@ private fun JobCard(job: JobState, onDismiss: () -> Unit) {
                             contentPadding = PaddingValues(horizontal = 10.dp),
                         ) { Text(L10n.t("Share"), maxLines = 1) }
                     }
+                    job.link?.let { link ->
+                        Button(onClick = { Actions.openLink(activity, link); activity.finish() }, modifier = Modifier.weight(1f)) {
+                            Text(L10n.t("Open Link"), maxLines = 1)
+                        }
+                    }
                     TextButton(onClick = onDismiss) { Text(L10n.t("Done")) }
                 }
             }

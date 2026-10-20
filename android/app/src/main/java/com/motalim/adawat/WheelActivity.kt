@@ -21,11 +21,15 @@ import com.motalim.adawat.ui.AdawatTheme
 import com.motalim.adawat.ui.WheelScreen
 import com.motalim.adawat.work.Inputs
 import com.motalim.adawat.work.JobState
+import com.motalim.adawat.work.Jobs
 import com.motalim.adawat.work.WheelVisibility
 import com.motalim.adawat.work.WorkService
 import com.motalim.adawat.work.stageText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -57,6 +61,14 @@ class WheelModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun restart(uris: List<Uri>, text: String?) {
+        files.value = null
+        failed.value = false
+        job.value = null
+        started = false
+        stage(uris, text)
+    }
+
     fun run(operation: Operation) {
         val staged = files.value ?: return
         val id = UUID.randomUUID().toString()
@@ -84,6 +96,7 @@ class WheelActivity : ComponentActivity() {
         current?.get()?.takeIf { it !== this && !it.isFinishing }?.finish()
         current = java.lang.ref.WeakReference(this)
         model.stage(sharedUris(intent), intent.getStringExtra(Intent.EXTRA_TEXT))
+        runTestOperation(intent)
         setContent {
             AdawatTheme {
                 WheelScreen(
@@ -101,6 +114,18 @@ class WheelActivity : ComponentActivity() {
         }
     }
 
+    /** Files shared again while the wheel is open start a fresh wheel. */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (model.job.value != null && Jobs.all.value[model.job.value]?.finished == false) {
+            startActivity(Intent(intent).setClass(this, WheelActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK))
+            return
+        }
+        setIntent(intent)
+        model.restart(sharedUris(intent), intent.getStringExtra(Intent.EXTRA_TEXT))
+        runTestOperation(intent)
+    }
+
     override fun onStart() {
         super.onStart()
         WheelVisibility.watching = model.job.value
@@ -110,6 +135,16 @@ class WheelActivity : ComponentActivity() {
         super.onStop()
         // Once the wheel is gone, a finished job is announced by notification instead.
         if (WheelVisibility.watching == model.job.value) WheelVisibility.watching = null
+    }
+
+    /** Debug builds can run a tool straight away, for tests driven over adb. */
+    private fun runTestOperation(intent: Intent) {
+        if (!BuildConfig.DEBUG) return
+        val id = intent.getStringExtra("adawat.test.operation") ?: return
+        lifecycleScope.launch {
+            val files = model.files.filterNotNull().first()
+            Catalog.find(id, files)?.let { model.run(it) }
+        }
     }
 
     companion object {

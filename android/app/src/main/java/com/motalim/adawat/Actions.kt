@@ -61,6 +61,10 @@ object Actions {
         }
     }
 
+    fun openLink(activity: Activity, link: String) {
+        runCatching { activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link))) }
+    }
+
     fun copy(context: Context, files: List<File>) {
         val uris = files.map { uri(context, it) }
         val clip = ClipData.newUri(context.contentResolver, files.first().name, uris[0])

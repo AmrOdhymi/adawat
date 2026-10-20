@@ -3,6 +3,8 @@ package com.motalim.adawat.core
 import com.motalim.adawat.ops.FileActions
 import com.motalim.adawat.ops.ImageFormat
 import com.motalim.adawat.ops.ImageOps
+import com.motalim.adawat.ops.ImageTools
+import com.motalim.adawat.ops.QrCode
 import java.io.File
 
 /** Decides which wheel choices fit the shared files. Mirrors the desktop catalog, choice for choice, as far as Android can go. */
@@ -58,10 +60,25 @@ object Catalog {
         val single = files.size == 1
         val ops = mutableListOf<Operation>()
         if (kinds == setOf(FileKind.Image)) {
+            ops += tool("image.compress", "Compress", null, Icons.Compress, { f, c -> ImageTools.compress(f, c) })
             ops += tool("image.metadata", "Remove Metadata", "Metadata", Icons.Metadata, ImageOps::removeMetadata)
-            ops += tool("image.rotate", "Rotate", null, Icons.Rotate, ImageOps::rotate)
-            if (!single) ops += tool("image.topdf", "Create PDF", "PDF", Icons.Pdf, ImageOps::makePdf)
+            ops += tool("image.frame", "Add Background", "Add BG", Icons.Background, { f, c -> ImageTools.addBackground(f, c) })
+            ops += tool("image.crop", "Crop", null, Icons.Crop, ImageTools::squareCrop)
+            ops += tool("image.rotate", "Rotate", null, Icons.Rotate, ImageTools::rotate)
+            ops += tool("image.ocr", "Copy Text", "Text", Icons.Text, ImageTools::extractText)
+            ops += tool("image.qr", "Read QR Code", "QR Code", Icons.Qr, ImageTools::readCodes, producesFiles = false)
+            if (!single) {
+                ops += tool("image.topdf", "Create PDF", "PDF", Icons.Pdf, ImageOps::makePdf)
+                ops += tool("image.collage", "Create Collage", "Collage", Icons.Collage, { f, c -> ImageTools.makeCollage(f, c) })
+            }
         }
+
+        if (kinds == setOf(FileKind.Pdf)) {
+            ops += tool("pdf.ocr", "Copy Text", "Text", Icons.Text, ImageTools::extractText)
+        }
+
+        if (QrCode.canEncode(files)) ops += tool("text.qr", "Create QR Code", "Make QR", Icons.Qr, QrCode::quick)
+
         return ops
     }
 

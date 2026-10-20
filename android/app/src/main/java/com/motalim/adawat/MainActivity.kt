@@ -56,6 +56,11 @@ class MainActivity : ComponentActivity() {
         setContent { AdawatTheme { Home(::openWheel, ::setLanguage) } }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+    }
+
     private fun openWheel(uris: List<Uri>) {
         if (uris.isEmpty()) return
         val intent = Intent(this, WheelActivity::class.java)
@@ -63,6 +68,8 @@ class MainActivity : ComponentActivity() {
             .setType("*/*")
             .putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(uris))
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        // Debug builds pass a tool to run along, for tests driven over adb.
+        if (BuildConfig.DEBUG) this.intent.getStringExtra("adawat.test.operation")?.let { intent.putExtra("adawat.test.operation", it) }
         intent.clipData = ClipData.newRawUri(null, uris[0]).apply { uris.drop(1).forEach { addItem(ClipData.Item(it)) } }
         startActivity(intent)
     }

@@ -28,8 +28,14 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    androidResources {
+        // The OCR models are read from a copy on disk, so keep them whole.
+        noCompress += "traineddata"
+    }
+
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     // The Arabic strings are shared with the Windows and Linux apps.
@@ -45,6 +51,8 @@ dependencies {
     implementation(libs.androidx.heifwriter)
     implementation(libs.androidx.print)
     implementation(libs.androidx.documentfile)
+    implementation(libs.zxing.core)
+    implementation(libs.tesseract)
     implementation(libs.kotlinx.coroutines.android)
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)

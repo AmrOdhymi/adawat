@@ -35,6 +35,9 @@ class OperationContext(
     var message: String? = null
         private set
 
+    /** A web address the result names, such as a QR code's, offered as a button. */
+    var link: String? = null
+
     fun report(text: String) = onReport(L10n.t(text))
 
     /** Fraction done (0…1) of the whole operation. */

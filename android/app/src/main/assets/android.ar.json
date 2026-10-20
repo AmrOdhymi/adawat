@@ -36,5 +36,7 @@
  "Everything happens on this phone. No file leaves it unless you share it.": "كل شيء يحدث على هذا الهاتف. لا يغادره أي ملف إلا إذا شاركته أنت.",
  "This file type is not supported yet.": "هذا النوع من الملفات غير مدعوم بعد.",
  "Saved {1} files to {2}": "حُفظت {1} ملفات في {2}",
- "No app can open this file.": "لا يوجد تطبيق يفتح هذا الملف."
+ "No app can open this file.": "لا يوجد تطبيق يفتح هذا الملف.",
+ "Reading page {1} of {2}": "جارٍ قراءة الصفحة {1} من {2}",
+ "Open Link": "فتح الرابط"
 }

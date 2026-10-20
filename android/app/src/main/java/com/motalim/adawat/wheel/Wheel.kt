@@ -45,7 +45,9 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
@@ -53,6 +55,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.CompositionLocalProvider
+import com.motalim.adawat.core.L10n
 import com.motalim.adawat.core.Operation
 import com.motalim.adawat.ui.Look
 import com.motalim.adawat.ui.iconText
@@ -206,6 +209,7 @@ fun Wheel(
                     fontSize = with(density) { ((if (isTool || current == null) 10.5f else 13f) * px).dp.toSp() },
                     fontWeight = if (isTool || current == null) FontWeight.SemiBold else FontWeight.Medium,
                     textAlign = TextAlign.Center,
+                    style = TextStyle(textDirection = labelDirection()),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.widthIn(max = (64 * px).dp),
@@ -216,6 +220,9 @@ fun Wheel(
 }
 
 private operator fun Offset.div(value: Float) = Offset(x / value, y / value)
+
+/** The wheel itself is laid out left to right, but its words read in the app's language. */
+private fun labelDirection() = if (L10n.isRightToLeft) TextDirection.Rtl else TextDirection.Ltr
 
 @Composable
 private fun PetalLabel(operation: Operation, hovered: Boolean, count: Int, scale: Float) {
@@ -232,6 +239,7 @@ private fun PetalLabel(operation: Operation, hovered: Boolean, count: Int, scale
         Text(iconText(operation.icon), color = color, fontFamily = Look.Icons, fontSize = sp(19f), maxLines = 1)
         Text(
             operation.wheelLabel, color = color, fontFamily = Look.font, fontWeight = FontWeight.SemiBold, fontSize = sp(9.5f),
+            style = TextStyle(textDirection = labelDirection()),
             maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
             modifier = Modifier.widthIn(max = (66 * px).dp).padding(top = (1 * px).dp),
         )

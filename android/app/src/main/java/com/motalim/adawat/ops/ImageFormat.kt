@@ -10,7 +10,7 @@ class ImageFormat private constructor(val title: String, val ext: String, val lo
     val canWrite: Boolean
         get() = when (this) {
             Heic -> hevcEncoder
-            Avif, Gif -> false
+            Avif -> false
             else -> true
         }
 
