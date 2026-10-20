@@ -18,6 +18,7 @@
   <img alt="macOS 14+" src="https://img.shields.io/badge/macOS-14%2B-111?style=for-the-badge&logo=apple">
   <img alt="Windows 10 and 11" src="https://img.shields.io/badge/Windows-10%20%C2%B7%2011-0078D4?style=for-the-badge&logo=windows11&logoColor=white">
   <img alt="Linux" src="https://img.shields.io/badge/Linux-x64%20%C2%B7%20ARM64-F5A623?style=for-the-badge&logo=linux&logoColor=white">
+  <img alt="Android 10+" src="https://img.shields.io/badge/Android-10%2B-3DDC84?style=for-the-badge&logo=android&logoColor=white">
   <a href="LICENSE"><img alt="License: GPL v3" src="https://img.shields.io/badge/License-GPL%20v3-7CF2C8?style=for-the-badge"></a>
 </p>
 
@@ -26,6 +27,7 @@
 **Adawat** (أدوات, "tools") lives in your Mac's menu bar, next to the Windows clock, or in the Linux top bar. Start dragging any file,
 press a key, and a wheel of choices opens right under the pointer. Drop the file on a choice and it is done: a new
 format, a smaller size, an edited copy. No upload, no account, no limits. Everything happens on your computer.
+On Android, share any file to Adawat and the same wheel opens.
 
 <p align="center">
   <img src="docs/media/demo-en.gif" alt="Dragging a photo, pressing Shift, and dropping it on WEBP" width="760">
@@ -107,6 +109,31 @@ which one to install the first time a tool needs it.
 
 Tested on Ubuntu 24.04 (GNOME on Wayland and on X11); it needs a 64-bit distribution with X11 or Xwayland. On GNOME, the top bar icon needs the
 AppIndicator extension, which Ubuntu turns on by default (on Fedora, install `gnome-shell-extension-appindicator`).
+
+### Android
+
+Download [Adawat-Android.apk](https://github.com/motalim-ai/adawat/releases/latest/download/Adawat-Android.apk) on your phone or tablet (Android 10 or later) and open it.
+
+1. If Android asks, tap **Settings**, turn on **Allow from this source**, then go back and tap **Install**.
+2. If Play Protect warns you, tap **More details**, then **Install anyway**. Adawat is published here on GitHub
+   only, not on Google Play.
+3. Share any file and choose **Adawat**, or open a file with Adawat. The wheel appears: tap a choice, or slide your
+   finger onto it and lift. The center of the wheel, or the tabs under it, switch between Convert, Tools and Actions.
+
+Results are saved in an Adawat folder in Pictures, Movies, Music or Download. Every release is signed with the same
+key, so an update installs over the previous one. The certificate's SHA-256 fingerprint is
+`18:74:CF:62:E2:AD:6C:66:EB:87:C7:7A:01:26:18:D3:CA:58:D7:8C:6E:38:12:FE:5E:F8:50:30:B4:91:E1:0F`.
+
+On Android, a PDF also becomes Word, Excel, PowerPoint and EPUB, and video saves as MP4, WebM or GIF. Old .doc and
+.xls files and presentations do not open yet.
+
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="docs/site/media/android-convert-en.jpg" alt="The Convert wheel over the Files app" width="240"><br><sub>The Convert wheel over the Files app</sub></td>
+    <td align="center" width="33%"><img src="docs/site/media/android-tools-en.jpg" alt="The Tools wheel for the same photo" width="240"><br><sub>The Tools wheel for the same photo</sub></td>
+    <td align="center" width="33%"><img src="docs/site/media/android-edit-en.jpg" alt="The Edit Photo window" width="240"><br><sub>The Edit Photo window</sub></td>
+  </tr>
+</table>
 
 ## How it works
 
@@ -190,7 +217,7 @@ to the edge of the screen. Results can open in a Float automatically.
 
 ## Arabic and English
 
-The whole interface is available in Arabic, right to left, and in English, on Mac and Windows. Adawat follows
+The whole interface is available in Arabic, right to left, and in English, on Mac, Windows, Linux and Android. Adawat follows
 your system's language on first launch (on Windows, the language you pick in the installer), and you can switch
 at any time in Settings.
 
@@ -238,6 +265,19 @@ linux/tools/build-packages.sh                                  # .deb, .rpm and 
 `linux/tools/deploy-vm.sh` runs a fresh build in a test machine's desktop session over SSH (host `adawat-linux`), and
 `linux/tools/snapshots-vm.sh` renders every window there to pictures, in English or Arabic, for checking a build.
 
+### Android
+
+The Android app is in `android/`, written in Kotlin with Jetpack Compose. It needs JDK 17 and the Android SDK with
+NDK 29 and CMake, which Android Studio installs.
+
+```bash
+android/tools/fetch-native.sh                                  # LAME, libarchive, xz and bzip2 sources, each checked by its SHA-256
+cd android && ./gradlew assembleDebug                          # app/build/outputs/apk/debug/app-debug.apk
+```
+
+`./gradlew assembleRelease` signs the release APK when the Gradle properties `adawat.storeFile`,
+`adawat.storePassword`, `adawat.keyAlias` and `adawat.keyPassword` are set, for example in `~/.gradle/gradle.properties`.
+
 <details>
 <summary>Project layout</summary>
 
@@ -259,19 +299,21 @@ linux/tools/build-packages.sh                                  # .deb, .rpm and 
 | `linux/src/Adawat.Linux` | Linux: tray icon, drag watching (X11, or the GNOME Shell extension on Wayland), the wheel, Floats and the option windows |
 | `linux/gnome-extension` | Linux: the GNOME Shell extension that reports drags under Wayland |
 | `linux/packaging`, `linux/tools` | Linux: the .desktop file, package definitions, ffmpeg, model and build scripts |
+| `android/app/src/main/java/com/motalim/adawat` | Android: the wheel, the editors, and every conversion and tool |
+| `android/app/src/main/cpp`, `android/tools` | Android: the bridges to LAME and libarchive, and the script that fetches their sources |
 
 </details>
 
 ## Privacy
 
-Adawat never sends your files anywhere, on Mac, Windows or Linux. It has no analytics, no account and no network
+Adawat never sends your files anywhere, on Mac, Windows, Linux or Android. It has no analytics, no account and no network
 features. On Mac, Pages, Keynote and Numbers are asked (with your permission) only when you convert their formats.
 
 ## License
 
 Adawat is free software under the [GNU General Public License v3.0](LICENSE): you can use it, study it, share it
 and change it. If you distribute a modified version, it has to stay free under the same license.
-The bundled ffmpeg, cwebp and Windows libraries keep their own licenses; see
+The bundled ffmpeg, cwebp, Windows and Android libraries keep their own licenses; see
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 The name **Adawat** and its icon identify this project and are not covered by the license.

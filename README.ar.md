@@ -18,6 +18,7 @@
   <img alt="macOS 14+" src="https://img.shields.io/badge/macOS-14%2B-111?style=for-the-badge&logo=apple">
   <img alt="Windows 10 و 11" src="https://img.shields.io/badge/Windows-10%20%C2%B7%2011-0078D4?style=for-the-badge&logo=windows11&logoColor=white">
   <img alt="Linux" src="https://img.shields.io/badge/Linux-x64%20%C2%B7%20ARM64-F5A623?style=for-the-badge&logo=linux&logoColor=white">
+  <img alt="Android 10+" src="https://img.shields.io/badge/Android-10%2B-3DDC84?style=for-the-badge&logo=android&logoColor=white">
   <a href="LICENSE"><img alt="الرخصة GPL v3" src="https://img.shields.io/badge/License-GPL%20v3-7CF2C8?style=for-the-badge"></a>
 </p>
 
@@ -28,6 +29,7 @@
 **أدوات** تطبيق صغير بيعيش في شريط القوائم على الماك، أو جنب الساعة على الويندوز، أو في الشريط اللي فوق على اللينكس. ابدأ اسحب أي ملف، واضغط
 مفتاح، فتظهر عجلة اختيارات تحت الماوس على طول. أفلت الملف على الاختيار اللي عاوزه وخلاص: صيغة جديدة، أو حجم أصغر، أو نسخة معدّلة.
 من غير رفع ملفات، ومن غير حساب، ومن غير حد استخدامات. كل حاجة بتحصل على جهازك.
+وعلى الأندرويد، شارك أي ملف لأدوات وهتفتح نفس العجلة.
 
 </div>
 
@@ -122,6 +124,42 @@ xattr -dr com.apple.quarantine /Applications/Adawat.app && open /Applications/Ad
 
 <div dir="rtl">
 
+### الأندرويد
+
+حمّل [Adawat-Android.apk](https://github.com/motalim-ai/adawat/releases/latest/download/Adawat-Android.apk) على موبايلك أو التابلت (Android 10 أو أحدث) وافتحه.
+
+1. لو الأندرويد سألك، دوس **الإعدادات** وفعّل **السماح من هذا المصدر**، وارجع ودوس **تثبيت**.
+2. لو Play Protect نبّهك، دوس **مزيد من التفاصيل** وبعدين **التثبيت على أي حال**. أدوات منشور هنا على GitHub بس،
+   مش على Google Play.
+3. شارك أي ملف واختار **أدوات**، أو افتح الملف بأدوات. هتظهر العجلة: المس الاختيار، أو اسحب صباعك عليه وارفعه.
+   ونص العجلة، أو الأزرار اللي تحتها، بيبدّلوا بين التحويل والأدوات والإجراءات.
+
+النتايج بتتحفظ في فولدر Adawat جوه الصور أو الأفلام أو الموسيقى أو التنزيلات. وكل إصدار موقّع بنفس المفتاح، فالتحديث
+بيتثبّت فوق القديم على طول. وبصمة الشهادة (SHA-256) هي:
+
+</div>
+
+```
+18:74:CF:62:E2:AD:6C:66:EB:87:C7:7A:01:26:18:D3:CA:58:D7:8C:6E:38:12:FE:5E:F8:50:30:B4:91:E1:0F
+```
+
+<div dir="rtl">
+
+وعلى الأندرويد، ملف PDF بيتحوّل كمان لـ Word و Excel و PowerPoint و EPUB، والفيديو بيتحفظ MP4 أو WebM أو GIF.
+وملفات .doc و .xls القديمة والعروض التقديمية لسه مش بتفتح.
+
+</div>
+
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="docs/site/media/android-convert-ar.jpg" alt="عجلة التحويل فوق تطبيق الملفات" width="240"><br><sub>عجلة التحويل فوق تطبيق الملفات</sub></td>
+    <td align="center" width="33%"><img src="docs/site/media/android-tools-ar.jpg" alt="عجلة الأدوات لنفس الصورة" width="240"><br><sub>عجلة الأدوات لنفس الصورة</sub></td>
+    <td align="center" width="33%"><img src="docs/site/media/android-edit-ar.jpg" alt="نافذة تعديل الصورة" width="240"><br><sub>نافذة تعديل الصورة</sub></td>
+  </tr>
+</table>
+
+<div dir="rtl">
+
 ## بيشتغل إزاي؟
 
 1. **اسحب** ملف أو أكتر من Finder أو مستكشف الملفات أو مدير ملفات اللينكس أو سطح المكتب أو أي برنامج.
@@ -211,7 +249,7 @@ Tesseract (عربي وإنجليزي)، والـ PDF بيتطبع بـ WeasyPrin
 
 ## عربي وإنجليزي
 
-الواجهة كلها متاحة بالعربي من اليمين للشمال، وبالإنجليزي، على الماك والويندوز. أول مرة بيشتغل التطبيق بلغة
+الواجهة كلها متاحة بالعربي من اليمين للشمال، وبالإنجليزي، على الماك والويندوز واللينكس والأندرويد. أول مرة بيشتغل التطبيق بلغة
 جهازك (وعلى الويندوز باللغة اللي تختارها في التثبيت)، وتقدر تغيّرها في أي وقت من الإعدادات.
 
 ## البناء من الكود
@@ -270,15 +308,32 @@ linux/tools/build-packages.sh                                  # ملفات .deb
 السكربت `linux/tools/deploy-vm.sh` بيشغّل آخر نسخة على جهاز تجربة عن طريق SSH (اسمه `adawat-linux`)، و
 `linux/tools/snapshots-vm.sh` بيرسم كل النوافذ هناك صور بالعربي أو الإنجليزي عشان تراجع النسخة.
 
+### الأندرويد
+
+نسخة الأندرويد موجودة في `android/`، ومكتوبة بـ Kotlin و Jetpack Compose. محتاجة JDK 17 و Android SDK ومعاه
+NDK 29 و CMake، و Android Studio بيثبّتهم.
+
+</div>
+
+```bash
+android/tools/fetch-native.sh                                  # كود LAME و libarchive و xz و bzip2، وكل واحد بيتراجع ببصمته
+cd android && ./gradlew assembleDebug                          # app/build/outputs/apk/debug/app-debug.apk
+```
+
+<div dir="rtl">
+
+والأمر `./gradlew assembleRelease` بيوقّع نسخة الإصدار لو خصائص Gradle دي موجودة: `adawat.storeFile`
+و `adawat.storePassword` و `adawat.keyAlias` و `adawat.keyPassword`، مثلًا في `~/.gradle/gradle.properties`.
+
 ## الخصوصية
 
-أدوات عمره ما بيبعت ملفاتك لأي مكان، لا على الماك ولا على الويندوز ولا على اللينكس. مافيهوش تتبّع ولا حساب ولا أي خاصية
+أدوات عمره ما بيبعت ملفاتك لأي مكان، لا على الماك ولا على الويندوز ولا على اللينكس ولا على الأندرويد. مافيهوش تتبّع ولا حساب ولا أي خاصية
 إنترنت. وعلى الماك بيكلّم Pages و Keynote و Numbers (بإذنك) بس لما تحوّل صيغهم.
 
 ## الرخصة
 
 أدوات برنامج حر تحت رخصة [GNU General Public License v3.0](LICENSE): تقدر تستخدمه وتدرسه وتشاركه وتعدّل
-فيه. ولو وزّعت نسخة معدّلة، لازم تفضل حرة بنفس الرخصة. ونسخ ffmpeg و cwebp ومكتبات الويندوز واللينكس اللي جوه
+فيه. ولو وزّعت نسخة معدّلة، لازم تفضل حرة بنفس الرخصة. ونسخ ffmpeg و cwebp ومكتبات الويندوز واللينكس والأندرويد اللي جوه
 التطبيق ليهم رخصهم الخاصة، تفاصيلها في [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 اسم **أدوات** وأيقونته خاصين بالمشروع ده ومش داخلين في الرخصة.

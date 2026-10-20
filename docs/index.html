@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>أدوات · Adawat</title>
-<meta name="description" content="أدوات تطبيق مجاني ومفتوح المصدر للماك و Windows ولينكس: اسحب أي ملف واضغط مفتاحًا، فتظهر عجلة اختيارات تحت المؤشر. حوّل واضغط وعدّل ملفاتك على جهازك، بلا رفع ولا حساب. Adawat: convert, compress and edit any file while you drag it.">
+<meta name="description" content="أدوات تطبيق مجاني ومفتوح المصدر للماك و Windows ولينكس وأندرويد: اسحب أي ملف واضغط مفتاحًا، فتظهر عجلة اختيارات تحت المؤشر. حوّل واضغط وعدّل ملفاتك على جهازك، بلا رفع ولا حساب. Adawat: convert, compress and edit any file while you drag it.">
 <meta name="theme-color" content="#0B0919">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Adawat · أدوات">
-<meta property="og:description" content="Convert, compress and edit any file while you drag it. Free and open source for Mac, Windows and Linux. حوّل واضغط وعدّل أي ملف وأنت تسحبه.">
+<meta property="og:description" content="Convert, compress and edit any file while you drag it. Free and open source for Mac, Windows, Linux and Android. حوّل واضغط وعدّل أي ملف وأنت تسحبه.">
 <meta property="og:url" content="https://motalim-ai.github.io/adawat/">
 <meta property="og:image" content="https://motalim-ai.github.io/adawat/media/banner-light.png">
 <meta property="og:image:width" content="3200">
@@ -30,7 +30,8 @@
   if(q.get('static')==='1'){d.classList.add('static')}
   else if(!reduce&&'IntersectionObserver' in window){d.classList.add('anim')}
   if(/Windows/i.test(navigator.userAgent)){d.classList.add('is-win')}
-  else if(/Linux|X11/i.test(navigator.userAgent)&&!/Android/i.test(navigator.userAgent)){d.classList.add('is-linux')}
+  else if(/Android/i.test(navigator.userAgent)){d.classList.add('is-android')}
+  else if(/Linux|X11/i.test(navigator.userAgent)){d.classList.add('is-linux')}
 })();
 </script>
 <style>
@@ -139,6 +140,8 @@ html[lang="ar"] .hero h1{font-weight:700;letter-spacing:0;line-height:1.28;font-
 .is-win .hero-cta .cta-win,.is-linux .hero-cta .cta-linux{background:linear-gradient(180deg,#6B58F0,#5B47E6);border-color:transparent;box-shadow:0 10px 30px -8px rgba(91,71,230,.75)}
 .is-linux .hero-cta .cta-mac{order:2;background:rgba(255,255,255,.07);box-shadow:none;border:1px solid rgba(255,255,255,.16)}
 .is-linux .hero-cta .cta-linux{order:-1}
+.is-android .hero-cta .cta-mac{order:2;background:rgba(255,255,255,.07);box-shadow:none;border:1px solid rgba(255,255,255,.16)}
+.is-android .hero-cta .cta-android{order:-1;background:linear-gradient(180deg,#6B58F0,#5B47E6);border-color:transparent;box-shadow:0 10px 30px -8px rgba(91,71,230,.75)}
 /* the note that appears once a download starts */
 .dl-note{display:none;margin-top:14px;padding:12px 14px;border-radius:14px;background:rgba(142,235,198,.10);border:1px solid rgba(142,235,198,.28);font-size:14px;line-height:1.6;color:rgba(255,255,255,.88)}
 .dl-note.on{display:block}
@@ -300,6 +303,14 @@ button.krow:hover{border-color:var(--line-strong)}
 .dcard li{font-size:14.5px;color:var(--muted);padding-inline-start:18px;position:relative;line-height:1.6}
 .dcard li::before{content:"";position:absolute;inset-inline-start:0;top:.7em;width:6px;height:6px;border-radius:50%;background:var(--mint)}
 
+/* android band */
+.phones{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(10px,1.6vw,20px);align-items:start}
+.phones figure:nth-child(2){margin-top:clamp(18px,3vw,40px)}
+.phone{border-radius:clamp(18px,2.4vw,30px);padding:clamp(4px,.5vw,7px);background:#000;box-shadow:0 0 0 1px rgba(255,255,255,.14),0 30px 70px -25px rgba(0,0,0,.9)}
+.phone img{display:block;width:100%;height:auto;border-radius:clamp(14px,2vw,24px)}
+.phones .cap{font-size:13px;margin-top:12px}
+.and-diff{margin-top:28px}
+
 /* principles */
 .pgrid{display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:20px;margin-top:64px}
 .pcard{border-radius:28px;padding:30px;background:var(--surface);border:1px solid var(--line);display:flex;flex-direction:column;gap:12px;overflow:hidden}
@@ -322,8 +333,7 @@ button.krow:hover{border-color:var(--line-strong)}
 .dl{background:#0B0919;overflow:hidden;isolation:isolate;border-block:1px solid rgba(255,255,255,.06)}
 .dl::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(50% 55% at 50% 0%,rgba(91,71,230,.55),transparent 70%),radial-gradient(30% 40% at 90% 90%,rgba(142,235,198,.10),transparent 70%)}
 .dl-icon{width:112px;height:112px;margin:0 auto 22px;filter:drop-shadow(0 18px 40px rgba(91,71,230,.7))}
-.dl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:56px}
-@media (max-width:1100px){.dl-grid{grid-template-columns:1fr 1fr}}
+.dl-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:56px}
 .dlc{border-radius:28px;padding:clamp(24px,3vw,36px);background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.12);display:flex;flex-direction:column}
 .dlc-head{display:flex;align-items:center;gap:14px}
 .os-ic{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);font-size:24px}
@@ -482,6 +492,7 @@ footer{border-top:1px solid var(--line);padding:36px 0 48px;font-size:14px;color
       <a href="#formats"><span class="ar">الصيغ</span><span class="en">Formats</span></a>
       <a href="#windows">Windows</a>
       <a href="#download-linux">Linux</a>
+      <a href="#android">Android</a>
       <a href="#download"><span class="ar">التحميل</span><span class="en">Download</span></a>
     </nav>
     <div class="nav-tools">
@@ -504,7 +515,7 @@ footer{border-top:1px solid var(--line);padding:36px 0 48px;font-size:14px;color
   <div class="hero-bg" aria-hidden="true"></div>
   <div class="wrap">
     <div class="hero-copy">
-      <div class="pill"><b><span class="ar">مجاني</span><span class="en">Free</span></b><span class="ar">ومفتوح المصدر · للماك و Windows ولينكس</span><span class="en">Open source · for Mac, Windows and Linux</span><!--ws--></div>
+      <div class="pill"><b><span class="ar">مجاني</span><span class="en">Free</span></b><span class="ar">ومفتوح المصدر · للماك و Windows ولينكس وأندرويد</span><span class="en">Open source · for Mac, Windows, Linux and Android</span><!--ws--></div>
       <h1>
         <span class="ar">حوّل واضغط وعدّل أي ملف<br class="brd"> <span class="glow-text">وأنت تسحبه.</span></span>
         <span class="en">Convert, compress and edit<br class="brd"> any file <span class="glow-text">while you drag it.</span></span>
@@ -526,12 +537,17 @@ footer{border-top:1px solid var(--line);padding:36px 0 48px;font-size:14px;color
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c-2.2 0-3.6 1.9-3.6 4.6 0 1.4.4 2.4-.4 3.9-.9 1.6-2.9 3.6-2.9 6.6 0 .6.1 1.1.3 1.6-.8.4-1.9.9-1.9 1.8 0 1 1.6 1.2 3.3 1.5 1.1.2 2 .9 3 .9.8 0 1.4-.4 1.8-.9h.8c.4.5 1 .9 1.8.9 1 0 1.9-.7 3-.9 1.7-.3 3.3-.5 3.3-1.5 0-.9-1.1-1.4-1.9-1.8.2-.5.3-1 .3-1.6 0-3-2-5-2.9-6.6-.8-1.5-.4-2.5-.4-3.9C15.6 3.9 14.2 2 12 2zm-1.6 4.2c.5 0 .8.6.8 1.2s-.3 1.1-.8 1.1-.8-.5-.8-1.1.3-1.2.8-1.2zm3.2 0c.5 0 .8.6.8 1.2s-.3 1.1-.8 1.1-.8-.5-.8-1.1.3-1.2.8-1.2zM12 9.4c.9 0 2 .6 2 1.1 0 .4-1 1.1-2 1.1s-2-.7-2-1.1c0-.5 1.1-1.1 2-1.1z"/></svg>
           <span class="ar">تحميل لـ Linux</span><span class="en">Download for Linux</span>
         </a>
+        <a class="btn btn-ghost cta-android" href="https://github.com/motalim-ai/adawat/releases/latest/download/Adawat-Android.apk">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.6 9.5l1.8-3.1a.4.4 0 0 0-.7-.4l-1.8 3.1A11 11 0 0 0 12 8.2c-1.8 0-3.4.3-4.9.9L5.3 6a.4.4 0 0 0-.7.4l1.8 3.1C3.4 11.1 1.4 14 1 17.5h22c-.4-3.5-2.4-6.4-5.4-8zM7 14.8a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm10 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg>
+          <span class="ar">تحميل لـ Android</span><span class="en">Download for Android</span>
+        </a>
       </div>
       <p class="dl-note" data-win-note role="status"><span class="ar"><b>بدأ التحميل.</b> إذا لم يظهر الملف أو قال المتصفح إنه <span class="ltr">“isn’t commonly downloaded”</span>، فافتح التنزيلات بـ <b>Ctrl+J</b>، واضغط <b>…</b> بجانب الملف ثم <b>Keep</b> (في Edge: <b>Show more</b> ثم <b>Keep anyway</b>). الملف آمن ومفتوح المصدر، لكنه غير موقّع رقميًا بعد.</span><span class="en"><b>Your download has started.</b> If nothing appears, or the browser says the file <em>isn’t commonly downloaded</em>, open your downloads with <b>Ctrl+J</b>, press <b>…</b> next to the file, then <b>Keep</b> (in Edge: <b>Show more</b>, then <b>Keep anyway</b>). The installer is open source but not code-signed yet.</span></p>
       <div class="hero-meta">
         <span>macOS 14+ · Apple silicon</span>
         <span>Windows 10 · 11</span>
         <span>Linux · x64 · ARM64</span>
+        <span><bdi dir="ltr">Android 10+</bdi></span>
         <span><span class="ar">عربي وإنجليزي</span><span class="en">Arabic &amp; English</span></span>
         <span>GPL v3</span>
       </div>
@@ -831,23 +847,63 @@ footer{border-top:1px solid var(--line);padding:36px 0 48px;font-size:14px;color
   </div>
 </section>
 
+<!-- ================= ANDROID ================= -->
+<section class="sec winband dark" id="android">
+  <div class="wrap">
+    <div class="win-grid">
+      <div class="copy">
+        <span class="eyebrow rv"><span class="n">08</span><bdi dir="ltr">Android 10+</bdi></span>
+        <h2 class="rv d1"><span class="ar">وفي جيبك على Android.</span><span class="en">And in your pocket, on Android.</span></h2>
+        <p class="lead rv d2"><span class="ar">شارك أي ملف إلى أدوات، أو افتحه به، فتظهر العجلة نفسها. المس اختيارًا، أو اسحب إصبعك إليه وارفعه. التحويل والأدوات ونوافذ التعديل كلها على هاتفك، بلا إنترنت.</span><span class="en">Share any file to Adawat, or open it with Adawat, and the same wheel appears. Tap a choice, or slide your finger onto it and lift. Converting, the tools and the editors all run on your phone, offline.</span></p>
+        <div class="keymap rv d3">
+          <div><span class="key"><span class="ar">مشاركة</span><span class="en">Share</span></span><span class="ar">من المعرض أو الملفات أو أي تطبيق</span><span class="en">From Gallery, Files or any app</span></div>
+          <div><span class="key"><span class="ar">المنتصف</span><span class="en">Center</span></span><span class="ar">بين التحويل والأدوات والإجراءات</span><span class="en">Switches Convert, Tools and Actions</span></div>
+          <div><span class="key"><span class="ar">النتيجة</span><span class="en">Result</span></span><span class="ar">في مجلد Adawat داخل الصور والأفلام والموسيقى والتنزيلات</span><span class="en">In an Adawat folder in Pictures, Movies, Music or Download</span></div>
+        </div>
+        <div class="dcard and-diff rv d3">
+          <h3><span class="ar">الفروق على Android</span><span class="en">What differs on Android</span></h3>
+          <ul>
+            <li><span class="ar">ملف PDF يتحول أيضًا إلى Word و Excel و PowerPoint و EPUB.</span><span class="en">PDF also becomes Word, Excel, PowerPoint and EPUB.</span></li>
+            <li><span class="ar">الفيديو يُحفظ بصيغة MP4 أو WebM أو GIF.</span><span class="en">Video saves as MP4, WebM or GIF.</span></li>
+            <li><span class="ar">ملفات <bdi dir="ltr">.doc</bdi> و <bdi dir="ltr">.xls</bdi> القديمة والعروض التقديمية لا تُفتح بعد.</span><span class="en">Old .doc and .xls files and presentations do not open yet.</span></li>
+          </ul>
+        </div>
+      </div>
+      <div class="phones">
+        <figure class="rv">
+          <div class="phone"><img class="ar" src="site/media/android-convert-ar.jpg" alt="عجلة التحويل لصورة على Android" width="540" height="1200" loading="lazy"><img class="en" src="site/media/android-convert-en.jpg" alt="The Convert wheel for a photo on Android" width="540" height="1200" loading="lazy"></div>
+          <figcaption class="cap"><span class="ar">عجلة التحويل فوق تطبيق الملفات.</span><span class="en">The Convert wheel over the Files app.</span></figcaption>
+        </figure>
+        <figure class="rv d1">
+          <div class="phone"><img class="ar" src="site/media/android-tools-ar.jpg" alt="عجلة الأدوات لصورة على Android" width="540" height="1200" loading="lazy"><img class="en" src="site/media/android-tools-en.jpg" alt="The Tools wheel for a photo on Android" width="540" height="1200" loading="lazy"></div>
+          <figcaption class="cap"><span class="ar">عجلة الأدوات للصورة نفسها.</span><span class="en">The Tools wheel for the same photo.</span></figcaption>
+        </figure>
+        <figure class="rv d2">
+          <div class="phone"><img class="ar" src="site/media/android-edit-ar.jpg" alt="نافذة تعديل الصورة على Android" width="540" height="1200" loading="lazy"><img class="en" src="site/media/android-edit-en.jpg" alt="The Edit Photo window on Android" width="540" height="1200" loading="lazy"></div>
+          <figcaption class="cap"><span class="ar">نافذة تعديل الصورة.</span><span class="en">The Edit Photo window.</span></figcaption>
+        </figure>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ================= PRINCIPLES ================= -->
 <section class="sec" id="principles">
   <div class="wrap">
     <div class="head-c">
-      <span class="eyebrow rv"><span class="n">08</span><span class="ar">مبادئ أدوات</span><span class="en">What Adawat stands for</span></span>
+      <span class="eyebrow rv"><span class="n">09</span><span class="ar">مبادئ أدوات</span><span class="en">What Adawat stands for</span></span>
       <h2 class="rv d1"><span class="ar">على جهازك، بلغتك، ومفتوح للجميع.</span><span class="en">On your computer, in your language, open to all.</span></h2>
     </div>
     <div class="pgrid">
       <article class="pcard rv">
         <div class="big">0<small> <span class="ar">ملفات تُرفع</span><span class="en">uploads</span></small></div>
         <h3><span class="ar">ملفاتك لا تغادر جهازك</span><span class="en">Your files never leave</span></h3>
-        <p><span class="ar">لا يرسل أدوات ملفاتك إلى أي مكان، لا على الماك ولا على Windows ولا على لينكس. لا تتبّع، ولا حساب، ولا أي ميزة تعمل عبر الإنترنت. وعلى الماك يستعين بـ Pages و Keynote و Numbers (بإذنك) فقط عند تحويل صيغها.</span><span class="en">Adawat never sends your files anywhere, on Mac, Windows or Linux. No analytics, no account and no network features. On Mac, Pages, Keynote and Numbers are asked (with your permission) only when you convert their formats.</span></p>
+        <p><span class="ar">لا يرسل أدوات ملفاتك إلى أي مكان، لا على الماك ولا على Windows ولا على لينكس ولا على أندرويد. لا تتبّع، ولا حساب، ولا أي ميزة تعمل عبر الإنترنت. وعلى الماك يستعين بـ Pages و Keynote و Numbers (بإذنك) فقط عند تحويل صيغها.</span><span class="en">Adawat never sends your files anywhere, on Mac, Windows, Linux or Android. No analytics, no account and no network features. On Mac, Pages, Keynote and Numbers are asked (with your permission) only when you convert their formats.</span></p>
       </article>
       <article class="pcard rv d1">
         <span class="badge"><span class="ar">من اليمين إلى اليسار</span><span class="en">Right to left, done right</span></span>
         <h3><span class="ar">بالعربية وبالإنجليزية</span><span class="en">Arabic and English</span></h3>
-        <p><span class="ar">الواجهة كلها بالعربية من اليمين إلى اليسار، وبالإنجليزية، على الماك و Windows ولينكس. يبدأ التطبيق بلغة جهازك، ويمكنك تغييرها في أي وقت من الإعدادات.</span><span class="en">The whole interface is in Arabic, right to left, and in English, on Mac, Windows and Linux. Adawat starts in your system’s language, and you can switch at any time in Settings.</span></p>
+        <p><span class="ar">الواجهة كلها بالعربية من اليمين إلى اليسار، وبالإنجليزية، على الماك و Windows ولينكس وأندرويد. يبدأ التطبيق بلغة جهازك، ويمكنك تغييرها في أي وقت من الإعدادات.</span><span class="en">The whole interface is in Arabic, right to left, and in English, on Mac, Windows, Linux and Android. Adawat starts in your system’s language, and you can switch at any time in Settings.</span></p>
         <div class="pair">
           <figure><img src="media/screens/ar-wheel-tools.png" alt="عجلة الأدوات بالعربية" loading="lazy" width="696" height="696"><figcaption>العربية</figcaption></figure>
           <figure><img src="media/screens/en-wheel-tools.png" alt="The Tools wheel in English" loading="lazy" width="696" height="696"><figcaption>English</figcaption></figure>
@@ -948,6 +1004,25 @@ footer{border-top:1px solid var(--line);padding:36px 0 48px;font-size:14px;color
           <li><span class="ar">على GNOME مع Wayland (Ubuntu و Fedora): سجّل الخروج ثم الدخول مرة واحدة ليحمّل GNOME إضافة أدوات. وعلى X11 تعمل العجلة مباشرة.</span><span class="en">On GNOME with Wayland (Ubuntu, Fedora): sign out and back in once so GNOME loads the Adawat extension. On X11 the wheel works right away.</span></li>
         </ol>
         <p class="why"><b><span class="ar">KDE أو سطح مكتب آخر؟</span><span class="en">KDE or another desktop?</span></b> <span class="ar">انقر الملفات بالزر الأيمن واختر <b>فتح بأدوات</b> لتظهر العجلة. ملفات .deb و .rpm تثبّت معها Tesseract و WeasyPrint و LibreOffice، والـ AppImage يحمل ffmpeg بداخله.</span><span class="en">Right-click files and choose <b>Open with Adawat</b> to open the wheel. The .deb and .rpm also install Tesseract, WeasyPrint and LibreOffice; the AppImage carries its own ffmpeg.</span></p>
+      </article>
+      <article class="dlc rv d3" id="download-android">
+        <div class="dlc-head">
+          <div class="os-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.6 9.5l1.8-3.1a.4.4 0 0 0-.7-.4l-1.8 3.1A11 11 0 0 0 12 8.2c-1.8 0-3.4.3-4.9.9L5.3 6a.4.4 0 0 0-.7.4l1.8 3.1C3.4 11.1 1.4 14 1 17.5h22c-.4-3.5-2.4-6.4-5.4-8zM7 14.8a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm10 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg></div>
+          <div><h3>Android</h3><small><span class="ar">Android 10 أو أحدث، على الهاتف أو الجهاز اللوحي</span><span class="en">Android 10 or later, on a phone or tablet</span></small></div>
+        </div>
+        <div class="dl-btns">
+          <a class="dl-btn" href="https://github.com/motalim-ai/adawat/releases/latest/download/Adawat-Android.apk">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>
+            <span><b><span class="ar">تحميل لـ Android</span><span class="en">Download for Android</span></b><small>Adawat-Android.apk</small></span>
+          </a>
+        </div>
+        <ol class="isteps">
+          <li><span class="ar">حمّل الملف على هاتفك، ثم افتحه من الإشعار أو من تطبيق الملفات.</span><span class="en">Download the file on your phone, then open it from the notification or your Files app.</span></li>
+          <li><span class="ar">إذا طلب Android الإذن، فاضغط <b>الإعدادات</b> وفعّل <b>السماح من هذا المصدر</b>، ثم ارجع واضغط <b>تثبيت</b>.</span><span class="en">If Android asks, tap <b>Settings</b>, turn on <b>Allow from this source</b>, then go back and tap <b>Install</b>.</span></li>
+          <li><span class="ar">إذا نبّهك Play Protect، فاضغط <b>مزيد من التفاصيل</b> ثم <b>التثبيت على أي حال</b>.</span><span class="en">If Play Protect warns you, tap <b>More details</b>, then <b>Install anyway</b>.</span></li>
+          <li><span class="ar">شارك أي ملف واختر <b>أدوات</b>، فتظهر العجلة.</span><span class="en">Share any file and choose <b>Adawat</b>. The wheel appears.</span></li>
+        </ol>
+        <p class="why"><b><span class="ar">لماذا ليس على Google Play؟</span><span class="en">Why not Google Play?</span></b> <span class="ar">أدوات يُنشر على GitHub فقط. كل إصدار موقّع بالمفتاح نفسه، فيُثبَّت التحديث فوق السابق دون حذفه. بصمة الشهادة مكتوبة في صفحة الإصدار.</span><span class="en">Adawat is published on GitHub only. Every release is signed with the same key, so an update installs over the previous one. The certificate fingerprint is in the release notes.</span></p>
       </article>
     </div>
   </div>
