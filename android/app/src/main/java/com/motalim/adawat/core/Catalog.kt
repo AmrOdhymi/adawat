@@ -1,0 +1,81 @@
+package com.motalim.adawat.core
+
+import com.motalim.adawat.ops.FileActions
+import com.motalim.adawat.ops.ImageFormat
+import com.motalim.adawat.ops.ImageOps
+import java.io.File
+
+/** Decides which wheel choices fit the shared files. Mirrors the desktop catalog, choice for choice, as far as Android can go. */
+object Catalog {
+    /** Material Icons Round code points, matched to the Segoe icons the Windows app draws. */
+    object Icons {
+        const val Photo = ''; const val Document = ''; const val Film = ''; const val Audio = ''
+        const val Archive = ''; const val Compress = ''; const val Metadata = ''; const val Edit = ''
+        const val Annotate = ''; const val Background = ''; const val Crop = ''; const val Redact = ''
+        const val Rotate = ''; const val Text = ''; const val Qr = ''; const val Pdf = ''
+        const val Collage = ''; const val Merge = ''; const val Organize = ''; const val Split = ''
+        const val Trim = ''; const val Speed = ''; const val Camera = ''; const val Join = ''
+        const val Mute = ''; const val Volume = ''; const val Waveform = ''; const val Channels = ''
+        const val Bleep = ''; const val Silence = ''; const val Share = ''; const val Copy = ''
+        const val Save = ''; const val OpenWith = ''; const val Info = ''; const val Print = ''
+        const val Extract = ''; const val Folder = ''
+    }
+
+    fun forMode(mode: WheelMode, files: List<File>): List<Operation> {
+        if (files.isEmpty()) return emptyList()
+        return when (mode) {
+            WheelMode.Convert -> conversions(files)
+            WheelMode.Tools -> tools(files)
+            WheelMode.Actions -> actions(files)
+        }
+    }
+
+    fun find(id: String, files: List<File>): Operation? =
+        WheelMode.entries.asSequence().flatMap { forMode(it, files) }.firstOrNull { it.id == id }
+
+    // Convert
+
+    private fun conversions(files: List<File>): List<Operation> = when (files.commonKind()) {
+        FileKind.Image -> {
+            val sources = files.map { ImageFormat.of(it) }.toSet()
+            val ops = ImageFormat.all
+                .filter { format -> !(sources.size == 1 && format in sources) && format.canWrite }
+                .map { format ->
+                    Operation("image.${format.ext}", "To ${format.title}", Icons.Photo, { f, c -> ImageOps.convert(f, format, c) }, badge = format.title)
+                }
+            ops + Operation("image.pdf", "To PDF", Icons.Pdf, ImageOps::makePdf, badge = "PDF")
+        }
+        else -> emptyList()
+    }
+
+    // Tools
+
+    private fun tool(id: String, title: String, short: String?, icon: Char, run: OperationWork, window: String? = null,
+                     producesFiles: Boolean = true) = Operation(id, title, icon, run, short = short, window = window, producesFiles = producesFiles)
+
+    private fun tools(files: List<File>): List<Operation> {
+        val kinds = files.kinds()
+        val single = files.size == 1
+        val ops = mutableListOf<Operation>()
+        if (kinds == setOf(FileKind.Image)) {
+            ops += tool("image.metadata", "Remove Metadata", "Metadata", Icons.Metadata, ImageOps::removeMetadata)
+            ops += tool("image.rotate", "Rotate", null, Icons.Rotate, ImageOps::rotate)
+            if (!single) ops += tool("image.topdf", "Create PDF", "PDF", Icons.Pdf, ImageOps::makePdf)
+        }
+        return ops
+    }
+
+    // Actions
+
+    /** The same actions for any file, clockwise from the top. The app performs them. */
+    private fun actions(files: List<File>): List<Operation> = buildList {
+        add(tool("action.share", "Share", null, Icons.Share, FileActions.Share, producesFiles = false))
+        add(tool("action.open", "Open With", "Open", Icons.OpenWith, FileActions.OpenWith, producesFiles = false))
+        add(tool("action.copy", "Copy", null, Icons.Copy, FileActions.Copy, producesFiles = false))
+        add(tool("action.save", "Save To", "Save", Icons.Save, FileActions.SaveTo, producesFiles = false))
+        if (files.kinds().all { it == FileKind.Image || it == FileKind.Pdf }) {
+            add(tool("action.print", "Print", null, Icons.Print, FileActions.Print, producesFiles = false))
+        }
+        add(tool("action.details", "Details", null, Icons.Info, FileActions.Details, producesFiles = false))
+    }
+}

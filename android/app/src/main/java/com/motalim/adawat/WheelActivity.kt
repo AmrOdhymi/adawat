@@ -1,0 +1,146 @@
+package com.motalim.adawat
+
+import android.app.Application
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
+import androidx.core.content.IntentCompat
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.motalim.adawat.core.Catalog
+import com.motalim.adawat.core.L10n
+import com.motalim.adawat.core.Operation
+import com.motalim.adawat.core.WheelMode
+import com.motalim.adawat.ui.AdawatTheme
+import com.motalim.adawat.ui.WheelScreen
+import com.motalim.adawat.work.Inputs
+import com.motalim.adawat.work.JobState
+import com.motalim.adawat.work.WheelVisibility
+import com.motalim.adawat.work.WorkService
+import com.motalim.adawat.work.stageText
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.util.UUID
+
+/** Holds the shared files and the running job across rotations. */
+class WheelModel(application: Application) : AndroidViewModel(application) {
+    /** Null while the shared files are being copied in. */
+    val files = MutableStateFlow<List<File>?>(null)
+    val failed = MutableStateFlow(false)
+    val mode = MutableStateFlow(WheelMode.Convert)
+    val job = MutableStateFlow<String?>(null)
+    private var started = false
+
+    fun stage(uris: List<Uri>, text: String?) {
+        if (started) return
+        started = true
+        viewModelScope.launch {
+            val staged = withContext(Dispatchers.IO) {
+                val app = getApplication<Application>()
+                val fromUris = Inputs.stage(app, uris)
+                if (fromUris.isEmpty() && !text.isNullOrBlank()) listOf(Inputs.stageText(app, text)) else fromUris
+            }
+            if (staged.isEmpty()) failed.value = true
+            else {
+                mode.value = WheelMode.entries.firstOrNull { Catalog.forMode(it, staged).isNotEmpty() } ?: WheelMode.Actions
+                files.value = staged
+            }
+        }
+    }
+
+    fun run(operation: Operation) {
+        val staged = files.value ?: return
+        val id = UUID.randomUUID().toString()
+        WheelVisibility.watching = id
+        job.value = id
+        WorkService.start(getApplication(), JobState(id, L10n.t(operation.title)), operation.id, staged)
+    }
+}
+
+class WheelActivity : ComponentActivity() {
+    private val model: WheelModel by viewModels()
+    private var pendingSave: List<File> = emptyList()
+
+    private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
+
+    private val saveTree = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { tree ->
+        if (tree != null) Actions.saveToTree(this, tree, pendingSave)
+        finish()
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
+        super.onCreate(savedInstanceState)
+        // One wheel at a time: a new share replaces a wheel still open from before.
+        current?.get()?.takeIf { it !== this && !it.isFinishing }?.finish()
+        current = java.lang.ref.WeakReference(this)
+        model.stage(sharedUris(intent), intent.getStringExtra(Intent.EXTRA_TEXT))
+        setContent {
+            AdawatTheme {
+                WheelScreen(
+                    model = model,
+                    onRun = { operation ->
+                        if (operation.id.startsWith("action.")) perform(operation)
+                        else {
+                            askForNotifications()
+                            model.run(operation)
+                        }
+                    },
+                    onDismiss = ::finish,
+                )
+            }
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        WheelVisibility.watching = model.job.value
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // Once the wheel is gone, a finished job is announced by notification instead.
+        if (WheelVisibility.watching == model.job.value) WheelVisibility.watching = null
+    }
+
+    companion object {
+        private var current: java.lang.ref.WeakReference<WheelActivity>? = null
+    }
+
+    private fun askForNotifications() {
+        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != 0) {
+            notificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
+    private fun perform(operation: Operation) {
+        val files = model.files.value ?: return
+        when (operation.id) {
+            "action.share" -> { Actions.share(this, files); finish() }
+            "action.open" -> { Actions.openWith(this, files); finish() }
+            "action.copy" -> { Actions.copy(this, files); finish() }
+            "action.save" -> { pendingSave = files; saveTree.launch(null) }
+            "action.print" -> Actions.print(this, files)
+        }
+    }
+
+    private fun sharedUris(intent: Intent): List<Uri> {
+        val uris = mutableListOf<Uri>()
+        when (intent.action) {
+            Intent.ACTION_SEND -> IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)?.let(uris::add)
+            Intent.ACTION_SEND_MULTIPLE -> IntentCompat.getParcelableArrayListExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)?.let(uris::addAll)
+            else -> intent.data?.let(uris::add)
+        }
+        if (uris.isEmpty()) intent.clipData?.let { clip -> for (i in 0 until clip.itemCount) clip.getItemAt(i).uri?.let(uris::add) }
+        return uris.distinct()
+    }
+}
