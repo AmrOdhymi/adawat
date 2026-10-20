@@ -84,13 +84,14 @@ fun modeTitle(mode: WheelMode) = when (mode) {
 }
 
 @Composable
-fun WheelScreen(model: WheelModel, onRun: (Operation) -> Unit, onDismiss: () -> Unit) {
+fun WheelScreen(model: WheelModel, onRun: (Operation, Map<String, String>) -> Unit, onDismiss: () -> Unit) {
     val files by model.files.collectAsState()
     val failed by model.failed.collectAsState()
     val mode by model.mode.collectAsState()
     val jobId by model.job.collectAsState()
     val jobs by Jobs.all.collectAsState()
     var details by remember { mutableStateOf(false) }
+    var choosing by remember { mutableStateOf<Operation?>(null) }
     var shown by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { shown = true }
     val scrim by animateFloatAsState(if (shown) 0.42f else 0f, tween(180), label = "scrim")
@@ -110,6 +111,7 @@ fun WheelScreen(model: WheelModel, onRun: (Operation) -> Unit, onDismiss: () -> 
             files == null -> "loading"
             jobId != null -> "job"
             details -> "details"
+            choosing != null -> "options"
             else -> "wheel"
         }
         AnimatedContent(state, transitionSpec = { ((fadeIn(tween(160)) + scaleIn(initialScale = 0.96f)) togetherWith fadeOut(tween(100))).using(SizeTransform(clip = false)) }, label = "screen") { current ->
@@ -122,6 +124,7 @@ fun WheelScreen(model: WheelModel, onRun: (Operation) -> Unit, onDismiss: () -> 
                 }
                 "job" -> job?.let { JobCard(it, onDismiss) }
                 "details" -> files?.let { DetailsCard(it) { details = false } }
+                "options" -> files?.let { staged -> choosing?.let { op -> OptionsCard(op, staged, onRun = { onRun(op, it) }, onBack = { choosing = null }) } }
                 else -> files?.let { staged ->
                     val operations = remember(mode, staged) { Catalog.forMode(mode, staged) }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -130,7 +133,13 @@ fun WheelScreen(model: WheelModel, onRun: (Operation) -> Unit, onDismiss: () -> 
                         Wheel(
                             operations = operations,
                             centerText = if (operations.isEmpty()) L10n.upper(L10n.t("NO OPTIONS")) else L10n.upper(L10n.t(modeTitle(mode))),
-                            onChoose = { if (it.id == "action.details") details = true else onRun(it) },
+                            onChoose = {
+                                when {
+                                    it.id == "action.details" -> details = true
+                                    it.window in optionScreens -> choosing = it
+                                    else -> onRun(it, emptyMap())
+                                }
+                            },
                             onCenter = { model.mode.value = WheelMode.entries[(mode.ordinal + 1) % 3] },
                         )
                         Spacer(Modifier.height(18.dp))

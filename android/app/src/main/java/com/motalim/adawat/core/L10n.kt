@@ -22,8 +22,9 @@ object L10n {
         }
         // Android's own text sits beside the shared files; entries with {1} are patterns.
         val android = read(context, "android.ar.json")
-        strings = read(context, "strings.ar.json") + android.filterKeys { !it.contains("{1}") }
-        patterns = (read(context, "patterns.ar.json") + android.filterKeys { it.contains("{1}") }).map { (key, value) ->
+        // The shared translations win, so the same words read the same in every Adawat app.
+        strings = android.filterKeys { !it.contains("{1}") } + read(context, "strings.ar.json")
+        patterns = (android.filterKeys { it.contains("{1}") } + read(context, "patterns.ar.json")).map { (key, value) ->
             val pattern = key.split(Regex("""\{\d\}""")).joinToString("(.+?)") { Regex.escape(it) }
             Regex("^$pattern$", RegexOption.DOT_MATCHES_ALL) to value
         }.sortedByDescending { it.first.pattern.length }

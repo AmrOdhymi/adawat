@@ -42,8 +42,9 @@ class WorkService : LifecycleService() {
                 val id = intent.getStringExtra(EXTRA_JOB) ?: return START_NOT_STICKY
                 val operation = intent.getStringExtra(EXTRA_OPERATION) ?: return START_NOT_STICKY
                 val files = intent.getStringArrayExtra(EXTRA_FILES)?.map(::File) ?: return START_NOT_STICKY
+                val options = intent.getBundleExtra(EXTRA_OPTIONS)?.let { b -> b.keySet().associateWith { b.getString(it).orEmpty() } }.orEmpty()
                 startInForeground(id)
-                run(id, operation, files)
+                run(id, operation, files, options)
             }
         }
         if (running.isEmpty()) stopSelf()
@@ -56,7 +57,7 @@ class WorkService : LifecycleService() {
         startForeground(PROGRESS_ID, progressNotification(Jobs.all.value[id]), type)
     }
 
-    private fun run(id: String, operationId: String, files: List<File>) {
+    private fun run(id: String, operationId: String, files: List<File>, options: Map<String, String>) {
         val operation = Catalog.find(operationId, files)
         if (operation == null) {
             Jobs.change(id) { it.copy(finished = true, error = L10n.t("This choice no longer fits these files.")) }
@@ -66,11 +67,14 @@ class WorkService : LifecycleService() {
         running[id] = lifecycleScope.launch {
             val context = OperationContext(
                 out,
+                options,
                 onReport = { text -> Jobs.change(id) { it.copy(status = text) }; postProgress(id) },
                 onProgress = { fraction -> Jobs.change(id) { it.copy(progress = fraction) }; postProgress(id) },
             )
+            val started = System.currentTimeMillis()
             try {
                 val results = withContext(Dispatchers.Default) { operation.run(files, context) }
+                android.util.Log.i("Adawat", "$operationId took ${System.currentTimeMillis() - started} ms")
                 val saved = withContext(Dispatchers.IO) { results.flatMap { Outputs.saveAll(this@WorkService, it) } }
                 Jobs.change(id) { it.copy(finished = true, progress = 1.0, saved = saved, message = context.message, link = context.link) }
                 notifyDone(id)
@@ -159,15 +163,17 @@ class WorkService : LifecycleService() {
         const val EXTRA_JOB = "job"
         const val EXTRA_OPERATION = "operation"
         const val EXTRA_FILES = "files"
+        const val EXTRA_OPTIONS = "options"
         private const val CHANNEL_WORK = "work"
         private const val CHANNEL_DONE = "done"
         private const val PROGRESS_ID = 1
 
-        fun start(context: Context, state: JobState, operationId: String, files: List<File>) {
+        fun start(context: Context, state: JobState, operationId: String, files: List<File>, options: Map<String, String> = emptyMap()) {
             Jobs.put(state)
             val intent = Intent(context, WorkService::class.java).setAction(ACTION_RUN)
                 .putExtra(EXTRA_JOB, state.id).putExtra(EXTRA_OPERATION, operationId)
                 .putExtra(EXTRA_FILES, files.map { it.path }.toTypedArray())
+                .putExtra(EXTRA_OPTIONS, android.os.Bundle().apply { options.forEach { (k, v) -> putString(k, v) } })
             ContextCompat.startForegroundService(context, intent)
         }
 

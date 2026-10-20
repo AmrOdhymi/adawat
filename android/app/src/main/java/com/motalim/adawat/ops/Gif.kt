@@ -42,6 +42,76 @@ object Gif {
         file.writeBytes(out.toByteArray())
     }
 
+    /**
+     * An animated GIF that loops forever. [sample] gives up to eight frames to build one shared palette from; [frames]
+     * then hands every frame in order to the function it is given. Ordered dithering keeps gradients smooth without the
+     * shimmer of error diffusion.
+     */
+    suspend fun writeAnimated(file: File, w: Int, h: Int, count: Int, delayCentiseconds: Int,
+                              sample: (Int) -> Bitmap?, frames: suspend (deliver: suspend (Bitmap) -> Unit) -> Unit) {
+        val pixels = IntArray(w * h)
+        val samples = IntArrayList()
+        for (n in 0 until minOf(8, count)) {
+            val bitmap = sample(n) ?: continue
+            bitmap.getPixels(pixels, 0, w, 0, 0, minOf(w, bitmap.width), minOf(h, bitmap.height))
+            for (i in pixels.indices step 7) samples.add(pixels[i] or 0xFF000000.toInt())
+        }
+        if (samples.size == 0) throw IllegalStateException("No frames could be read from this video.")
+        val palette = palette(samples.toArray(), 256)
+        val lookup = IntArray(32768) { -1 }
+        val bayer = intArrayOf(0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5)
+        file.outputStream().buffered().use { out ->
+            val head = ByteArrayOutputStream()
+            head.write("GIF89a".toByteArray(Charsets.US_ASCII))
+            short(head, w); short(head, h)
+            head.write(0xF7); head.write(0); head.write(0)
+            for (i in 0 until 256) {
+                val c = if (i < palette.size) palette[i] else 0
+                head.write(Color.red(c)); head.write(Color.green(c)); head.write(Color.blue(c))
+            }
+            // Loop forever.
+            head.write(byteArrayOf(0x21, 0xFF.toByte(), 11) + "NETSCAPE2.0".toByteArray(Charsets.US_ASCII) + byteArrayOf(3, 1, 0, 0, 0))
+            out.write(head.toByteArray())
+            val indices = ByteArray(w * h)
+            frames { bitmap ->
+                pixels.fill(0xFF000000.toInt())
+                bitmap.getPixels(pixels, 0, w, 0, 0, minOf(w, bitmap.width), minOf(h, bitmap.height))
+                for (y in 0 until h) for (x in 0 until w) {
+                    val p = pixels[y * w + x]
+                    val d = (bayer[(y and 3) * 4 + (x and 3)] - 8) * 2
+                    val r = (Color.red(p) + d).coerceIn(0, 255)
+                    val g = (Color.green(p) + d).coerceIn(0, 255)
+                    val b = (Color.blue(p) + d).coerceIn(0, 255)
+                    val key = ((r shr 3) shl 10) or ((g shr 3) shl 5) or (b shr 3)
+                    var index = lookup[key]
+                    if (index < 0) { index = nearest(palette, Color.rgb(r, g, b)); lookup[key] = index }
+                    indices[y * w + x] = index.toByte()
+                }
+                val block = ByteArrayOutputStream()
+                block.write(byteArrayOf(0x21, 0xF9.toByte(), 4, 4, (delayCentiseconds and 0xFF).toByte(), (delayCentiseconds shr 8).toByte(), 0, 0))
+                block.write(0x2C); short(block, 0); short(block, 0); short(block, w); short(block, h); block.write(0)
+                block.write(8)
+                lzw(indices, block)
+                block.write(0)
+                out.write(block.toByteArray())
+            }
+            out.write(0x3B)
+        }
+    }
+
+    private class IntArrayList {
+        private var data = IntArray(1024)
+        var size = 0
+            private set
+
+        fun add(value: Int) {
+            if (size == data.size) data = data.copyOf(size * 2)
+            data[size++] = value
+        }
+
+        fun toArray() = data.copyOf(size)
+    }
+
     private fun short(out: ByteArrayOutputStream, value: Int) { out.write(value and 0xFF); out.write(value shr 8 and 0xFF) }
 
     private fun nearest(palette: IntArray, p: Int): Int {

@@ -28,6 +28,7 @@
         <!-- The wheel: shared files, "Open with" and "Edit with" all land here, over whatever app sent them. -->
         <activity
             android:name=".WheelActivity"
+            android:autoRemoveFromRecents="true"
             android:excludeFromRecents="true"
             android:exported="true"
             android:label="@string/wheel_label"

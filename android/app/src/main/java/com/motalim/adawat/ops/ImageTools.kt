@@ -60,7 +60,9 @@ object ImageTools {
         else -> ByteArrayOutputStream().also { Encoders.compress(bitmap, Bitmap.CompressFormat.PNG, 100, it) }.toByteArray()
     }
 
-    suspend fun compress(files: List<File>, context: OperationContext, preset: Preset = Preset.Balanced, maxPixels: Int? = null): List<File> {
+    suspend fun compress(files: List<File>, context: OperationContext,
+                         preset: Preset = Preset.valueOf(context.text("preset", "Balanced")),
+                         maxPixels: Int? = context.int("maxPixels", 0).takeIf { it > 0 }): List<File> {
         val outputs = mutableListOf<File>()
         var before = 0L
         var after = 0L
@@ -218,7 +220,18 @@ object ImageTools {
         return result
     }
 
-    suspend fun addBackground(files: List<File>, context: OperationContext, options: FrameOptions = FrameOptions()): List<File> =
+    /** The background choices as the options screen sends them. */
+    fun frameOptions(context: OperationContext) = FrameOptions(
+        gradient = context.int("gradient", 0),
+        solid = context.options["solid"]?.toIntOrNull(),
+        blurred = context.bool("blurred", false),
+        padding = context.float("padding", 160f),
+        corners = context.float("corners", 24f),
+        shadow = context.float("shadow", 24f),
+        ratio = context.options["ratio"]?.toFloatOrNull(),
+    )
+
+    suspend fun addBackground(files: List<File>, context: OperationContext, options: FrameOptions = frameOptions(context)): List<File> =
         files.mapIndexed { index, file ->
             coroutineContext.ensureActive()
             context.report("Adding background ${index + 1} of ${files.size}")
@@ -285,9 +298,18 @@ object ImageTools {
         return result
     }
 
-    suspend fun makeCollage(files: List<File>, context: OperationContext, options: CollageOptions = CollageOptions()): List<File> {
+    fun collageOptions(context: OperationContext) = CollageOptions(
+        style = CollageStyle.valueOf(context.text("style", "Grid")),
+        columns = context.int("columns", 2),
+        ratio = context.float("ratio", 1f),
+        spacing = context.float("spacing", 16f),
+        corners = context.float("corners", 0f),
+        background = context.int("background", 0xFFFFFF),
+    )
+
+    suspend fun makeCollage(files: List<File>, context: OperationContext, options: CollageOptions = collageOptions(context)): List<File> {
         context.report("Creating collage")
-        val chosen = if (options.style == CollageStyle.Grid && options.columns == 2) options.copy(columns = if (files.size <= 4) 2 else 3) else options
+        val chosen = if (options.style == CollageStyle.Grid && !context.options.containsKey("columns")) options.copy(columns = if (files.size <= 4) 2 else 3) else options
         val photos = files.map { coroutineContext.ensureActive(); Images.decode(it, maxSide = chosen.width) }
         val output = context.named("Collage.jpg")
         ImageOps.write(collage(photos, chosen), ImageFormat.Jpeg, output, quality = 92)

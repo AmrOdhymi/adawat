@@ -70,12 +70,12 @@ class WheelModel(application: Application) : AndroidViewModel(application) {
         stage(uris, text)
     }
 
-    fun run(operation: Operation) {
+    fun run(operation: Operation, options: Map<String, String> = emptyMap()) {
         val staged = files.value ?: return
         val id = UUID.randomUUID().toString()
         WheelVisibility.watching = id
         job.value = id
-        WorkService.start(getApplication(), JobState(id, L10n.t(operation.title)), operation.id, staged)
+        WorkService.start(getApplication(), JobState(id, L10n.t(operation.title)), operation.id, staged, options)
     }
 }
 
@@ -112,11 +112,11 @@ class WheelActivity : ComponentActivity() {
             AdawatTheme {
                 WheelScreen(
                     model = model,
-                    onRun = { operation ->
+                    onRun = { operation, options ->
                         if (operation.id.startsWith("action.")) perform(operation)
                         else {
                             askForNotifications()
-                            model.run(operation)
+                            model.run(operation, options)
                         }
                     },
                     onDismiss = ::finish,

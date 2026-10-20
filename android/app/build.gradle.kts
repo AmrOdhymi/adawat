@@ -13,6 +13,7 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = "1.1.0"
+        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64") }
     }
 
     buildTypes {
@@ -31,6 +32,14 @@ android {
     androidResources {
         // The OCR models are read from a copy on disk, so keep them whole.
         noCompress += "traineddata"
+    }
+
+    ndkVersion = "29.0.14206865"
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "4.1.2"
+        }
     }
 
     buildFeatures {
@@ -54,6 +63,10 @@ dependencies {
     implementation(libs.zxing.core)
     implementation(libs.tesseract)
     implementation(libs.pdfbox)
+    implementation(libs.media3.transformer)
+    implementation(libs.media3.effect)
+    implementation(libs.media3.common)
+    implementation(libs.media3.muxer)
     implementation(libs.kotlinx.coroutines.android)
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)

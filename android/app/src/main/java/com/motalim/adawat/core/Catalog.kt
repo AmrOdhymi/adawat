@@ -1,5 +1,8 @@
 package com.motalim.adawat.core
 
+import com.motalim.adawat.media.AudioOps
+import com.motalim.adawat.media.MediaFormatChoice
+import com.motalim.adawat.media.VideoOps
 import com.motalim.adawat.ops.FileActions
 import com.motalim.adawat.ops.ImageFormat
 import com.motalim.adawat.ops.ImageOps
@@ -9,6 +12,7 @@ import com.motalim.adawat.ops.QrCode
 import java.io.File
 
 /** Decides which wheel choices fit the shared files. Mirrors the desktop catalog, choice for choice, as far as Android can go. */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 object Catalog {
     /** Material Icons Round code points, matched to the Segoe icons the Windows app draws. */
     object Icons {
@@ -54,8 +58,14 @@ object Catalog {
             Operation("pdf.jpg", "Pages to JPEG", Icons.Photo, { f, c -> PdfOps.pagesToPictures(f, ImageFormat.Jpeg, c) }, badge = "JPG"),
             Operation("pdf.txt", "To Text", Icons.Text, PdfOps::toText, badge = "TXT"),
         )
+        FileKind.Video -> MediaFormatChoice.video.filter { it.ext != files[0].ext || files.size > 1 }.map(::mediaConversion)
+        FileKind.Audio -> MediaFormatChoice.audio.filter { it.ext != files[0].ext || files.size > 1 }.map(::mediaConversion)
         else -> emptyList()
     }
+
+    private fun mediaConversion(format: MediaFormatChoice) =
+        Operation("media.${format.ext}", "To ${format.title}", if (format.audioOnly) Icons.Audio else Icons.Film,
+                  { f, c -> VideoOps.convert(f, format, c) }, badge = format.title)
 
     // Tools
 
@@ -67,16 +77,16 @@ object Catalog {
         val single = files.size == 1
         val ops = mutableListOf<Operation>()
         if (kinds == setOf(FileKind.Image)) {
-            ops += tool("image.compress", "Compress", null, Icons.Compress, { f, c -> ImageTools.compress(f, c) })
+            ops += tool("image.compress", "Compress", null, Icons.Compress, { f, c -> ImageTools.compress(f, c) }, "compress")
             ops += tool("image.metadata", "Remove Metadata", "Metadata", Icons.Metadata, ImageOps::removeMetadata)
-            ops += tool("image.frame", "Add Background", "Add BG", Icons.Background, { f, c -> ImageTools.addBackground(f, c) })
+            ops += tool("image.frame", "Add Background", "Add BG", Icons.Background, { f, c -> ImageTools.addBackground(f, c) }, "frame")
             ops += tool("image.crop", "Crop", null, Icons.Crop, ImageTools::squareCrop)
             ops += tool("image.rotate", "Rotate", null, Icons.Rotate, ImageTools::rotate)
             ops += tool("image.ocr", "Copy Text", "Text", Icons.Text, ImageTools::extractText)
             ops += tool("image.qr", "Read QR Code", "QR Code", Icons.Qr, ImageTools::readCodes, producesFiles = false)
             if (!single) {
                 ops += tool("image.topdf", "Create PDF", "PDF", Icons.Pdf, ImageOps::makePdf)
-                ops += tool("image.collage", "Create Collage", "Collage", Icons.Collage, { f, c -> ImageTools.makeCollage(f, c) })
+                ops += tool("image.collage", "Create Collage", "Collage", Icons.Collage, { f, c -> ImageTools.makeCollage(f, c) }, "collage")
             }
         }
 
@@ -88,7 +98,28 @@ object Catalog {
             ops += tool("pdf.ocr", "Copy Text", "Text", Icons.Text, ImageTools::extractText)
         }
 
-        if (QrCode.canEncode(files)) ops += tool("text.qr", "Create QR Code", "Make QR", Icons.Qr, QrCode::quick)
+        if (kinds == setOf(FileKind.Video)) {
+            ops += tool("video.compress", "Compress", null, Icons.Compress, { f, c -> VideoOps.compress(f, c) }, "compress")
+            ops += tool("video.metadata", "Remove Metadata", "Metadata", Icons.Metadata, AudioOps::stripMetadata)
+            if (!single) ops += tool("video.join", "Join Videos", "Join", Icons.Join, VideoOps::join)
+            ops += tool("video.rotate", "Rotate", null, Icons.Rotate, VideoOps::rotate)
+            ops += tool("video.mute", "Mute", null, Icons.Mute, VideoOps::mute)
+            ops += tool("video.normalize", "Normalize Volume", "Normalize", Icons.Volume, VideoOps::normalize)
+        }
+
+        if (kinds == setOf(FileKind.Audio)) {
+            ops += tool("audio.compress", "Compress", null, Icons.Compress, { f, c -> AudioOps.compress(f, c) }, "compress")
+            ops += tool("audio.metadata", "Remove Metadata", "Metadata", Icons.Metadata, AudioOps::stripMetadata)
+            ops += tool("audio.normalize", "Normalize Volume", "Normalize", Icons.Volume, AudioOps::normalize)
+            if (single) {
+                ops += tool("audio.channels", "Convert Channels", "Channels", Icons.Channels, AudioOps::toMono, "channels")
+            } else {
+                ops += tool("audio.silence", "Trim Silence", "Silence", Icons.Silence, AudioOps::trimSilence)
+                ops += tool("audio.mono", "To Mono", "Mono", Icons.Channels, AudioOps::toMono)
+            }
+        }
+
+        if (QrCode.canEncode(files)) ops += tool("text.qr", "Create QR Code", "Make QR", Icons.Qr, QrCode::quick, "qr")
 
         return ops
     }

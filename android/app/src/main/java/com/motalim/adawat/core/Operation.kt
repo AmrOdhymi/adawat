@@ -29,11 +29,18 @@ class Operation(
 class OperationContext(
     /** Where results are written before they are saved to the shared folders. */
     val out: File,
+    /** Choices made on the tool's options screen, by name; empty for one-step runs, which use the defaults. */
+    val options: Map<String, String> = emptyMap(),
     private val onReport: (String) -> Unit = {},
     private val onProgress: (Double) -> Unit = {},
 ) {
     var message: String? = null
         private set
+
+    fun int(key: String, default: Int) = options[key]?.toIntOrNull() ?: default
+    fun float(key: String, default: Float) = options[key]?.toFloatOrNull() ?: default
+    fun bool(key: String, default: Boolean) = options[key]?.toBooleanStrictOrNull() ?: default
+    fun text(key: String, default: String) = options[key] ?: default
 
     /** A web address the result names, such as a QR code's, offered as a button. */
     var link: String? = null
