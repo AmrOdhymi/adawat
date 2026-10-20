@@ -17,6 +17,7 @@
   <a href="https://github.com/motalim-ai/adawat/releases/latest"><img alt="تحميل" src="https://img.shields.io/github/v/release/motalim-ai/adawat?label=Download&color=5B47E6&style=for-the-badge"></a>
   <img alt="macOS 14+" src="https://img.shields.io/badge/macOS-14%2B-111?style=for-the-badge&logo=apple">
   <img alt="Windows 10 و 11" src="https://img.shields.io/badge/Windows-10%20%C2%B7%2011-0078D4?style=for-the-badge&logo=windows11&logoColor=white">
+  <img alt="Linux" src="https://img.shields.io/badge/Linux-x64%20%C2%B7%20ARM64-F5A623?style=for-the-badge&logo=linux&logoColor=white">
   <a href="LICENSE"><img alt="الرخصة GPL v3" src="https://img.shields.io/badge/License-GPL%20v3-7CF2C8?style=for-the-badge"></a>
 </p>
 
@@ -24,7 +25,7 @@
 
 <div dir="rtl">
 
-**أدوات** تطبيق صغير بيعيش في شريط القوائم على الماك، أو جنب الساعة على الويندوز. ابدأ اسحب أي ملف، واضغط
+**أدوات** تطبيق صغير بيعيش في شريط القوائم على الماك، أو جنب الساعة على الويندوز، أو في الشريط اللي فوق على اللينكس. ابدأ اسحب أي ملف، واضغط
 مفتاح، فتظهر عجلة اختيارات تحت الماوس على طول. أفلت الملف على الاختيار اللي عاوزه وخلاص: صيغة جديدة، أو حجم أصغر، أو نسخة معدّلة.
 من غير رفع ملفات، ومن غير حساب، ومن غير حد استخدامات. كل حاجة بتحصل على جهازك.
 
@@ -87,6 +88,31 @@ xattr -dr com.apple.quarantine /Applications/Adawat.app && open /Applications/Ad
 
 محتاج Windows 10 (إصدار 1809) أو Windows 11، نسخة 64 بت. وتقدر تشيله في أي وقت من **الإعدادات ← التطبيقات**.
 
+### اللينكس
+
+حمّل الملف المناسب لتوزيعتك من آخر إصدار. كل ملف موجود لمعظم الأجهزة (x64) ولأجهزة ARM64.
+
+| التوزيعة | التحميل | التثبيت |
+| --- | --- | --- |
+| Ubuntu و Debian و Linux Mint و Pop!_OS | [adawat_1.1.0_amd64.deb](https://github.com/motalim-ai/adawat/releases/latest/download/adawat_1.1.0_amd64.deb) | دوس عليه مرتين، أو `sudo apt install ./adawat_1.1.0_amd64.deb` |
+| Fedora و openSUSE | [adawat-1.1.0-1.x86_64.rpm](https://github.com/motalim-ai/adawat/releases/latest/download/adawat-1.1.0-1.x86_64.rpm) | `sudo dnf install ./adawat-1.1.0-1.x86_64.rpm` |
+| أي توزيعة تانية | [Adawat-x86_64.AppImage](https://github.com/motalim-ai/adawat/releases/latest/download/Adawat-x86_64.AppImage) | خليه قابل للتشغيل (`chmod +x`) وافتحه. مش محتاج تثبيت. |
+
+ملفات ARM64 آخرها `arm64.deb` و `aarch64.rpm` و `aarch64.AppImage`. وملفات .deb و .rpm بتثبّت كمان البرامج اللي
+أدوات بيقرا بيها النص وبيعمل بيها المستندات (Tesseract و WeasyPrint و LibreOffice)، أما مع الـ AppImage فأدوات
+بيقولك تثبّت إيه أول ما أداة تحتاجه.
+
+1. افتح **أدوات** من التطبيقات. أيقونته هتظهر في الشريط اللي فوق، ودليل البداية بيخليك تجرّب مرة.
+2. **GNOME على Wayland** (Ubuntu و Fedora وأغلب التوزيعات دلوقتي): اعمل تسجيل خروج ودخول مرة واحدة. Wayland
+   مش بيسمح لأي برنامج يراقب السحب، فأدوات معاه إضافة صغيرة لـ GNOME Shell بتقوله لما تضغط مفتاح وانت بتسحب،
+   و GNOME بيشغّلها في الدخول اللي بعده. أما على **X11** فالعجلة بتشتغل على طول.
+3. **أسطح مكتب Wayland التانية** (KDE Plasma و Hyprland و Sway وغيرهم): دوس بالزرار اليمين على الملفات واختار
+   **فتح بأدوات** فتظهر العجلة. الاختيار ده بيتضاف لـ Files و Dolphin و Nemo و Caja على أي سطح مكتب.
+
+اتجرّب على Ubuntu 24.04 (GNOME على Wayland وعلى X11)، ومحتاج توزيعة 64 بت فيها X11 أو Xwayland. وعلى GNOME،
+أيقونة الشريط اللي فوق محتاجة إضافة AppIndicator، و Ubuntu مشغّلها من الأول (على Fedora ثبّت
+`gnome-shell-extension-appindicator`).
+
 </div>
 
 <p align="center">
@@ -98,11 +124,11 @@ xattr -dr com.apple.quarantine /Applications/Adawat.app && open /Applications/Ad
 
 ## بيشتغل إزاي؟
 
-1. **اسحب** ملف أو أكتر من Finder أو مستكشف الملفات أو سطح المكتب أو أي برنامج.
+1. **اسحب** ملف أو أكتر من Finder أو مستكشف الملفات أو مدير ملفات اللينكس أو سطح المكتب أو أي برنامج.
 2. **وانت بتسحب، اضغط مفتاح** فتظهر عجلته. العجلة بتفضل مفتوحة لحد ما تفلت الملف.
 3. **أفلت** على الاختيار. النتيجة بتتحفظ جنب الملف الأصلي (أو في التنزيلات أو على سطح المكتب حسب اختيارك).
 
-| الماك | الويندوز | العجلة | فيها إيه |
+| الماك | الويندوز واللينكس | العجلة | فيها إيه |
 | :---: | :---: | --- | --- |
 | <kbd>⇧ Shift</kbd> | <kbd>Shift</kbd> | **تحويل** | كل الصيغ اللي الملف ممكن يتحوّل لها |
 | <kbd>⌘ Command</kbd> | <kbd>Ctrl</kbd> | **أدوات** | ضغط وتعديل وقص وترتيب وغيرهم حسب نوع الملف |
@@ -140,6 +166,8 @@ xattr -dr com.apple.quarantine /Applications/Adawat.app && open /Applications/Ad
 
 وعلى الويندوز القايمة نفسها، مع الفروق دي: الـ PDF بيتحوّل كمان لـ **Excel**، وملفات HEIC بتتفتح بس مش بيتحوّل
 ليها، و Pages و Keynote و Numbers على الماك بس، والعروض التقديمية محتاجة PowerPoint أو LibreOffice متثبتين.
+واللينكس زي الويندوز، بس العروض التقديمية وملفات Word القديمة و RTF بتعدّي على LibreOffice، وقراءة النص على
+Tesseract (عربي وإنجليزي)، والـ PDF بيتطبع بـ WeasyPrint. والمشاركة فيها البريد و Bluetooth و KDE Connect.
 
 ### الأدوات
 
@@ -225,15 +253,32 @@ windows/tools/build-installer.sh                                # بيعمل Ada
 وأداة `adawat-cli` بتشغّل أي اختيار من العجلة من سطر الأوامر للتجربة، زي `adawat-cli list photo.jpg`
 و `adawat-cli run image.webp photo.jpg`.
 
+### اللينكس
+
+نسخة اللينكس موجودة في `linux/`، ومكتوبة بـ C# على .NET 10 و [Avalonia](https://avaloniaui.net)، وبتشارك
+`windows/src/Adawat.Core` مع نسخة الويندوز. تقدر تبنيها على اللينكس، أو على الماك لو عندك .NET 10 SDK.
+
+</div>
+
+```bash
+brew install nfpm squashfs                                     # على الماك؛ وعلى اللينكس squashfs-tools و nfpm
+linux/tools/build-packages.sh                                  # ملفات .deb و .rpm و AppImage لـ x64 و ARM64 في linux/build/packages
+```
+
+<div dir="rtl">
+
+السكربت `linux/tools/deploy-vm.sh` بيشغّل آخر نسخة على جهاز تجربة عن طريق SSH (اسمه `adawat-linux`)، و
+`linux/tools/snapshots-vm.sh` بيرسم كل النوافذ هناك صور بالعربي أو الإنجليزي عشان تراجع النسخة.
+
 ## الخصوصية
 
-أدوات عمره ما بيبعت ملفاتك لأي مكان، لا على الماك ولا على الويندوز. مافيهوش تتبّع ولا حساب ولا أي خاصية
+أدوات عمره ما بيبعت ملفاتك لأي مكان، لا على الماك ولا على الويندوز ولا على اللينكس. مافيهوش تتبّع ولا حساب ولا أي خاصية
 إنترنت. وعلى الماك بيكلّم Pages و Keynote و Numbers (بإذنك) بس لما تحوّل صيغهم.
 
 ## الرخصة
 
 أدوات برنامج حر تحت رخصة [GNU General Public License v3.0](LICENSE): تقدر تستخدمه وتدرسه وتشاركه وتعدّل
-فيه. ولو وزّعت نسخة معدّلة، لازم تفضل حرة بنفس الرخصة. ونسخ ffmpeg و cwebp ومكتبات الويندوز اللي جوه
+فيه. ولو وزّعت نسخة معدّلة، لازم تفضل حرة بنفس الرخصة. ونسخ ffmpeg و cwebp ومكتبات الويندوز واللينكس اللي جوه
 التطبيق ليهم رخصهم الخاصة، تفاصيلها في [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 اسم **أدوات** وأيقونته خاصين بالمشروع ده ومش داخلين في الرخصة.

@@ -11,7 +11,7 @@ public enum VideoQuality { High, Balanced, Small }
 
 public enum ModifierKey { Shift, Ctrl, Alt, None }
 
-/// <summary>Everything the user can change, saved as JSON in %APPDATA%\Adawat\settings.json.</summary>
+/// <summary>Everything the user can change, saved as JSON in %APPDATA%\Adawat\settings.json (~/.config/Adawat on Linux).</summary>
 public sealed class Settings
 {
     public static readonly string Folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Adawat");

@@ -6,10 +6,10 @@ namespace Adawat.Core;
 /// <summary>Runs the bundled command-line tools (ffmpeg, ffprobe) and finds them.</summary>
 public static class ProcessRunner
 {
-    /// <summary>tools\ next to Adawat.exe, then the PATH.</summary>
+    /// <summary>tools\ next to Adawat.exe (tools/ next to the Linux app), then the PATH.</summary>
     public static string? Find(string name)
     {
-        var exe = name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? name : name + ".exe";
+        var exe = !OperatingSystem.IsWindows() || name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? name : name + ".exe";
         var bundled = Path.Combine(AppContext.BaseDirectory, "tools", exe);
         if (File.Exists(bundled)) return bundled;
         foreach (var folder in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator))
@@ -25,7 +25,9 @@ public static class ProcessRunner
     }
 
     public static string Require(string name) =>
-        Find(name) ?? throw new AdawatException($"{name} is not installed. Install it with: winget install {name}");
+        Find(name) ?? throw new AdawatException(OperatingSystem.IsWindows()
+            ? $"{name} is not installed. Install it with: winget install {name}"
+            : $"{name} is not installed. Install it with: sudo apt install {name}");
 
     public sealed record Result(int ExitCode, string Output, string Error);
 

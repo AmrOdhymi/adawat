@@ -94,14 +94,23 @@ public static class Program
         }
         var formats = Core.Images.ImageFormat.All.Where(f => f.CanWrite).Select(f => f.Name);
         Console.WriteLine($"Image output: {string.Join(", ", formats)}");
+#if WINDOWS
         Console.WriteLine($"Office: Word {(Core.Documents.Office.HasWord ? "yes" : "no")} · PowerPoint {(Core.Documents.Office.HasPowerPoint ? "yes" : "no")} · LibreOffice {(Core.Documents.Office.LibreOffice != null ? "yes" : "no")}");
         Console.WriteLine($"WebView2: {(WebViewVersion() ?? "not found")}");
+#else
+        Console.WriteLine($"Desktop: {Desktop.Name} · {(Desktop.IsWayland ? "Wayland" : "X11")}");
+        foreach (var tool in new[] { "soffice", "tesseract", "weasyprint", "wl-copy", "xclip", "gdbus", "xdg-open" })
+            Console.WriteLine($"{tool}: {ProcessRunner.Find(tool) ?? "not found"}");
+        Console.WriteLine($"Downloads: {Output.Downloads}");
+#endif
         return 0;
     }
+#if WINDOWS
 
     private static string? WebViewVersion()
     {
         try { return Microsoft.Web.WebView2.Core.CoreWebView2Environment.GetAvailableBrowserVersionString(); }
         catch (Exception) { return null; }
     }
+#endif
 }

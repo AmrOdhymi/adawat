@@ -8,3 +8,6 @@ build-ffmpeg.log
 bin/
 obj/
 *.log
+
+# Linux build output
+linux/build/

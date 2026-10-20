@@ -22,7 +22,8 @@ for arch in $ARCHES; do
   echo "Publishing $arch…"
   rm -rf $out
   for p in Adawat.App Adawat.Cli; do
-    dotnet publish src/$p/$p.csproj -c Release -r win-$arch --self-contained -p:DebugType=none -o $out 2>&1 | grep -E " error " | sed 's| \[/.*||' || true
+    # adawat-cli also builds for Linux, so the Windows framework is named.
+    dotnet publish src/$p/$p.csproj -f net10.0-windows10.0.22621.0 -c Release -r win-$arch --self-contained -p:DebugType=none -o $out 2>&1 | grep -E " error " | sed 's| \[/.*||' || true
   done
   [[ -f $out/Adawat.exe && -f $out/adawat-cli.exe ]] || { echo "Publish failed for $arch"; exit 1; }
   mkdir -p $out/tools

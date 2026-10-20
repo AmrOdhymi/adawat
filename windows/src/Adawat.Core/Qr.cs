@@ -1,8 +1,11 @@
 using System.Globalization;
 using System.Text;
+#if WINDOWS
 using System.Windows;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
+#else
+using Adawat.Core.Graphics;
+#endif
 using QRCoder;
 
 namespace Adawat.Core;
@@ -55,8 +58,8 @@ public sealed class QrMatrix
 }
 
 /// <summary>How a QR code looks. Everything is laid out in module units with the origin at the top left, as SVG path data,
-/// so the same paths draw the PNG and become the SVG.</summary>
-public sealed record QrDesign
+/// so the same paths draw the PNG and become the SVG. The logo and the drawing itself are in Platform/*/QrDrawing.cs.</summary>
+public sealed partial record QrDesign
 {
     public enum ModuleShape { Square, Rounded, Dots, Diamond, Fluid, Bars }
     public enum EyeShape { Square, Rounded, Circle, Leaf }
@@ -70,7 +73,6 @@ public sealed record QrDesign
     public Color EyeColor { get; init; } = Colors.Black;
     public Color? Background { get; init; } = Colors.White;
     public int Margin { get; init; } = 4;
-    public BitmapSource? Logo { get; init; }
     /// <summary>The logo's width as a share of the code's width.</summary>
     public double LogoScale { get; init; } = 0.22;
     public Plate LogoPlate { get; init; } = Plate.Rounded;
@@ -86,7 +88,7 @@ public sealed record QrDesign
 
     public (Rect Logo, Rect Clear)? LogoBox(QrMatrix matrix)
     {
-        if (Logo == null) return null;
+        if (!HasLogo) return null;
         var side = Math.Round(matrix.Size * LogoScale);
         var origin = (matrix.Size - side) / 2;
         var logo = new Rect(origin, origin, side, side);
@@ -180,11 +182,11 @@ public sealed record QrDesign
     /// <summary>Where the logo itself goes: fitted inside its box, keeping its shape.</summary>
     public Rect? LogoRect(QrMatrix matrix)
     {
-        if (Logo == null || LogoBox(matrix) is not { } box) return null;
+        if (LogoPixels is not { } pixels || LogoBox(matrix) is not { } box) return null;
         var rect = box.Logo;
         rect.Offset(Margin, Margin);
         if (LogoPlate == Plate.Circle) rect = Inset(rect, rect.Width * 0.12);
-        var aspect = (double)Logo.PixelWidth / Math.Max(1, Logo.PixelHeight);
+        var aspect = pixels.Width / Math.Max(1, pixels.Height);
         var size = aspect >= 1 ? new Size(rect.Width, rect.Width / aspect) : new Size(rect.Height * aspect, rect.Height);
         return new Rect(rect.X + (rect.Width - size.Width) / 2, rect.Y + (rect.Height - size.Height) / 2, size.Width, size.Height);
     }
@@ -192,44 +194,6 @@ public sealed record QrDesign
     public Color PlateColor => Background ?? Colors.White;
 
     private static Rect Inset(Rect rect, double by) => new(rect.X + by, rect.Y + by, Math.Max(0, rect.Width - by * 2), Math.Max(0, rect.Height - by * 2));
-
-    // MARK: Drawing
-
-    /// <summary>The code as a square bitmap <paramref name="pixels"/> wide. Call on a UI (STA) thread.</summary>
-    public BitmapSource Image(QrMatrix matrix, int pixels)
-    {
-        var total = matrix.Size + Margin * 2;
-        var visual = new DrawingVisual();
-        using (var dc = visual.RenderOpen())
-        {
-            dc.PushTransform(new ScaleTransform((double)pixels / total, (double)pixels / total));
-            if (Background is { } background) dc.DrawRectangle(new SolidColorBrush(background), null, new Rect(0, 0, total, total));
-            Brush codeBrush = GradientEnd is { } end
-                ? new LinearGradientBrush(Foreground, end, new Point(0, 0), new Point(total, total)) { MappingMode = BrushMappingMode.Absolute }
-                : new SolidColorBrush(Foreground);
-            var modules = Geometry.Parse("F1 " + ModulePath(matrix));
-            dc.DrawGeometry(codeBrush, null, modules);
-            var eyes = Geometry.Parse("F0 " + EyePath(matrix));
-            dc.DrawGeometry(EyeColor == Foreground ? codeBrush : new SolidColorBrush(EyeColor), null, eyes);
-            if (PlatePath(matrix) is { } plate) dc.DrawGeometry(new SolidColorBrush(PlateColor), null, Geometry.Parse(plate));
-            if (Logo != null && LogoRect(matrix) is { } logo) dc.DrawImage(Logo, logo);
-            dc.Pop();
-        }
-        var bitmap = new RenderTargetBitmap(pixels, pixels, 96, 96, PixelFormats.Pbgra32);
-        RenderOptions.SetEdgeMode(visual, Module == ModuleShape.Square && Eye == EyeShape.Square ? EdgeMode.Aliased : EdgeMode.Unspecified);
-        bitmap.Render(visual);
-        bitmap.Freeze();
-        return bitmap;
-    }
-
-    public static byte[] Png(BitmapSource image)
-    {
-        var encoder = new PngBitmapEncoder();
-        encoder.Frames.Add(BitmapFrame.Create(image));
-        using var memory = new MemoryStream();
-        encoder.Save(memory);
-        return memory.ToArray();
-    }
 
     /// <summary>The code as scalable SVG, one unit per module, with the logo embedded.</summary>
     public string Svg(QrMatrix matrix)
@@ -248,8 +212,8 @@ public sealed record QrDesign
         body.Append($"<path fill=\"{codeFill}\" d=\"{ModulePath(matrix)}\"/>");
         body.Append($"<path fill=\"{eyeFill}\" fill-rule=\"evenodd\" d=\"{EyePath(matrix)}\"/>");
         if (PlatePath(matrix) is { } plate) body.Append($"<path fill=\"{Hex(PlateColor)}\" d=\"{plate}\"/>");
-        if (Logo != null && LogoRect(matrix) is { } rect)
-            body.Append($"<image x=\"{Num(rect.X)}\" y=\"{Num(rect.Y)}\" width=\"{Num(rect.Width)}\" height=\"{Num(rect.Height)}\" href=\"data:image/png;base64,{Convert.ToBase64String(Png(Logo))}\"/>");
+        if (LogoPng() is { } logo && LogoRect(matrix) is { } rect)
+            body.Append($"<image x=\"{Num(rect.X)}\" y=\"{Num(rect.Y)}\" width=\"{Num(rect.Width)}\" height=\"{Num(rect.Height)}\" href=\"data:image/png;base64,{Convert.ToBase64String(logo)}\"/>");
         return $"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 {total} {total}\">{defs}{body}</svg>\n";
     }
 
@@ -353,7 +317,7 @@ public static class QrContent
         if (string.IsNullOrEmpty(text)) throw new AdawatException("No text found");
         var matrix = QrMatrix.Encode(text, QrMatrix.Correction.Medium) ?? throw new AdawatException("This is too long for a QR code. Shorten it or lower the error correction.");
         var output = Output.PathFor(file, "png", "QR");
-        await Task.Run(() => Documents.Sta.Run(() => File.WriteAllBytes(output, QrDesign.Png(new QrDesign().Image(matrix, 1024)))));
+        await Task.Run(() => Documents.Sta.Run(() => File.WriteAllBytes(output, new QrDesign().PngBytes(matrix, 1024))));
         return [output];
     }
 }

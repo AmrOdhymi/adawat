@@ -293,6 +293,40 @@ WINDOWS_DYNAMIC = {
     "Drag files, then press {1}, {2} or {3}": "اسحب الملفات ثم اضغط {1} أو {2} أو {3}",
 }
 
+# Text only the Linux app shows (it reads the same JSON as the Windows app).
+LINUX_STATIC = {
+    "Convert, compress and edit any file while you drag it. Everything stays on your computer.": "حوّل واضغط وعدّل أي ملف وأنت تسحبه. كل شيء يتم على جهازك.",
+    "Start Adawat when you sign in": "تشغيل أدوات عند تسجيل الدخول",
+    "Adawat lives in the top bar, so it is ready whenever you drag a file.": "تطبيق أدوات يعيش في الشريط العلوي، فهو جاهز كلما سحبت ملفًا.",
+    "Find the Adawat icon in the top bar for Floats, Settings and this guide.": "ستجد أيقونة أدوات في الشريط العلوي، ومنها الـ Floats والإعدادات وهذا الدليل.",
+    "Sign out and back in once so GNOME loads the Adawat extension. Until then, right-click files and choose Open with Adawat.":
+        "سجّل الخروج ثم الدخول مرة واحدة ليحمّل GNOME إضافة أدوات. حتى ذلك الحين، انقر الملفات بالزر الأيمن واختر «فتح بأدوات».",
+    "The Adawat extension for GNOME is missing. Right-click files and choose Open with Adawat to open the wheel.":
+        "إضافة أدوات لـ GNOME غير موجودة. انقر الملفات بالزر الأيمن واختر «فتح بأدوات» لتظهر العجلة.",
+    "On this desktop the wheel opens from the file manager: right-click files and choose Open with Adawat.":
+        "على سطح المكتب هذا تظهر العجلة من مدير الملفات: انقر الملفات بالزر الأيمن واختر «فتح بأدوات».",
+    "Open with Adawat": "فتح بأدوات", "Show in Files": "إظهار في الملفات", "Float": "Float", "Search": "بحث",
+    "Choose an image": "اختر صورة", "Cancel": "إلغاء", "Copy": "نسخ", "Email": "بريد إلكتروني", "Attach to a new message": "إرفاق برسالة جديدة",
+    "Bluetooth": "Bluetooth", "Send to a nearby device": "إرسال إلى جهاز قريب", "KDE Connect": "KDE Connect",
+    "Send to your phone": "إرسال إلى هاتفك", "Paste the files in any app": "ألصق الملفات في أي تطبيق",
+    "No phone is connected to KDE Connect": "لا يوجد هاتف متصل بـ KDE Connect", "Sent to your phone": "أُرسل إلى هاتفك",
+    "No terminal app was found.": "لم يُعثر على تطبيق طرفية.",
+    "The face detector is missing from this installation.": "كاشف الوجوه غير موجود في هذا التثبيت.",
+    "No audio player was found (pw-play or paplay).": "لم يُعثر على مشغّل صوت (pw-play أو paplay).",
+    "Text recognition needs Tesseract. Install it with: sudo apt install tesseract-ocr tesseract-ocr-ara":
+        "قراءة النص تحتاج Tesseract. ثبّته بالأمر: sudo apt install tesseract-ocr tesseract-ocr-ara",
+    "Making PDFs needs WeasyPrint. Install it with: sudo apt install weasyprint": "إنشاء ملفات PDF يحتاج WeasyPrint. ثبّته بالأمر: sudo apt install weasyprint",
+    "Rich Text needs LibreOffice. Install it with: sudo apt install libreoffice-writer": "ملفات RTF تحتاج LibreOffice. ثبّته بالأمر: sudo apt install libreoffice-writer",
+    "LibreOffice is needed for this file. Install it with: sudo apt install libreoffice": "يلزم LibreOffice لهذا الملف. ثبّته بالأمر: sudo apt install libreoffice",
+    "Copying needs xclip or wl-clipboard. Install it with: sudo apt install xclip": "النسخ يحتاج xclip أو wl-clipboard. ثبّته بالأمر: sudo apt install xclip",
+    "ffmpeg is not installed. Install it with: sudo apt install ffmpeg": "ffmpeg غير مثبّت. ثبّته بالأمر: sudo apt install ffmpeg",
+}
+LINUX_DYNAMIC = {
+    "Text recognition failed: {1}": "تعذّرت قراءة النص: {1}",
+    "{1} is not installed. Install it with: sudo apt install {2}": "{1} غير مثبّت. ثبّته بالأمر: sudo apt install {2}",
+    "LibreOffice could not convert {1}.": "تعذّر على LibreOffice تحويل {1}.",
+}
+
 
 def regex(english):
     """'Converting {1} of {2}' → 'Converting (.+?) of (.+?)' with everything else matched literally."""
@@ -315,14 +349,14 @@ def main():
     (root / "Patterns.strings").write_text(patterns, encoding="utf-8")
     # The app's own name in Finder, the Dock and Launchpad.
     (root / "InfoPlist.strings").write_text('"CFBundleDisplayName" = "أدوات";\n"CFBundleName" = "أدوات";\n', encoding="utf-8")
-    # The Windows app reads the same translations as JSON; {1}, {2}… stay as written.
+    # The Windows and Linux apps read the same translations as JSON; {1}, {2}… stay as written.
     import json
     shared = root.parent.parent / "windows" / "shared"
     if shared.parent.exists():
         shared.mkdir(exist_ok=True)
-        merged = {**STATIC, **WINDOWS_STATIC}
+        merged = {**STATIC, **WINDOWS_STATIC, **LINUX_STATIC}
         (shared / "strings.ar.json").write_text(json.dumps(merged, ensure_ascii=False, indent=1, sort_keys=True), encoding="utf-8")
-        (shared / "patterns.ar.json").write_text(json.dumps({**DYNAMIC, **WINDOWS_DYNAMIC}, ensure_ascii=False, indent=1, sort_keys=True), encoding="utf-8")
+        (shared / "patterns.ar.json").write_text(json.dumps({**DYNAMIC, **WINDOWS_DYNAMIC, **LINUX_DYNAMIC}, ensure_ascii=False, indent=1, sort_keys=True), encoding="utf-8")
     print(f"{len(STATIC)} strings, {len(DYNAMIC)} patterns")
 
 

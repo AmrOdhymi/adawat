@@ -7,14 +7,14 @@ namespace Adawat.Core.Documents;
 /// installed: Office through its automation interface, LibreOffice through its command line.</summary>
 public static class Office
 {
-    public static bool HasWord => Type.GetTypeFromProgID("Word.Application") != null;
-    public static bool HasPowerPoint => Type.GetTypeFromProgID("PowerPoint.Application") != null;
+    public static bool HasWord => OperatingSystem.IsWindows() && Type.GetTypeFromProgID("Word.Application") != null;
+    public static bool HasPowerPoint => OperatingSystem.IsWindows() && Type.GetTypeFromProgID("PowerPoint.Application") != null;
 
     public static string? LibreOffice
     {
         get
         {
-            foreach (var root in new[] { Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86) })
+            foreach (var root in OperatingSystem.IsWindows() ? new[] { Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86) } : [])
             {
                 var path = Path.Combine(root, "LibreOffice", "program", "soffice.exe");
                 if (File.Exists(path)) return path;
@@ -51,7 +51,7 @@ public static class Office
             await Convert(soffice, path, "docx", temp.Path);
             docx = Path.Combine(temp.Path, Path.GetFileNameWithoutExtension(path) + ".docx");
         }
-        else throw new AdawatException("Microsoft Word is needed for this file.");
+        else throw new AdawatException(OperatingSystem.IsWindows() ? "Microsoft Word is needed for this file." : Missing);
         var doc = Docx.Read(docx);
         doc.Title = Path.GetFileNameWithoutExtension(path);
         return doc;
@@ -82,7 +82,7 @@ public static class Office
             File.Move(Path.Combine(temp.Path, Path.GetFileNameWithoutExtension(path) + ".pdf"), output, true);
             return;
         }
-        throw new AdawatException("Microsoft PowerPoint is needed for this file.");
+        throw new AdawatException(OperatingSystem.IsWindows() ? "Microsoft PowerPoint is needed for this file." : Missing);
     }
 
     /// <summary>A presentation saved as PowerPoint (.pptx), from .ppt or .odp.</summary>
@@ -110,8 +110,10 @@ public static class Office
             File.Move(Path.Combine(temp.Path, Path.GetFileNameWithoutExtension(path) + ".pptx"), output, true);
             return;
         }
-        throw new AdawatException("Microsoft PowerPoint is needed for this file.");
+        throw new AdawatException(OperatingSystem.IsWindows() ? "Microsoft PowerPoint is needed for this file." : Missing);
     }
+
+    private const string Missing = "LibreOffice is needed for this file. Install it with: sudo apt install libreoffice";
 
     private static async Task Convert(string soffice, string path, string format, string folder)
     {

@@ -2,7 +2,8 @@
 
 Adawat itself is licensed under the GNU General Public License v3.0 (see `LICENSE`). The Mac app bundle also
 carries two command-line tools, each under its own license. They run as separate programs; Adawat calls them
-and does not link to them. The Windows app's components are listed in [Windows](#windows) below.
+and does not link to them. The Windows and Linux apps' components are listed in [Windows](#windows) and
+[Linux](#linux) below.
 
 ## FFmpeg 7.1.1 — GPL v3
 
@@ -108,3 +109,45 @@ same sources will be provided.
 
 The installer is made with [Inno Setup](https://jrsoftware.org/isinfo.php), whose license allows installers for
 any program. Copyright for each component belongs to its authors; their full license texts are in their sources.
+
+## Linux
+
+The Linux app (`linux/` in this repository) shares its conversions and tools with the Windows app (`Adawat.Core`)
+and draws its windows with Avalonia. It ships as a .deb, an .rpm and an AppImage. Everything below is
+redistributable together with Adawat under the GPL v3.
+
+### FFmpeg 8.1 — GPL v3 (AppImage only)
+
+The .deb and .rpm use the distribution's own `ffmpeg`. The AppImage carries `usr/lib/adawat/tools/ffmpeg` and
+`ffprobe`: the static `gpl` build of FFmpeg `n8.1.3-18-g46d899d7a0` from
+[BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds), release `autobuild-2026-10-18-13-01`, the same build as
+the Windows app, configured with `--enable-gpl --enable-version3` and without nonfree components. Its license text
+ships next to it as `FFMPEG-LICENSE.txt`. It runs as a separate program; Adawat calls it and does not link to it.
+
+**Corresponding source.** As for Windows above. `linux/tools/fetch-ffmpeg.sh` downloads exactly these archives:
+
+```
+7bb1f203048a712b31cd9be4a6cd123c3eadc9fb20b0a6021a851e631e647857  ffmpeg-n8.1.3-18-g46d899d7a0-linux64-gpl-8.1.tar.xz
+27043160ea03fb2a7c5197540fcb9bfacf061a77c361200570277231bbff9449  ffmpeg-n8.1.3-18-g46d899d7a0-linuxarm64-gpl-8.1.tar.xz
+```
+
+### Libraries, fonts and models
+
+The Linux app uses the libraries listed for Windows above except WPF, H.NotifyIcon, WebView2 and the Windows API
+projections, and adds:
+
+| Component | License | Source |
+| --- | --- | --- |
+| Avalonia 12 (Avalonia.Desktop, X11, Skia, FreeDesktop, Fluent theme) | MIT | https://github.com/AvaloniaUI/Avalonia |
+| HarfBuzzSharp | MIT | https://github.com/mono/SkiaSharp |
+| Tmds.DBus.Protocol | MIT | https://github.com/tmds/Tmds.DBus |
+| ONNX Runtime | MIT | https://github.com/microsoft/onnxruntime |
+| Ultra-Light-Fast-Generic-Face-Detector-1MB, RFB-640 model (`models/face-detector.onnx`) | MIT | https://github.com/onnx/models/tree/main/validated/vision/body_analysis/ultraface |
+| Noto Sans and Noto Sans Arabic UI fonts | SIL Open Font License 1.1 | https://github.com/notofonts |
+| Material Icons Round font | Apache 2.0 | https://github.com/google/material-design-icons |
+| AppImage type 2 runtime (AppImage only) | MIT | https://github.com/AppImage/type2-runtime |
+
+Text recognition (Tesseract), PDF printing (WeasyPrint) and Rich Text and presentations (LibreOffice) use the
+programs installed on the computer; Adawat runs them and does not ship them. The Adawat GNOME Shell extension in
+`linux/gnome-extension` is part of Adawat and under the GPL v3.
+
