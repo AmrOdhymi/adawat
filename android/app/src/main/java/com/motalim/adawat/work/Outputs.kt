@@ -24,7 +24,12 @@ object Outputs {
                 else -> "application/octet-stream"
             }
 
-    fun save(context: Context, file: File): Saved {
+    /** Saves a result; a folder of results (pages, for instance) becomes a folder of the same name inside Adawat. */
+    fun saveAll(context: Context, file: File): List<Saved> =
+        if (file.isDirectory) file.listFiles().orEmpty().sortedWith(compareBy({ it.name.length }, { it.name })).map { save(context, it, file.name) }
+        else listOf(save(context, file))
+
+    fun save(context: Context, file: File, subfolder: String? = null): Saved {
         val mime = mime(file)
         val (collection, folder) = when (file.kind) {
             FileKind.Image -> MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY) to Environment.DIRECTORY_PICTURES
@@ -32,7 +37,7 @@ object Outputs {
             FileKind.Audio -> MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY) to Environment.DIRECTORY_MUSIC
             else -> MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY) to Environment.DIRECTORY_DOWNLOADS
         }
-        val relative = "$folder/Adawat"
+        val relative = "$folder/Adawat" + (subfolder?.let { "/$it" } ?: "")
         val values = ContentValues().apply {
             put(MediaStore.MediaColumns.DISPLAY_NAME, file.name)
             put(MediaStore.MediaColumns.MIME_TYPE, mime)

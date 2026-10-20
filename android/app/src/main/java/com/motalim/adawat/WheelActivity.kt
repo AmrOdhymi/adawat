@@ -42,7 +42,8 @@ class WheelModel(application: Application) : AndroidViewModel(application) {
     val failed = MutableStateFlow(false)
     val mode = MutableStateFlow(WheelMode.Convert)
     val job = MutableStateFlow<String?>(null)
-    private var started = false
+    var started = false
+        private set
 
     fun stage(uris: List<Uri>, text: String?) {
         if (started) return
@@ -81,10 +82,15 @@ class WheelModel(application: Application) : AndroidViewModel(application) {
 class WheelActivity : ComponentActivity() {
     private val model: WheelModel by viewModels()
     private var pendingSave: List<File> = emptyList()
+    /** A folder picker or print dialog is open on top and will come back here. */
+    private var awaitingResult = false
+    private var printing = false
+    private var paused = false
 
     private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
 
     private val saveTree = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { tree ->
+        awaitingResult = false
         if (tree != null) Actions.saveToTree(this, tree, pendingSave)
         finish()
     }
@@ -95,6 +101,11 @@ class WheelActivity : ComponentActivity() {
         // One wheel at a time: a new share replaces a wheel still open from before.
         current?.get()?.takeIf { it !== this && !it.isFinishing }?.finish()
         current = java.lang.ref.WeakReference(this)
+        // Brought back after its process ended (an update, low memory): the shared files' permission is gone with it.
+        if (savedInstanceState != null && !model.started) {
+            finish()
+            return
+        }
         model.stage(sharedUris(intent), intent.getStringExtra(Intent.EXTRA_TEXT))
         runTestOperation(intent)
         setContent {
@@ -131,8 +142,23 @@ class WheelActivity : ComponentActivity() {
         WheelVisibility.watching = model.job.value
     }
 
+    override fun onPause() {
+        super.onPause()
+        paused = true
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Back from the print dialog: printing is done with the wheel.
+        if (printing && paused) finish()
+        paused = false
+    }
+
     override fun onStop() {
         super.onStop()
+        // The wheel is for this one share. Once it is out of sight it closes, so the next share always opens a fresh one;
+        // running work carries on in the service, with its notification.
+        if (!isChangingConfigurations && !awaitingResult) finish()
         // Once the wheel is gone, a finished job is announced by notification instead.
         if (WheelVisibility.watching == model.job.value) WheelVisibility.watching = null
     }
@@ -163,8 +189,8 @@ class WheelActivity : ComponentActivity() {
             "action.share" -> { Actions.share(this, files); finish() }
             "action.open" -> { Actions.openWith(this, files); finish() }
             "action.copy" -> { Actions.copy(this, files); finish() }
-            "action.save" -> { pendingSave = files; saveTree.launch(null) }
-            "action.print" -> Actions.print(this, files)
+            "action.save" -> { pendingSave = files; awaitingResult = true; saveTree.launch(null) }
+            "action.print" -> { awaitingResult = true; printing = true; Actions.print(this, files) }
         }
     }
 

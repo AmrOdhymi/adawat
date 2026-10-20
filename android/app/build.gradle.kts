@@ -53,6 +53,7 @@ dependencies {
     implementation(libs.androidx.documentfile)
     implementation(libs.zxing.core)
     implementation(libs.tesseract)
+    implementation(libs.pdfbox)
     implementation(libs.kotlinx.coroutines.android)
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)

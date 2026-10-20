@@ -303,7 +303,7 @@ object ImageTools {
             coroutineContext.ensureActive()
             context.report("Reading text ${index + 1} of ${files.size}")
             val text = when (file.kind) {
-                FileKind.Pdf -> PdfText.read(file, context)
+                FileKind.Pdf -> PdfOps.text(file, context)
                 else -> Recognition.text(Images.decode(file, maxSide = 4000), context.progressFor(index, files.size))
             }.replace(Regex("[\u200E\u200F]"), "").trim() // Tesseract marks direction around each line.
             if (text.isEmpty()) return@forEachIndexed

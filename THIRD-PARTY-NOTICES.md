@@ -161,6 +161,7 @@ The Android app (`android/`) is written in Kotlin and uses:
 | AndroidX (Core, Activity, Lifecycle, Compose, Material 3, ExifInterface, HeifWriter, Print, DocumentFile) | Apache 2.0 | https://developer.android.com/jetpack/androidx |
 | Kotlin standard library and kotlinx.coroutines | Apache 2.0 | https://github.com/JetBrains/kotlin |
 | ZXing core | Apache 2.0 | https://github.com/zxing/zxing |
+| PdfBox-Android | Apache 2.0 | https://github.com/TomRoush/PdfBox-Android |
 | Tesseract4Android (Tesseract, Leptonica) | Apache 2.0 (Leptonica: BSD 2-Clause) | https://github.com/adaptech-cz/Tesseract4Android |
 | tessdata_fast Arabic and English models | Apache 2.0 | https://github.com/tesseract-ocr/tessdata_fast |
 | Noto Sans Arabic UI font | SIL Open Font License 1.1 | https://github.com/notofonts |

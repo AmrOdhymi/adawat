@@ -12,6 +12,7 @@ print = "1.1.0"
 documentfile = "1.1.0"
 zxing = "3.5.4"
 tesseract = "4.9.0"
+pdfbox = "2.0.27.0"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -24,6 +25,7 @@ androidx-print = { module = "androidx.print:print", version.ref = "print" }
 androidx-documentfile = { module = "androidx.documentfile:documentfile", version.ref = "documentfile" }
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 tesseract = { module = "cz.adaptech.tesseract4android:tesseract4android", version.ref = "tesseract" }
+pdfbox = { module = "com.tom-roush:pdfbox-android", version.ref = "pdfbox" }
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
 compose-ui = { module = "androidx.compose.ui:ui" }
 compose-foundation = { module = "androidx.compose.foundation:foundation" }

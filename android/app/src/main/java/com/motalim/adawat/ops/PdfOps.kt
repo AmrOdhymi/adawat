@@ -1,0 +1,313 @@
+package com.motalim.adawat.ops
+
+import android.graphics.Bitmap
+import android.graphics.Color
+import android.graphics.pdf.PdfRenderer
+import android.os.ParcelFileDescriptor
+import com.motalim.adawat.AdawatApp
+import com.motalim.adawat.core.AdawatException
+import com.motalim.adawat.core.OperationContext
+import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
+import com.tom_roush.pdfbox.cos.COSName
+import com.tom_roush.pdfbox.io.MemoryUsageSetting
+import com.tom_roush.pdfbox.multipdf.PDFMergerUtility
+import com.tom_roush.pdfbox.multipdf.Splitter
+import com.tom_roush.pdfbox.pdmodel.PDDocument
+import com.tom_roush.pdfbox.pdmodel.PDDocumentInformation
+import com.tom_roush.pdfbox.pdmodel.PDResources
+import com.tom_roush.pdfbox.pdmodel.graphics.form.PDFormXObject
+import com.tom_roush.pdfbox.pdmodel.graphics.image.JPEGFactory
+import com.tom_roush.pdfbox.pdmodel.graphics.image.PDImageXObject
+import com.tom_roush.pdfbox.text.PDFTextStripper
+import com.tom_roush.pdfbox.text.TextPosition
+import kotlinx.coroutines.ensureActive
+import java.io.File
+import kotlin.coroutines.coroutineContext
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.roundToInt
+
+/** Everything Adawat does with PDFs on Android: text, pages as pictures, compression, merging, splitting and clean copies. */
+object PdfOps {
+    private val ready by lazy { PDFBoxResourceLoader.init(AdawatApp.instance); true }
+
+    private fun open(file: File): PDDocument {
+        check(ready)
+        return try {
+            PDDocument.load(file, MemoryUsageSetting.setupTempFileOnly())
+        } catch (e: Exception) {
+            throw AdawatException("${file.name} cannot be read or is password-protected")
+        }
+    }
+
+    fun pageCount(file: File): Int = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { PdfRenderer(it).use { r -> r.pageCount } }
+
+    /** Each page as a picture at [dpi], white behind transparent areas, never larger than [maxSide] pixels. */
+    inline fun <T> renderPages(file: File, dpi: Int, maxSide: Int = 5000, each: (index: Int, count: Int, bitmap: Bitmap) -> T): List<T> {
+        val results = mutableListOf<T>()
+        ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { descriptor ->
+            val renderer = try { PdfRenderer(descriptor) } catch (e: Exception) { throw AdawatException("${file.name} cannot be read or is password-protected") }
+            renderer.use {
+                for (index in 0 until renderer.pageCount) {
+                    renderer.openPage(index).use { page ->
+                        var scale = dpi / 72f
+                        scale = min(scale, maxSide.toFloat() / max(page.width, page.height))
+                        val bitmap = Bitmap.createBitmap(max(1, (page.width * scale).roundToInt()), max(1, (page.height * scale).roundToInt()), Bitmap.Config.ARGB_8888)
+                        bitmap.eraseColor(Color.WHITE)
+                        page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_PRINT)
+                        results += each(index, renderer.pageCount, bitmap)
+                        bitmap.recycle()
+                    }
+                }
+            }
+        }
+        return results
+    }
+
+    suspend fun pagesToPictures(files: List<File>, format: ImageFormat, context: OperationContext): List<File> {
+        val outputs = mutableListOf<File>()
+        for (file in files) {
+            val count = pageCount(file)
+            val folder = if (count > 1) context.named("${file.nameWithoutExtension} pages").apply { mkdirs() } else null
+            renderPages(file, 300) { index, total, bitmap ->
+                context.report("Rendering page ${index + 1} of $total")
+                context.progress(index.toDouble() / total)
+                val output = if (folder != null) File(folder, "Page ${index + 1}.${format.ext}") else context.pathFor(file, format.ext)
+                ImageOps.write(bitmap, format, output)
+                if (folder == null) outputs += output
+            }
+            coroutineContext.ensureActive()
+            if (folder != null) outputs += folder
+        }
+        return outputs
+    }
+
+    // Text
+
+    /** One line of text, in logical order, with how big it is, for headings in Markdown. */
+    data class Line(val text: String, val size: Float, val bold: Boolean)
+
+    /** Collects every glyph with its position; the lines are built from them below. */
+    private class Glyphs : PDFTextStripper() {
+        val all = mutableListOf<TextPosition>()
+
+        override fun processTextPosition(text: TextPosition) {
+            if (text.unicode.isNotBlank()) all += text
+        }
+    }
+
+    private fun isArabic(c: Char) = c in '\u0600'..'\u06FF' || c in '\u0750'..'\u077F' || c in '\uFB50'..'\uFDFF' || c in '\uFE70'..'\uFEFF'
+
+    /**
+     * Lines of a page in reading order, built from glyph positions the way the desktop apps do. PDFs store Arabic as drawn,
+     * right to left, so words are put back into logical order here; letting PDFBox reorder whole lines reverses ligatures.
+     */
+    private fun pageLines(document: PDDocument, page: Int): List<Line>? {
+        val glyphs = Glyphs().apply { startPage = page + 1; endPage = page + 1 }
+        glyphs.getText(document)
+        if (glyphs.all.sumOf { g -> g.unicode.count { it.isLetterOrDigit() } } < 20) return null
+        // Lines: glyphs whose baselines sit within half a glyph's height, top to bottom.
+        val rows = mutableListOf<MutableList<TextPosition>>()
+        for (glyph in glyphs.all.sortedBy { it.yDirAdj }) {
+            val height = max(1f, glyph.heightDir)
+            val row = rows.lastOrNull { kotlin.math.abs(it[0].yDirAdj - glyph.yDirAdj) < height * 0.5f }
+            if (row != null) row += glyph else rows += mutableListOf(glyph)
+        }
+        return rows.map { row ->
+            val ordered = row.sortedBy { it.xDirAdj }
+            // Words: a gap wider than a quarter of the usual letter width.
+            val average = ordered.map { it.widthDirAdj / max(1, it.unicode.length) }.average().toFloat()
+            val words = mutableListOf(mutableListOf(ordered[0]))
+            for (i in 1 until ordered.size) {
+                val gap = ordered[i].xDirAdj - (ordered[i - 1].xDirAdj + ordered[i - 1].widthDirAdj)
+                if (gap > average * 0.25f) words += mutableListOf(ordered[i]) else words.last() += ordered[i]
+            }
+            val letters = row.sumOf { g -> g.unicode.count { it.isLetter() } }
+            val arabic = row.sumOf { g -> g.unicode.count(::isArabic) }
+            val rtl = arabic > letters / 2
+            val inOrder = if (rtl) words.reversed() else words
+            val text = inOrder.joinToString(" ") { word ->
+                val isArabicWord = word.any { g -> g.unicode.any(::isArabic) }
+                val text = (if (isArabicWord) word.reversed() else word).joinToString("") { it.unicode }
+                // In a right-to-left line, punctuation after a number or a Latin word is drawn to its left.
+                if (rtl && !isArabicWord) {
+                    val leading = text.takeWhile { it in ".,:;!?،؛" }
+                    text.drop(leading.length) + leading.reversed()
+                } else text
+            }.let { java.text.Normalizer.normalize(it, java.text.Normalizer.Form.NFKC) }
+            val size = row.map { it.fontSizeInPt }.average().toFloat()
+            val bold = row.count { it.font?.name?.contains("Bold", true) == true } > row.size / 2
+            Line(text, size, bold)
+        }.filter { it.text.isNotBlank() }
+    }
+
+    /** The text of every page: the PDF's own text where it has some, recognised from the page picture where it does not. */
+    suspend fun text(file: File, context: OperationContext): String {
+        val pages = mutableListOf<String>()
+        open(file).use { document ->
+            val count = document.numberOfPages
+            for (index in 0 until count) {
+                coroutineContext.ensureActive()
+                context.progress(index.toDouble() / count)
+                val lines = pageLines(document, index)
+                pages += lines?.joinToString("\n") { it.text.trim() } ?: run {
+                    context.report("Recognizing page ${index + 1} of $count")
+                    recognizePage(file, index)
+                }
+            }
+        }
+        return pages.map { it.trim() }.filter { it.isNotEmpty() }.joinToString("\n\n")
+    }
+
+    private fun recognizePage(file: File, index: Int): String =
+        ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { descriptor ->
+            PdfRenderer(descriptor).use { renderer ->
+                renderer.openPage(index).use { page ->
+                    val scale = 200f / 72f
+                    val bitmap = Bitmap.createBitmap((page.width * scale).roundToInt(), (page.height * scale).roundToInt(), Bitmap.Config.ARGB_8888)
+                    bitmap.eraseColor(Color.WHITE)
+                    page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_PRINT)
+                    Recognition.text(bitmap).replace(Regex("[\\u200E\\u200F]"), "").also { bitmap.recycle() }
+                }
+            }
+        }
+
+    suspend fun toText(files: List<File>, context: OperationContext): List<File> = files.map { file ->
+        context.pathFor(file, "txt").apply { writeText(text(file, context)) }
+    }
+
+    /** Larger lines become headings and the rest paragraphs, so the Markdown keeps the document's shape. */
+    suspend fun toMarkdown(files: List<File>, context: OperationContext): List<File> = files.map { file ->
+        val blocks = mutableListOf<String>()
+        open(file).use { document ->
+            val count = document.numberOfPages
+            for (index in 0 until count) {
+                coroutineContext.ensureActive()
+                context.report("Converting page ${index + 1} of $count")
+                context.progress(index.toDouble() / count)
+                val lines = pageLines(document, index)
+                if (lines == null) {
+                    blocks += recognizePage(file, index).trim()
+                    continue
+                }
+                val body = lines.map { it.size }.sorted().let { it[it.size / 2] }
+                val paragraph = StringBuilder()
+                fun flush() { if (paragraph.isNotBlank()) blocks += paragraph.toString().trim(); paragraph.clear() }
+                for (line in lines) {
+                    val text = line.text.trim()
+                    when {
+                        line.size >= body * 1.6f -> { flush(); blocks += "# $text" }
+                        line.size >= body * 1.25f || (line.bold && text.length < 80 && line.size >= body) -> { flush(); blocks += "## $text" }
+                        else -> paragraph.append(text).append(if (text.endsWith('.') || text.endsWith(':') || text.endsWith('؟') || text.endsWith('?')) "\n" else " ")
+                    }
+                }
+                flush()
+            }
+        }
+        context.pathFor(file, "md").apply { writeText(blocks.filter { it.isNotEmpty() }.joinToString("\n\n") + "\n") }
+    }
+
+    // Editing
+
+    suspend fun merge(files: List<File>, context: OperationContext): List<File> {
+        check(ready)
+        val output = context.named("${files[0].nameWithoutExtension} merged.pdf")
+        var pages = 0
+        val merger = PDFMergerUtility().apply { destinationFileName = output.path }
+        files.forEachIndexed { index, file ->
+            coroutineContext.ensureActive()
+            context.progress(index.toDouble() / files.size)
+            open(file).use { pages += it.numberOfPages }
+            merger.addSource(file)
+        }
+        try {
+            merger.mergeDocuments(MemoryUsageSetting.setupTempFileOnly())
+        } catch (e: Exception) {
+            throw AdawatException("These PDFs could not be merged.")
+        }
+        context.finish("Merged ${files.size} PDFs · $pages pages")
+        return listOf(output)
+    }
+
+    suspend fun split(files: List<File>, context: OperationContext): List<File> = files.map { file ->
+        open(file).use { document ->
+            if (document.numberOfPages < 2) throw AdawatException("${file.name} has no pages")
+            val folder = context.named("${file.nameWithoutExtension} pages").apply { mkdirs() }
+            Splitter().split(document).forEachIndexed { index, single ->
+                coroutineContext.ensureActive()
+                context.progress(index.toDouble() / document.numberOfPages)
+                single.use { it.save(File(folder, "Page ${index + 1}.pdf")) }
+            }
+            folder
+        }
+    }
+
+    suspend fun stripMetadata(files: List<File>, context: OperationContext): List<File> {
+        val outputs = files.map { file ->
+            coroutineContext.ensureActive()
+            open(file).use { document ->
+                document.documentInformation = PDDocumentInformation()
+                document.documentCatalog.cosObject.removeItem(COSName.METADATA)
+                for (page in document.pages) page.cosObject.removeItem(COSName.METADATA)
+                context.pathFor(file, "pdf", "clean").also { document.save(it) }
+            }
+        }
+        context.finish(if (files.size == 1) "Metadata removed from 1 PDF" else "Metadata removed from ${files.size} PDFs")
+        return outputs
+    }
+
+    /** Re-encodes the pictures inside each PDF smaller; text and drawings stay as they are. */
+    suspend fun compress(files: List<File>, context: OperationContext, preset: ImageTools.Preset = ImageTools.Preset.Balanced): List<File> {
+        val (maxPixels, quality) = when (preset) {
+            ImageTools.Preset.Light -> 2400 to 0.82f
+            ImageTools.Preset.Balanced -> 1800 to 0.68f
+            ImageTools.Preset.Strong -> 1300 to 0.52f
+        }
+        val outputs = mutableListOf<File>()
+        var before = 0L
+        var after = 0L
+        for (file in files) {
+            val output = context.pathFor(file, "pdf", "compressed")
+            open(file).use { document ->
+                val seen = HashSet<Any>()
+                document.pages.forEachIndexed { index, page ->
+                    coroutineContext.ensureActive()
+                    context.report("Compressing page ${index + 1} of ${document.numberOfPages}")
+                    context.progress(index.toDouble() / document.numberOfPages)
+                    page.resources?.let { recompress(document, it, seen, maxPixels, quality) }
+                }
+                document.save(output)
+            }
+            if (output.length() >= file.length()) { output.delete(); continue }
+            before += file.length()
+            after += output.length()
+            outputs += output
+        }
+        if (outputs.isEmpty()) throw AdawatException("These PDFs are already as small as they get")
+        val saved = 100 - (after.toDouble() / before * 100).roundToInt()
+        context.finish(if (outputs.size == 1) "Compressed PDF · $saved% smaller" else "Compressed ${outputs.size} PDFs · $saved% smaller")
+        return outputs
+    }
+
+    private fun recompress(document: PDDocument, resources: PDResources, seen: MutableSet<Any>, maxPixels: Int, quality: Float) {
+        for (name in resources.xObjectNames) {
+            val item = runCatching { resources.getXObject(name) }.getOrNull() ?: continue
+            if (!seen.add(item.cosObject)) continue
+            when (item) {
+                is PDFormXObject -> item.resources?.let { recompress(document, it, seen, maxPixels, quality) }
+                is PDImageXObject -> {
+                    if (item.isStencil || item.width < 64 || item.height < 64) continue
+                    // Pictures with transparency masks or unusual colours keep their own encoding.
+                    if (item.cosObject.containsKey(COSName.SMASK) || item.cosObject.containsKey(COSName.MASK)) continue
+                    val bitmap = runCatching { item.image }.getOrNull() ?: continue
+                    val scale = min(1f, maxPixels.toFloat() / max(bitmap.width, bitmap.height))
+                    val sized = if (scale < 1f) Bitmap.createScaledBitmap(bitmap, (bitmap.width * scale).roundToInt(), (bitmap.height * scale).roundToInt(), true) else bitmap
+                    val smaller = runCatching { JPEGFactory.createFromImage(document, Images.flatten(sized), quality) }.getOrNull() ?: continue
+                    val before = item.cosObject.length
+                    if (smaller.cosObject.length < before) resources.put(name, smaller)
+                }
+            }
+        }
+    }
+
+}

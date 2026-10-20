@@ -4,6 +4,7 @@ import com.motalim.adawat.ops.FileActions
 import com.motalim.adawat.ops.ImageFormat
 import com.motalim.adawat.ops.ImageOps
 import com.motalim.adawat.ops.ImageTools
+import com.motalim.adawat.ops.PdfOps
 import com.motalim.adawat.ops.QrCode
 import java.io.File
 
@@ -47,6 +48,12 @@ object Catalog {
                 }
             ops + Operation("image.pdf", "To PDF", Icons.Pdf, ImageOps::makePdf, badge = "PDF")
         }
+        FileKind.Pdf -> listOf(
+            Operation("pdf.md", "To Markdown", Icons.Document, PdfOps::toMarkdown, badge = "MD"),
+            Operation("pdf.png", "Pages to PNG", Icons.Photo, { f, c -> PdfOps.pagesToPictures(f, ImageFormat.Png, c) }, badge = "PNG"),
+            Operation("pdf.jpg", "Pages to JPEG", Icons.Photo, { f, c -> PdfOps.pagesToPictures(f, ImageFormat.Jpeg, c) }, badge = "JPG"),
+            Operation("pdf.txt", "To Text", Icons.Text, PdfOps::toText, badge = "TXT"),
+        )
         else -> emptyList()
     }
 
@@ -74,6 +81,10 @@ object Catalog {
         }
 
         if (kinds == setOf(FileKind.Pdf)) {
+            ops += tool("pdf.compress", "Compress", null, Icons.Compress, { f, c -> PdfOps.compress(f, c) })
+            ops += tool("pdf.metadata", "Remove Metadata", "Metadata", Icons.Metadata, PdfOps::stripMetadata)
+            if (!single) ops += tool("pdf.merge", "Merge PDFs", "Merge", Icons.Merge, PdfOps::merge)
+            ops += tool("pdf.split", "Split Pages", "Split", Icons.Split, PdfOps::split)
             ops += tool("pdf.ocr", "Copy Text", "Text", Icons.Text, ImageTools::extractText)
         }
 
