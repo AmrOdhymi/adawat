@@ -97,7 +97,8 @@ object Catalog {
         if (kinds == setOf(FileKind.Pdf)) {
             ops += tool("pdf.compress", "Compress", null, Icons.Compress, { f, c -> PdfOps.compress(f, c) })
             ops += tool("pdf.metadata", "Remove Metadata", "Metadata", Icons.Metadata, PdfOps::stripMetadata)
-            if (!single) ops += tool("pdf.merge", "Merge PDFs", "Merge", Icons.Merge, PdfOps::merge)
+            ops += if (single) tool("pdf.organize", "Organize Pages", "Organize", Icons.Organize, PdfOps::organize, "organize")
+                   else tool("pdf.merge", "Merge PDFs", "Merge", Icons.Merge, PdfOps::merge, "merge")
             ops += tool("pdf.split", "Split Pages", "Split", Icons.Split, PdfOps::split)
             ops += tool("pdf.ocr", "Copy Text", "Text", Icons.Text, ImageTools::extractText)
         }
@@ -105,7 +106,7 @@ object Catalog {
         if (kinds == setOf(FileKind.Video)) {
             ops += tool("video.compress", "Compress", null, Icons.Compress, { f, c -> VideoOps.compress(f, c) }, "compress")
             ops += tool("video.metadata", "Remove Metadata", "Metadata", Icons.Metadata, AudioOps::stripMetadata)
-            if (!single) ops += tool("video.join", "Join Videos", "Join", Icons.Join, VideoOps::join)
+            if (!single) ops += tool("video.join", "Join Videos", "Join", Icons.Join, VideoOps::join, "join")
             ops += tool("video.rotate", "Rotate", null, Icons.Rotate, VideoOps::rotate)
             ops += tool("video.mute", "Mute", null, Icons.Mute, VideoOps::mute)
             ops += tool("video.normalize", "Normalize Volume", "Normalize", Icons.Volume, VideoOps::normalize)

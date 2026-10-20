@@ -121,6 +121,7 @@ object VideoOps {
 
     /** The clips one after another in one MP4, each fitted onto the first clip's frame. */
     suspend fun join(files: List<File>, context: OperationContext): List<File> {
+        @Suppress("NAME_SHADOWING") val files = com.motalim.adawat.ops.PdfOps.ordered(files, context)
         context.report("Joining ${files.size} videos")
         val first = MediaInfo.of(files[0])
         val turned = first.rotation % 180 != 0

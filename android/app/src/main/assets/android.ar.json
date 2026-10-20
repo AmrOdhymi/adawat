@@ -108,5 +108,8 @@
  "Coordinates": "الإحداثيات",
  "No metadata.": "لا توجد بيانات.",
  "Covered 1 face": "غُطي وجه واحد",
- "Covered 1 text area": "غُطيت منطقة نص واحدة"
+ "Covered 1 text area": "غُطيت منطقة نص واحدة",
+ "Same width for every page": "عرض موحّد لكل الصفحات",
+ "Hold a page to move it.": "اضغط مطولًا على الصفحة لتحريكها.",
+ "No pages left": "لم تبقَ صفحات"
 }

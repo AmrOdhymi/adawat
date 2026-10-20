@@ -209,8 +209,13 @@ object PdfOps {
 
     // Editing
 
+    /** The files in the order the order screen chose, if it did. */
+    fun ordered(files: List<File>, context: OperationContext): List<File> =
+        context.options["order"]?.split(',')?.mapNotNull { it.toIntOrNull()?.let(files::getOrNull) }?.takeIf { it.size == files.size } ?: files
+
     suspend fun merge(files: List<File>, context: OperationContext): List<File> {
         check(ready)
+        @Suppress("NAME_SHADOWING") val files = ordered(files, context)
         val output = context.named("${files[0].nameWithoutExtension} merged.pdf")
         var pages = 0
         val merger = PDFMergerUtility().apply { destinationFileName = output.path }
@@ -240,6 +245,54 @@ object PdfOps {
             }
             folder
         }
+    }
+
+    /**
+     * The organize screen's pages: "source:rotation" in the new order, pages repeated or left out as chosen, and with
+     * [equal widths][context] every page scaled to the widest one.
+     */
+    suspend fun organize(files: List<File>, context: OperationContext): List<File> {
+        val file = files[0]
+        val slots = context.text("pages", "").split(',').filter { it.contains(':') }.map { it.split(':').let { (a, b) -> a.toInt() to b.toInt() } }
+        if (slots.isEmpty()) throw AdawatException("No pages left")
+        val equal = context.bool("equalWidths", false)
+        val output = context.pathFor(file, "pdf", "organized")
+        open(file).use { source ->
+            PDDocument().use { result ->
+                val widest = if (equal) slots.maxOf { (i, r) -> source.getPage(i).let { p -> if ((p.rotation + r) % 180 == 0) p.mediaBox.width else p.mediaBox.height } } else 0f
+                slots.forEachIndexed { n, (index, turn) ->
+                    coroutineContext.ensureActive()
+                    context.progress(n.toDouble() / slots.size)
+                    val original = source.getPage(index)
+                    // A shallow copy, so a page used twice is two pages that share their content.
+                    val page = com.tom_roush.pdfbox.pdmodel.PDPage(com.tom_roush.pdfbox.cos.COSDictionary(original.cosObject))
+                    // Size, resources and turn can be inherited from the document's page tree; the copy needs its own.
+                    page.mediaBox = original.mediaBox
+                    page.cropBox = original.cropBox
+                    page.resources = original.resources
+                    page.cosObject.removeItem(COSName.PARENT)
+                    page.rotation = ((original.rotation + turn) % 360 + 360) % 360
+                    result.addPage(page)
+                    if (equal) {
+                        val sideways = page.rotation % 180 != 0
+                        val width = if (sideways) page.mediaBox.height else page.mediaBox.width
+                        val scale = widest / width
+                        if (scale > 1.001f) {
+                            val box = page.mediaBox
+                            com.tom_roush.pdfbox.pdmodel.PDPageContentStream(result, page, com.tom_roush.pdfbox.pdmodel.PDPageContentStream.AppendMode.PREPEND, true).use {
+                                it.saveGraphicsState()
+                                it.transform(com.tom_roush.pdfbox.util.Matrix.getScaleInstance(scale, scale))
+                            }
+                            com.tom_roush.pdfbox.pdmodel.PDPageContentStream(result, page, com.tom_roush.pdfbox.pdmodel.PDPageContentStream.AppendMode.APPEND, true).use { it.restoreGraphicsState() }
+                            page.mediaBox = com.tom_roush.pdfbox.pdmodel.common.PDRectangle(box.lowerLeftX * scale, box.lowerLeftY * scale, box.width * scale, box.height * scale)
+                            page.cropBox = page.mediaBox
+                        }
+                    }
+                }
+                result.save(output)
+            }
+        }
+        return listOf(output)
     }
 
     suspend fun stripMetadata(files: List<File>, context: OperationContext): List<File> {
