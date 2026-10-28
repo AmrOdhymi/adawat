@@ -28,7 +28,15 @@ public static class SettingsWindow
         void Save() => settings.Save();
         (ModifierKey, string)[] keys = [(ModifierKey.Shift, "Shift"), (ModifierKey.Ctrl, "Ctrl"), (ModifierKey.Alt, "Alt"), (ModifierKey.None, "None")];
 
-        Section("Shortcuts while dragging");
+        Section("Shortcuts");
+        (string, string)[] hotkeys = [
+            ("Ctrl+Shift+F", "Ctrl + Shift + F"),
+            ("Ctrl+Alt+F", "Ctrl + Alt + F"),
+            ("Ctrl+Shift+Space", "Ctrl + Shift + Space"),
+            ("Alt+Shift+F", "Alt + Shift + F"),
+            ("None", "None")
+        ];
+        stack.Children.Add(UI.Row("Open Float shelf", UI.Picker(hotkeys, settings.FloatHotkey, k => { settings.FloatHotkey = k; Save(); GlobalHotkeys.Update(); })));
         stack.Children.Add(UI.Row("Convert wheel", UI.Picker(keys, settings.ConvertKey, k => { settings.ConvertKey = k; Save(); })));
         stack.Children.Add(UI.Row("Tools wheel", UI.Picker(keys, settings.ToolsKey, k => { settings.ToolsKey = k; Save(); })));
         stack.Children.Add(UI.Row("Actions wheel", UI.Picker(keys, settings.ActionsKey, k => { settings.ActionsKey = k; Save(); })));

@@ -72,11 +72,13 @@ public sealed class AdawatApp : Application
             return dialog.ShowDialog() == true ? dialog.FolderName : null;
         }));
         _tray = new Tray();
+        GlobalHotkeys.Start();
         if (!Settings.Current.HasSeenWelcome) WelcomeWindow.Present();
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
+        GlobalHotkeys.Stop();
         _drags.Dispose();
         _tray?.Dispose();
         base.OnExit(e);

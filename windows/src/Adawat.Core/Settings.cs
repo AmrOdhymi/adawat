@@ -23,6 +23,7 @@ public sealed class Settings
     public ModifierKey ConvertKey { get; set; } = ModifierKey.Shift;
     public ModifierKey ToolsKey { get; set; } = ModifierKey.Ctrl;
     public ModifierKey ActionsKey { get; set; } = ModifierKey.Alt;
+    public string FloatHotkey { get; set; } = "Ctrl+Shift+F";
     public OutputLocation OutputLocation { get; set; } = OutputLocation.NextToOriginal;
     public bool ShowResultsInFloat { get; set; }
     public bool PlaySounds { get; set; } = true;

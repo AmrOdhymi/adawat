@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -25,6 +26,20 @@ public static class Floats
         window.Show();
     }
 
+    public static void ToggleOrShow()
+    {
+        if (Open.LastOrDefault() is { } last)
+        {
+            if (last.WindowState == WindowState.Minimized) last.WindowState = WindowState.Normal;
+            last.Show();
+            last.Activate();
+        }
+        else
+        {
+            Create([]);
+        }
+    }
+
     /// <summary>Results go into the most recent Float, or a new one.</summary>
     public static void ShowResults(IReadOnlyList<string> files)
     {
@@ -39,8 +54,8 @@ public static class Floats
 }
 
 /// <summary>
-/// A small floating shelf for files: drop files on it to keep them at hand, drag them out to any app, double-click to open,
-/// and pin it to the edge of the screen. Closing it never deletes the files.
+/// A floating shelf for files: drop files on it to keep them at hand, drag them out to any app, double-click to open.
+/// Free floating window that can be moved and resized freely.
 /// </summary>
 public sealed class FloatWindow : Window
 {
@@ -53,8 +68,6 @@ public sealed class FloatWindow : Window
     private readonly Dictionary<string, Border> _tileElements = new(StringComparer.OrdinalIgnoreCase);
     private Point? _pressAt;
     private string? _pressed;
-    private bool _docked;
-    private Rect _undocked;
 
     public FloatWindow(IReadOnlyList<string> files)
     {
@@ -64,15 +77,16 @@ public sealed class FloatWindow : Window
         ShowInTaskbar = false;
         Topmost = true;
         ResizeMode = ResizeMode.CanResizeWithGrip;
-        Width = 330;
-        Height = 270;
-        MinWidth = 260;
+        Width = 350;
+        Height = 280;
+        MinWidth = 220;
         MinHeight = 160;
         FlowDirection = Theme.Direction;
         FontFamily = Theme.Font;
         Left = -10000;
         Top = -10000;
 
+        // Clean Header: Title + Count on Left, single Close button on Right
         var header = new DockPanel { Margin = new Thickness(12, 8, 8, 4), LastChildFill = false };
         var title = UI.Text("Float", 11, FontWeights.Bold, Theme.Muted);
         DockPanel.SetDock(title, Dock.Left);
@@ -81,26 +95,16 @@ public sealed class FloatWindow : Window
         DockPanel.SetDock(_count, Dock.Left);
         header.Children.Add(_count);
 
-        foreach (var (glyph, help, action) in new (string, string, Action)[]
-        {
-            ("", "Close Float without deleting files", Close),
-            ("", "Attach to the screen edge", ToggleDock),
-            ("", "Share", () => { if (Targets().Count > 0) ShareUI.Share(Targets()); }),
-            ("", "Move files to folder", MoveTargets),
-            ("", "Copy files to clipboard", CopyTargets),
-        })
-        {
-            var button = UI.IconButton(glyph, action, help, 24);
-            button.Margin = new Thickness(4, 0, 0, 0);
-            DockPanel.SetDock(button, Dock.Right);
-            header.Children.Add(button);
-        }
+        var closeBtn = UI.IconButton("", Close, "Close Float without deleting files", 24);
+        closeBtn.Margin = new Thickness(4, 0, 0, 0);
+        DockPanel.SetDock(closeBtn, Dock.Right);
+        header.Children.Add(closeBtn);
 
         header.MouseLeftButtonDown += (_, e) =>
         {
-            if (e.ClickCount == 1 && e.OriginalSource is DependencyObject dep && !IsInsideButton(dep))
+            if (e.ClickCount == 1 && e.LeftButton == MouseButtonState.Pressed && e.OriginalSource is DependencyObject dep && !IsInsideButton(dep))
             {
-                if (!_docked) DragMove();
+                try { DragMove(); } catch { }
             }
         };
 
@@ -120,6 +124,39 @@ public sealed class FloatWindow : Window
             Background = new SolidColorBrush(Color.FromArgb(0xF2, 0xFA, 0xFA, 0xFB)), BorderBrush = Theme.Hairline, BorderThickness = new Thickness(1),
             Effect = new DropShadowEffect { BlurRadius = 24, ShadowDepth = 6, Direction = 270, Opacity = 0.2 },
         };
+
+        // Left-click on empty space deselects all files (scrollbar interaction is preserved)
+        scroll.PreviewMouseLeftButtonDown += (_, e) =>
+        {
+            if (e.OriginalSource is DependencyObject dep)
+            {
+                if (IsInsideScrollBar(dep) || IsInsideTile(dep) || IsInsideButton(dep))
+                    return;
+
+                if (_selected.Count > 0)
+                {
+                    _selected.Clear();
+                    UpdateSelectionVisuals();
+                }
+            }
+        };
+
+        // Empty space context menu: acts on ALL files when right-clicking on empty space
+        body.ContextMenuOpening += (_, e) =>
+        {
+            if (e.OriginalSource is DependencyObject dep)
+            {
+                if (IsInsideScrollBar(dep) || IsInsideTile(dep))
+                    return;
+
+                if (_selected.Count > 0)
+                {
+                    _selected.Clear();
+                    UpdateSelectionVisuals();
+                }
+            }
+        };
+        body.ContextMenu = MakeEmptySpaceMenu();
 
         AllowDrop = true;
         DragOver += (_, e) =>
@@ -143,6 +180,10 @@ public sealed class FloatWindow : Window
             if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
             {
                 CopyTargets();
+            }
+            if (e.Key == Key.F2)
+            {
+                RenameTargets();
             }
             if (e.Key == Key.Escape)
             {
@@ -187,6 +228,30 @@ public sealed class FloatWindow : Window
         return false;
     }
 
+    private static bool IsInsideTile(DependencyObject? obj)
+    {
+        while (obj != null)
+        {
+            if (obj is FrameworkElement fe && fe.Tag as string == "Tile") return true;
+            obj = VisualTreeHelper.GetParent(obj);
+        }
+        return false;
+    }
+
+    private static bool IsInsideScrollBar(DependencyObject? obj)
+    {
+        while (obj != null)
+        {
+            if (obj is System.Windows.Controls.Primitives.ScrollBar ||
+                obj is System.Windows.Controls.Primitives.Thumb ||
+                obj is System.Windows.Controls.Primitives.Track ||
+                obj is System.Windows.Controls.Primitives.RepeatButton)
+                return true;
+            obj = VisualTreeHelper.GetParent(obj);
+        }
+        return false;
+    }
+
     public void Add(IEnumerable<string> files)
     {
         foreach (var file in files) if (!_files.Contains(file)) _files.Add(file);
@@ -207,17 +272,17 @@ public sealed class FloatWindow : Window
     /// <summary>The selection, or every file when nothing is selected.</summary>
     private List<string> Targets() => _selected.Count > 0 ? _files.Where(_selected.Contains).ToList() : [.. _files];
 
-    private void CopyTargets()
+    private void CopyTargets(IReadOnlyList<string>? specificTargets = null)
     {
-        var targets = Targets();
+        var targets = specificTargets ?? Targets();
         if (targets.Count == 0) return;
         Core.Clipboard.CopyFiles(targets);
         Hud.Shared.ShowMessage(targets.Count == 1 ? "File copied" : $"{targets.Count} files copied", Hud.Style.Success);
     }
 
-    private void MoveTargets()
+    private void MoveTargets(IReadOnlyList<string>? specificTargets = null)
     {
-        var targets = Targets();
+        var targets = specificTargets ?? Targets();
         if (targets.Count == 0) return;
         var dialog = new Microsoft.Win32.OpenFolderDialog
         {
@@ -249,6 +314,76 @@ public sealed class FloatWindow : Window
                 Hud.Shared.ShowMessage(moved.Count == 1 ? $"Moved 1 item to {Path.GetFileName(dest)}" : $"Moved {moved.Count} items to {Path.GetFileName(dest)}", Hud.Style.Success);
             }
         }
+    }
+
+    private void RenameTargets(IReadOnlyList<string>? specificTargets = null)
+    {
+        var targets = specificTargets ?? Targets();
+        if (targets.Count == 0) return;
+        FloatDialogs.ShowRename(this, targets, map =>
+        {
+            foreach (var (oldPath, newPath) in map)
+            {
+                var idx = _files.IndexOf(oldPath);
+                if (idx >= 0) _files[idx] = newPath;
+                if (_selected.Remove(oldPath)) _selected.Add(newPath);
+                if (_thumbCache.Remove(oldPath, out var thumb)) _thumbCache[newPath] = thumb;
+            }
+            Draw();
+        });
+    }
+
+    private void ShowProperties(IReadOnlyList<string>? specificTargets = null)
+    {
+        var targets = specificTargets ?? Targets();
+        if (targets.Count == 0) return;
+        FloatDialogs.ShowProperties(this, targets);
+    }
+
+    private void DeleteFromDisk(IReadOnlyList<string> targets)
+    {
+        if (targets.Count == 0) return;
+        var message = targets.Count == 1
+            ? L10n.T($"Are you sure you want to permanently delete '{Path.GetFileName(targets[0])}' from disk?")
+            : L10n.T($"Are you sure you want to permanently delete all {targets.Count} files from disk?");
+        var result = MessageBox.Show(this, message, L10n.T("Confirm Delete"), MessageBoxButton.YesNo, MessageBoxImage.Warning);
+        if (result != MessageBoxResult.Yes) return;
+
+        var deleted = new List<string>();
+        foreach (var path in targets)
+        {
+            try
+            {
+                if (File.Exists(path)) { File.Delete(path); deleted.Add(path); }
+                else if (Directory.Exists(path)) { Directory.Delete(path, recursive: true); deleted.Add(path); }
+            }
+            catch (Exception ex)
+            {
+                Hud.Shared.ShowMessage(ex.Message, Hud.Style.Failure);
+            }
+        }
+        if (deleted.Count > 0)
+        {
+            Remove(deleted);
+            Hud.Shared.ShowMessage(deleted.Count == 1 ? "File deleted" : $"{deleted.Count} files deleted", Hud.Style.Success);
+        }
+    }
+
+    private ContextMenu MakeEmptySpaceMenu()
+    {
+        var menu = new ContextMenu { FlowDirection = Theme.Direction };
+        void Item(string title, Action action) { var item = new MenuItem { Header = L10n.T(title) }; item.Click += (_, _) => action(); menu.Items.Add(item); }
+
+        Item("Copy All", () => CopyTargets([.. _files]));
+        Item("Move All to Folder...", () => MoveTargets([.. _files]));
+        Item("Share All", () => { if (_files.Count > 0) ShareUI.Share([.. _files]); });
+        menu.Items.Add(new Separator());
+        Item("Select All", () => { _selected.UnionWith(_files); UpdateSelectionVisuals(); });
+        Item("Properties", () => ShowProperties([.. _files]));
+        menu.Items.Add(new Separator());
+        Item("Clear All from Float", () => Remove([.. _files]));
+        Item("Delete All from Disk", () => DeleteFromDisk([.. _files]));
+        return menu;
     }
 
     private void UpdateSelectionVisuals()
@@ -296,11 +431,40 @@ public sealed class FloatWindow : Window
         stack.Children.Add(image);
         stack.Children.Add(name);
 
+        // Close / remove button on the top corner of the tile
+        var xButton = new Button
+        {
+            Content = new TextBlock { Text = "✕", FontSize = 9, FontWeight = FontWeights.Bold, Foreground = Theme.Muted, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
+            Width = 16,
+            Height = 16,
+            Cursor = Cursors.Hand,
+            Background = new SolidColorBrush(Color.FromArgb(0x40, 0x00, 0x00, 0x00)),
+            BorderThickness = new Thickness(0),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Thickness(0, 1, 1, 0),
+            ToolTip = L10n.T("Remove from list"),
+            Visibility = Visibility.Collapsed,
+        };
+        xButton.Click += (_, e) =>
+        {
+            e.Handled = true;
+            Remove([file]);
+        };
+
+        var tileGrid = new Grid();
+        tileGrid.Children.Add(stack);
+        tileGrid.Children.Add(xButton);
+
         var tile = new Border
         {
-            Child = stack, Padding = new Thickness(6), Margin = new Thickness(3), CornerRadius = new CornerRadius(9), Width = 88,
+            Tag = "Tile",
+            Child = tileGrid, Padding = new Thickness(6), Margin = new Thickness(3), CornerRadius = new CornerRadius(9), Width = 88,
             Background = selected ? Theme.AccentSoft : Brushes.Transparent, ToolTip = L10n.T($"{fileName}. Double-click to open; drag to carry the file."),
         };
+
+        tile.MouseEnter += (_, _) => xButton.Visibility = Visibility.Visible;
+        tile.MouseLeave += (_, _) => xButton.Visibility = Visibility.Collapsed;
 
         tile.MouseLeftButtonDown += (_, e) =>
         {
@@ -366,8 +530,20 @@ public sealed class FloatWindow : Window
             _pressed = null;
         };
 
+        // Right click on tile: if tile is not selected, select it
+        tile.PreviewMouseRightButtonDown += (_, _) =>
+        {
+            if (!_selected.Contains(file) && (Keyboard.Modifiers & ModifierKeys.Control) == 0)
+            {
+                _selected.Clear();
+                _selected.Add(file);
+                UpdateSelectionVisuals();
+            }
+        };
+
         var menu = new ContextMenu { FlowDirection = Theme.Direction };
         void Item(string title, Action action) { var item = new MenuItem { Header = L10n.T(title) }; item.Click += (_, _) => action(); menu.Items.Add(item); }
+
         Item("Open", () =>
         {
             try
@@ -383,41 +559,18 @@ public sealed class FloatWindow : Window
             }
         });
         Item("Show in File Explorer", () => FileActions.ShowInExplorer(file));
-        Item("Copy", CopyTargets);
-        Item("Move to Folder...", MoveTargets);
-        Item("Copy Path", () => Core.Clipboard.CopyText(file));
-        Item("Remove from Float", () => Remove(Targets().Contains(file) ? Targets() : [file]));
+        menu.Items.Add(new Separator());
+        Item("Rename...", () => RenameTargets(Targets()));
+        Item("Copy", () => CopyTargets(Targets()));
+        Item("Move to Folder...", () => MoveTargets(Targets()));
+        Item("Share", () => ShareUI.Share(Targets()));
+        menu.Items.Add(new Separator());
+        Item("Properties", () => ShowProperties(Targets()));
+        menu.Items.Add(new Separator());
+        Item("Copy Path", () => Core.Clipboard.CopyText(string.Join(Environment.NewLine, Targets())));
+        Item("Remove from Float", () => Remove(Targets()));
+        Item("Delete from Disk", () => DeleteFromDisk(Targets()));
         tile.ContextMenu = menu;
         return tile;
-    }
-
-    /// <summary>Pins the Float as a narrow strip on the right edge of the screen; again to put it back.</summary>
-    private void ToggleDock()
-    {
-        if (_docked)
-        {
-            Left = _undocked.Left; Top = _undocked.Top; Width = _undocked.Width; Height = _undocked.Height;
-            ResizeMode = ResizeMode.CanResizeWithGrip;
-            _grid.Margin = new Thickness(8);
-            _docked = false;
-            return;
-        }
-
-        _undocked = new Rect(Left, Top, Width, Height);
-        var dpi = VisualTreeHelper.GetDpi(this);
-        var scaleX = dpi.DpiScaleX > 0 ? dpi.DpiScaleX : 1.0;
-        var scaleY = dpi.DpiScaleY > 0 ? dpi.DpiScaleY : 1.0;
-
-        var centerPhysX = (int)((Left + Width / 2) * scaleX);
-        var centerPhysY = (int)((Top + Height / 2) * scaleY);
-        var work = Native.WorkArea(centerPhysX, centerPhysY);
-
-        ResizeMode = ResizeMode.NoResize;
-        Width = 165;
-        _grid.Margin = new Thickness(4);
-        Height = Math.Min(560, (work.Bottom - work.Top) / scaleY - 40);
-        Left = work.Right / scaleX - Width + 4;
-        Top = work.Top / scaleY + ((work.Bottom - work.Top) / scaleY - Height) / 2;
-        _docked = true;
     }
 }

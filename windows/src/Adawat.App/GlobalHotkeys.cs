@@ -1,0 +1,86 @@
+using System.Windows.Interop;
+using Adawat.Core;
+
+namespace Adawat.App;
+
+public static class GlobalHotkeys
+{
+    private static HwndSource? _source;
+    private const int HotkeyId = 0xAD01;
+
+    public static void Start()
+    {
+        if (_source != null) return;
+        var parameters = new HwndSourceParameters("Adawat.HotkeyListener")
+        {
+            WindowStyle = 0,
+            ExtendedWindowStyle = 0,
+            ParentWindow = IntPtr.Zero,
+        };
+        _source = new HwndSource(parameters);
+        _source.AddHook(HwndHook);
+        Register();
+    }
+
+    public static void Update()
+    {
+        if (_source == null) return;
+        Native.UnregisterHotKey(_source.Handle, HotkeyId);
+        Register();
+    }
+
+    private static void Register()
+    {
+        if (_source == null) return;
+        var shortcut = Settings.Current.FloatHotkey;
+        if (string.IsNullOrWhiteSpace(shortcut) || shortcut.Equals("None", StringComparison.OrdinalIgnoreCase)) return;
+
+        ParseShortcut(shortcut, out var mod, out var vk);
+        if (vk != 0)
+        {
+            Native.RegisterHotKey(_source.Handle, HotkeyId, mod | Native.MOD_NOREPEAT, vk);
+        }
+    }
+
+    private static void ParseShortcut(string shortcut, out uint modifiers, out uint vk)
+    {
+        modifiers = 0;
+        vk = 0;
+        var parts = shortcut.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        foreach (var part in parts)
+        {
+            if (part.Equals("Ctrl", StringComparison.OrdinalIgnoreCase)) modifiers |= Native.MOD_CONTROL;
+            else if (part.Equals("Shift", StringComparison.OrdinalIgnoreCase)) modifiers |= Native.MOD_SHIFT;
+            else if (part.Equals("Alt", StringComparison.OrdinalIgnoreCase)) modifiers |= Native.MOD_ALT;
+            else if (part.Equals("Win", StringComparison.OrdinalIgnoreCase)) modifiers |= Native.MOD_WIN;
+            else if (part.Length == 1)
+            {
+                var ch = char.ToUpperInvariant(part[0]);
+                if (ch >= 'A' && ch <= 'Z') vk = (uint)ch;
+                else if (ch >= '0' && ch <= '9') vk = (uint)ch;
+            }
+            else if (part.Equals("Space", StringComparison.OrdinalIgnoreCase)) vk = 0x20;
+        }
+    }
+
+    private static IntPtr HwndHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (msg == Native.WM_HOTKEY && wParam.ToInt32() == HotkeyId)
+        {
+            Floats.ToggleOrShow();
+            handled = true;
+        }
+        return IntPtr.Zero;
+    }
+
+    public static void Stop()
+    {
+        if (_source != null)
+        {
+            Native.UnregisterHotKey(_source.Handle, HotkeyId);
+            _source.RemoveHook(HwndHook);
+            _source.Dispose();
+            _source = null;
+        }
+    }
+}
