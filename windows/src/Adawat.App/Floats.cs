@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -17,6 +18,7 @@ public static class Floats
     private static readonly List<FloatWindow> Open = [];
 
     public static bool Any => Open.Count > 0;
+    public static IReadOnlyList<FloatWindow> OpenWindows => Open;
 
     public static void Create(IReadOnlyList<string> files)
     {
@@ -26,19 +28,10 @@ public static class Floats
         window.Show();
     }
 
-    public static void ToggleOrShow()
-    {
-        if (Open.LastOrDefault() is { } last)
-        {
-            if (last.WindowState == WindowState.Minimized) last.WindowState = WindowState.Normal;
-            last.Show();
-            last.Activate();
-        }
-        else
-        {
-            Create([]);
-        }
-    }
+    /// <summary>Always opens a new independent Float window.</summary>
+    public static void CreateNew() => Create([]);
+
+    public static void ToggleOrShow() => Create([]);
 
     /// <summary>Results go into the most recent Float, or a new one.</summary>
     public static void ShowResults(IReadOnlyList<string> files)
@@ -55,7 +48,7 @@ public static class Floats
 
 /// <summary>
 /// A floating shelf for files: drop files on it to keep them at hand, drag them out to any app, double-click to open.
-/// Free floating window that can be moved and resized freely.
+/// Resizable from all corners and edges, natively draggable from the header, with Windows-style checkboxes.
 /// </summary>
 public sealed class FloatWindow : Window
 {
@@ -65,9 +58,21 @@ public sealed class FloatWindow : Window
     private readonly TextBlock _empty = UI.Text("Drop files here", 12, color: Theme.Muted);
     private readonly HashSet<string> _selected = [];
     private readonly Dictionary<string, ImageSource?> _thumbCache = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, Border> _tileElements = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, (Border Tile, Border CheckBorder, TextBlock CheckIcon)> _tileElements = new(StringComparer.OrdinalIgnoreCase);
     private Point? _pressAt;
     private string? _pressed;
+
+    private const int WM_NCHITTEST = 0x0084;
+    private const int HTCLIENT = 1;
+    private const int HTCAPTION = 2;
+    private const int HTLEFT = 10;
+    private const int HTRIGHT = 11;
+    private const int HTTOP = 12;
+    private const int HTTOPLEFT = 13;
+    private const int HTTOPRIGHT = 14;
+    private const int HTBOTTOM = 15;
+    private const int HTBOTTOMLEFT = 16;
+    private const int HTBOTTOMRIGHT = 17;
 
     public FloatWindow(IReadOnlyList<string> files)
     {
@@ -76,7 +81,7 @@ public sealed class FloatWindow : Window
         Background = Brushes.Transparent;
         ShowInTaskbar = false;
         Topmost = true;
-        ResizeMode = ResizeMode.CanResizeWithGrip;
+        ResizeMode = ResizeMode.NoResize;
         Width = 350;
         Height = 280;
         MinWidth = 220;
@@ -95,10 +100,21 @@ public sealed class FloatWindow : Window
         DockPanel.SetDock(_count, Dock.Left);
         header.Children.Add(_count);
 
-        var closeBtn = UI.IconButton("", Close, "Close Float without deleting files", 24);
-        closeBtn.Margin = new Thickness(4, 0, 0, 0);
-        DockPanel.SetDock(closeBtn, Dock.Right);
-        header.Children.Add(closeBtn);
+var closeBtn = UI.IconButton(
+    "",
+    Close,
+    "Close Float without deleting files",
+    24
+);
+
+closeBtn.Height = 25;
+closeBtn.MinHeight = 25;
+closeBtn.VerticalAlignment = VerticalAlignment.Center;
+closeBtn.Padding = new Thickness(0);
+closeBtn.Margin = new Thickness(4, 0, 0, 0);
+
+DockPanel.SetDock(closeBtn, Dock.Right);
+header.Children.Add(closeBtn);
 
         header.MouseLeftButtonDown += (_, e) =>
         {
@@ -197,6 +213,9 @@ public sealed class FloatWindow : Window
             var handle = new WindowInteropHelper(this).Handle;
             Native.RoundCorners(handle);
 
+            var source = HwndSource.FromHwnd(handle);
+            source?.AddHook(WndProc);
+
             var dpi = VisualTreeHelper.GetDpi(this);
             var scaleX = dpi.DpiScaleX > 0 ? dpi.DpiScaleX : 1.0;
             var scaleY = dpi.DpiScaleY > 0 ? dpi.DpiScaleY : 1.0;
@@ -211,11 +230,76 @@ public sealed class FloatWindow : Window
             var workRight = work.Right / scaleX;
             var workBottom = work.Bottom / scaleY;
 
-            Left = Math.Clamp(curX - Width / 2, workLeft, workRight - Width);
-            Top = Math.Clamp(curY - 60, workTop, workBottom - Height);
+            // Cascade position if other Float windows exist
+            var previous = Floats.OpenWindows.LastOrDefault(w => w != this && w.IsLoaded);
+            if (previous != null)
+            {
+                Left = Math.Clamp(previous.Left + 28, workLeft, workRight - Width);
+                Top = Math.Clamp(previous.Top + 28, workTop, workBottom - Height);
+            }
+            else
+            {
+                Left = Math.Clamp(curX - Width / 2, workLeft, workRight - Width);
+                Top = Math.Clamp(curY - 60, workTop, workBottom - Height);
+            }
         };
 
         Add(files);
+    }
+
+    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (msg == WM_NCHITTEST)
+        {
+            var screenX = (short)(lParam.ToInt32() & 0xFFFF);
+            var screenY = (short)((lParam.ToInt32() >> 16) & 0xFFFF);
+            var clientPt = PointFromScreen(new Point(screenX, screenY));
+
+            const double inset = 12.0;       // Margin of outer Border (shadow)
+            const double grip = 8.0;         // Thickness of the resize zone
+
+            var w = ActualWidth;
+            var h = ActualHeight;
+
+            var innerLeft = inset;
+            var innerTop = inset;
+            var innerRight = w - inset;
+            var innerBottom = h - inset;
+
+            // Check if pointer is in the active window area
+            if (clientPt.X >= innerLeft - grip && clientPt.X <= innerRight + grip &&
+                clientPt.Y >= innerTop - grip && clientPt.Y <= innerBottom + grip)
+            {
+                bool isTop = clientPt.Y <= innerTop + grip;
+                bool isBottom = clientPt.Y >= innerBottom - grip;
+                bool isLeft = clientPt.X <= innerLeft + grip;
+                bool isRight = clientPt.X >= innerRight - grip;
+
+                // Corners (diagonal resizing)
+                if (isTop && isLeft) { handled = true; return new IntPtr(HTTOPLEFT); }
+                if (isTop && isRight) { handled = true; return new IntPtr(HTTOPRIGHT); }
+                if (isBottom && isLeft) { handled = true; return new IntPtr(HTBOTTOMLEFT); }
+                if (isBottom && isRight) { handled = true; return new IntPtr(HTBOTTOMRIGHT); }
+
+                // Edges (horizontal / vertical resizing)
+                if (isTop) { handled = true; return new IntPtr(HTTOP); }
+                if (isBottom) { handled = true; return new IntPtr(HTBOTTOM); }
+                if (isLeft) { handled = true; return new IntPtr(HTLEFT); }
+                if (isRight) { handled = true; return new IntPtr(HTRIGHT); }
+
+                // Header area: enables smooth native window dragging
+                if (clientPt.Y <= innerTop + 36 && clientPt.X >= innerLeft + grip && clientPt.X <= innerRight - grip)
+                {
+                    var hitElement = InputHitTest(clientPt) as DependencyObject;
+                    if (!IsInsideButton(hitElement))
+                    {
+                        handled = true;
+                        return new IntPtr(HTCAPTION);
+                    }
+                }
+            }
+        }
+        return IntPtr.Zero;
     }
 
     private static bool IsInsideButton(DependencyObject? obj)
@@ -265,6 +349,7 @@ public sealed class FloatWindow : Window
             _files.Remove(file);
             _selected.Remove(file);
             _thumbCache.Remove(file);
+            _tileElements.Remove(file);
         }
         Draw();
     }
@@ -340,6 +425,111 @@ public sealed class FloatWindow : Window
         FloatDialogs.ShowProperties(this, targets);
     }
 
+    private void SendToBluetooth(IReadOnlyList<string>? specificTargets = null)
+    {
+        var targets = specificTargets ?? Targets();
+        if (targets.Count == 0) return;
+
+        try
+        {
+            var handle = new WindowInteropHelper(this).Handle;
+            if (BluetoothSender.Send(handle, targets))
+            {
+                Hud.Shared.ShowMessage(L10n.T("Send to Bluetooth device"), Hud.Style.Success);
+                return;
+            }
+
+            var data = new DataObject(DataFormats.FileDrop, targets.ToArray());
+            System.Windows.Clipboard.SetDataObject(data, true);
+
+            var sendToPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"Microsoft\Windows\SendTo");
+            string? btShortcut = null;
+            if (Directory.Exists(sendToPath))
+            {
+                btShortcut = Directory.GetFiles(sendToPath, "*Bluetooth*").FirstOrDefault();
+            }
+
+            if (!string.IsNullOrEmpty(btShortcut) && File.Exists(btShortcut))
+            {
+                var args = string.Join(" ", targets.Select(t => $"\"{t}\""));
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = btShortcut,
+                    Arguments = args,
+                    UseShellExecute = true
+                });
+                Hud.Shared.ShowMessage(L10n.T("Send to Bluetooth device"), Hud.Style.Success);
+                return;
+            }
+
+            Process.Start(new ProcessStartInfo("fsquirt.exe", "-send") { UseShellExecute = true });
+            Hud.Shared.ShowMessage(L10n.T("Send to Bluetooth device"), Hud.Style.Success);
+        }
+        catch (Exception ex)
+        {
+            Hud.Shared.ShowMessage(ex.Message, Hud.Style.Failure);
+        }
+    }
+
+    private async void CompressToZip(IReadOnlyList<string>? specificTargets = null)
+    {
+        var targets = specificTargets ?? Targets();
+        if (targets.Count == 0) return;
+
+        try
+        {
+            var first = targets[0];
+            var dir = Directory.Exists(first) ? Path.GetDirectoryName(first.TrimEnd('\\', '/')) : Path.GetDirectoryName(first);
+            if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir))
+                dir = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+
+            var baseName = targets.Count == 1 ? Path.GetFileNameWithoutExtension(first.TrimEnd('\\', '/')) : "Archive";
+            if (string.IsNullOrEmpty(baseName)) baseName = "Archive";
+            var zipPath = Output.Unique(Path.Combine(dir, $"{baseName}.zip"));
+
+            Hud.Shared.ShowMessage(L10n.T("Compressing..."), Hud.Style.Working);
+
+            await Task.Run(() =>
+            {
+                using var zip = System.IO.Compression.ZipFile.Open(zipPath, System.IO.Compression.ZipArchiveMode.Create);
+                foreach (var item in targets)
+                {
+                    AddEntryToZip(zip, item, Path.GetFileName(item.TrimEnd('\\', '/')));
+                }
+            });
+
+            Add([zipPath]);
+            Hud.Shared.ShowMessage(L10n.T("ZIP archive created"), Hud.Style.Success);
+        }
+        catch (Exception ex)
+        {
+            Hud.Shared.ShowMessage(ex.Message, Hud.Style.Failure);
+        }
+    }
+
+    private static void AddEntryToZip(System.IO.Compression.ZipArchive zip, string path, string entryName)
+    {
+        if (Directory.Exists(path))
+        {
+            var entries = Directory.EnumerateFileSystemEntries(path).ToList();
+            if (entries.Count == 0)
+            {
+                zip.CreateEntry(entryName + "/");
+                return;
+            }
+            foreach (var child in entries)
+            {
+                AddEntryToZip(zip, child, entryName + "/" + Path.GetFileName(child));
+            }
+            return;
+        }
+
+        if (File.Exists(path))
+        {
+            zip.CreateEntryFromFile(path, entryName, System.IO.Compression.CompressionLevel.Optimal);
+        }
+    }
+
     private void DeleteFromDisk(IReadOnlyList<string> targets)
     {
         if (targets.Count == 0) return;
@@ -376,7 +566,9 @@ public sealed class FloatWindow : Window
 
         Item("Copy All", () => CopyTargets([.. _files]));
         Item("Move All to Folder...", () => MoveTargets([.. _files]));
+        Item("Compress All to ZIP", () => CompressToZip([.. _files]));
         Item("Share All", () => { if (_files.Count > 0) ShareUI.Share([.. _files]); });
+        Item("Send All to Bluetooth device", () => SendToBluetooth([.. _files]));
         menu.Items.Add(new Separator());
         Item("Select All", () => { _selected.UnionWith(_files); UpdateSelectionVisuals(); });
         Item("Properties", () => ShowProperties([.. _files]));
@@ -388,10 +580,25 @@ public sealed class FloatWindow : Window
 
     private void UpdateSelectionVisuals()
     {
-        foreach (var (file, tile) in _tileElements)
+        var anySelected = _selected.Count > 0;
+        foreach (var (file, (tile, checkBorder, checkIcon)) in _tileElements)
         {
             var selected = _selected.Contains(file);
             tile.Background = selected ? Theme.AccentSoft : Brushes.Transparent;
+            if (selected)
+            {
+                checkBorder.Visibility = Visibility.Visible;
+                checkBorder.Background = Theme.Accent;
+                checkBorder.BorderBrush = Theme.Accent;
+                checkIcon.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                checkBorder.Visibility = anySelected ? Visibility.Visible : (tile.IsMouseOver ? Visibility.Visible : Visibility.Collapsed);
+                checkBorder.Background = new SolidColorBrush(Color.FromArgb(0xEE, 0xFF, 0xFF, 0xFF));
+                checkBorder.BorderBrush = Theme.Hairline;
+                checkIcon.Visibility = Visibility.Collapsed;
+            }
         }
     }
 
@@ -404,7 +611,6 @@ public sealed class FloatWindow : Window
         foreach (var file in _files)
         {
             var tile = Tile(file);
-            _tileElements[file] = tile;
             _grid.Children.Add(tile);
         }
     }
@@ -431,7 +637,46 @@ public sealed class FloatWindow : Window
         stack.Children.Add(image);
         stack.Children.Add(name);
 
-        // Close / remove button on the top corner of the tile
+        // Windows-style checkmark / checkbox in top-left
+        var checkIcon = new TextBlock
+        {
+            Text = "✓",
+            FontSize = 10,
+            FontWeight = FontWeights.Bold,
+            Foreground = Brushes.White,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            Visibility = selected ? Visibility.Visible : Visibility.Collapsed,
+        };
+
+        var checkBorder = new Border
+        {
+            Width = 18,
+            Height = 18,
+            CornerRadius = new CornerRadius(4),
+            Background = selected ? Theme.Accent : new SolidColorBrush(Color.FromArgb(0xEE, 0xFF, 0xFF, 0xFF)),
+            BorderBrush = selected ? Theme.Accent : Theme.Hairline,
+            BorderThickness = new Thickness(1.2),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Thickness(2, 2, 0, 0),
+            Cursor = Cursors.Hand,
+            ToolTip = L10n.T("Select item"),
+            Child = checkIcon,
+            Visibility = selected ? Visibility.Visible : Visibility.Collapsed,
+        };
+
+        checkBorder.MouseLeftButtonDown += (_, e) =>
+        {
+            e.Handled = true;
+            if (!_selected.Remove(file))
+            {
+                _selected.Add(file);
+            }
+            UpdateSelectionVisuals();
+        };
+
+        // Close / remove button on top-right of tile
         var xButton = new Button
         {
             Content = new TextBlock { Text = "✕", FontSize = 9, FontWeight = FontWeights.Bold, Foreground = Theme.Muted, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
@@ -442,7 +687,7 @@ public sealed class FloatWindow : Window
             BorderThickness = new Thickness(0),
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Top,
-            Margin = new Thickness(0, 1, 1, 0),
+            Margin = new Thickness(0, 2, 2, 0),
             ToolTip = L10n.T("Remove from list"),
             Visibility = Visibility.Collapsed,
         };
@@ -454,6 +699,7 @@ public sealed class FloatWindow : Window
 
         var tileGrid = new Grid();
         tileGrid.Children.Add(stack);
+        tileGrid.Children.Add(checkBorder);
         tileGrid.Children.Add(xButton);
 
         var tile = new Border
@@ -463,8 +709,19 @@ public sealed class FloatWindow : Window
             Background = selected ? Theme.AccentSoft : Brushes.Transparent, ToolTip = L10n.T($"{fileName}. Double-click to open; drag to carry the file."),
         };
 
-        tile.MouseEnter += (_, _) => xButton.Visibility = Visibility.Visible;
-        tile.MouseLeave += (_, _) => xButton.Visibility = Visibility.Collapsed;
+        _tileElements[file] = (tile, checkBorder, checkIcon);
+
+        tile.MouseEnter += (_, _) =>
+        {
+            xButton.Visibility = Visibility.Visible;
+            if (!_selected.Contains(file)) checkBorder.Visibility = Visibility.Visible;
+        };
+
+        tile.MouseLeave += (_, _) =>
+        {
+            xButton.Visibility = Visibility.Collapsed;
+            if (!_selected.Contains(file) && _selected.Count == 0) checkBorder.Visibility = Visibility.Collapsed;
+        };
 
         tile.MouseLeftButtonDown += (_, e) =>
         {
@@ -560,16 +817,18 @@ public sealed class FloatWindow : Window
         });
         Item("Show in File Explorer", () => FileActions.ShowInExplorer(file));
         menu.Items.Add(new Separator());
-        Item("Rename...", () => RenameTargets(Targets()));
-        Item("Copy", () => CopyTargets(Targets()));
-        Item("Move to Folder...", () => MoveTargets(Targets()));
+        Item(Targets().Count > 1 ? "Batch Rename..." : "Rename...", () => RenameTargets(Targets()));
+        Item(Targets().Count > 1 ? "Copy" : "Copy", () => CopyTargets(Targets()));
+        Item(Targets().Count > 1 ? "Move to Folder..." : "Move to Folder...", () => MoveTargets(Targets()));
+        Item("Compress to ZIP", () => CompressToZip(Targets()));
         Item("Share", () => ShareUI.Share(Targets()));
+        Item("Send to Bluetooth device", () => SendToBluetooth(Targets()));
         menu.Items.Add(new Separator());
         Item("Properties", () => ShowProperties(Targets()));
         menu.Items.Add(new Separator());
         Item("Copy Path", () => Core.Clipboard.CopyText(string.Join(Environment.NewLine, Targets())));
-        Item("Remove from Float", () => Remove(Targets()));
-        Item("Delete from Disk", () => DeleteFromDisk(Targets()));
+        Item(Targets().Count > 1 ? "Remove from Float" : "Remove from Float", () => Remove(Targets()));
+        Item(Targets().Count > 1 ? "Delete from Disk" : "Delete from Disk", () => DeleteFromDisk(Targets()));
         tile.ContextMenu = menu;
         return tile;
     }
