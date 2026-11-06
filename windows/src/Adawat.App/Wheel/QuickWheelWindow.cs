@@ -278,6 +278,7 @@ public sealed class QuickWheelWindow : Window
             new("launcher", L10n.T("Launcher"), "\uE71D", () => QuickLauncherWindow.Present()),
             new("notepad", L10n.T("Notepad"), Catalog.Icons.Edit, () => NotepadWindow.Present()),
             new("clipboard", L10n.T("Clipboard"), "\uE77F", () => ClipboardWindow.Present()),
+            new("screen_text", L10n.T("Extract Text"), Catalog.Icons.Text, () => TextOverlayWindow.Launch()),
         };
 
         return all.Where(item => settings.IsQuickToolEnabled(item.Id)).ToList();

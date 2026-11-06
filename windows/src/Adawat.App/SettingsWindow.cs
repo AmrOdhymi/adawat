@@ -61,11 +61,19 @@ public static class SettingsWindow
             ("launcher", "Quick Launcher"),
             ("notepad", "Notepad"),
             ("clipboard", "Clipboard History"),
+            ("screen_text", "Extract Text (OCR)"),
         ];
         foreach (var (id, name) in quickTools)
         {
             stack.Children.Add(UI.Check(name, settings.IsQuickToolEnabled(id), v => { settings.SetQuickToolEnabled(id, v); Save(); }).Pad(0, 3));
         }
+
+        var ocrLangs = new List<(string Value, string Title)> { ("auto", "Auto (All)") };
+        foreach (var l in ScreenTextExtractor.GetInstalledLanguages())
+        {
+            ocrLangs.Add((l.Tag, l.DisplayName));
+        }
+        stack.Children.Add(UI.Row("OCR Language", UI.Picker(ocrLangs, settings.OcrLanguage ?? "auto", v => { settings.OcrLanguage = v; Save(); })).Pad(0, 4));
         stack.Children.Add(UI.Divider());
 
         Section("Results");

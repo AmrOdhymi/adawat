@@ -25,7 +25,8 @@ public sealed class Settings
     public ModifierKey ActionsKey { get; set; } = ModifierKey.Alt;
     public string FloatHotkey { get; set; } = "Ctrl+Shift+F";
     public string QuickWheelHotkey { get; set; } = "Ctrl+Space";
-    public List<string> EnabledQuickTools { get; set; } = ["screenshot", "bluetooth", "make_qr", "read_qr", "keyboard_swap", "launcher", "notepad", "clipboard"];
+    public List<string> EnabledQuickTools { get; set; } = ["screenshot", "bluetooth", "make_qr", "read_qr", "keyboard_swap", "launcher", "notepad", "clipboard", "screen_text"];
+    public string OcrLanguage { get; set; } = "auto";
 
     public bool IsQuickToolEnabled(string id) => EnabledQuickTools == null || EnabledQuickTools.Contains(id);
 
