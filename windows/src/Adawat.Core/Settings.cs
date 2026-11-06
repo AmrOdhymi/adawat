@@ -24,6 +24,18 @@ public sealed class Settings
     public ModifierKey ToolsKey { get; set; } = ModifierKey.Ctrl;
     public ModifierKey ActionsKey { get; set; } = ModifierKey.Alt;
     public string FloatHotkey { get; set; } = "Ctrl+Shift+F";
+    public string QuickWheelHotkey { get; set; } = "Ctrl+Space";
+    public List<string> EnabledQuickTools { get; set; } = ["screenshot", "bluetooth", "make_qr", "read_qr", "keyboard_swap", "launcher", "notepad", "clipboard"];
+
+    public bool IsQuickToolEnabled(string id) => EnabledQuickTools == null || EnabledQuickTools.Contains(id);
+
+    public void SetQuickToolEnabled(string id, bool enabled)
+    {
+        EnabledQuickTools ??= [];
+        if (enabled && !EnabledQuickTools.Contains(id)) EnabledQuickTools.Add(id);
+        else if (!enabled) EnabledQuickTools.Remove(id);
+    }
+
     public OutputLocation OutputLocation { get; set; } = OutputLocation.NextToOriginal;
     public bool ShowResultsInFloat { get; set; }
     public bool PlaySounds { get; set; } = true;

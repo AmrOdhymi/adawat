@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -57,6 +58,32 @@ internal static class BluetoothSender
     private static readonly Guid IID_IDropTarget  = new("00000122-0000-0000-C000-000000000046");
 
     // ── Public API ──────────────────────────────────────────────────────
+
+    /// <summary>Opens the native Windows Bluetooth file transfer wizard (fsquirt) for sending and receiving.</summary>
+    public static void OpenBluetoothTransfer()
+    {
+        try
+        {
+            var fsquirt = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "fsquirt.exe");
+            if (File.Exists(fsquirt))
+            {
+                Process.Start(new ProcessStartInfo(fsquirt) { UseShellExecute = true });
+            }
+            else
+            {
+                Process.Start(new ProcessStartInfo("ms-settings:bluetooth") { UseShellExecute = true });
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"Bluetooth transfer open error: {ex}");
+            try
+            {
+                Process.Start(new ProcessStartInfo("ms-settings:bluetooth") { UseShellExecute = true });
+            }
+            catch { }
+        }
+    }
 
     public static bool Send(IntPtr hwndOwner, IReadOnlyList<string> files)
     {

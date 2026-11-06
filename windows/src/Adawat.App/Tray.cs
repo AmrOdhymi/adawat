@@ -43,7 +43,6 @@ public sealed class Tray : IDisposable
         menu.Items.Add(Item("New Float", () => Floats.Create([]), ""));
         var closeFloats = Item("Close All Floats", Floats.CloseAll, "");
         menu.Items.Add(closeFloats);
-        menu.Items.Add(Item("Create QR Code…", () => ToolWindows.Open("qr", []), ""));
         menu.Items.Add(new Separator());
         menu.Items.Add(Item("Welcome Guide…", WelcomeWindow.Present, ""));
         menu.Items.Add(Item("Settings…", SettingsWindow.Present, ""));

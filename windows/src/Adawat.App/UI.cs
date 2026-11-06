@@ -93,6 +93,20 @@ public static class UI
         return grid;
     }
 
+    /// <summary>A form field row: label at the start, control stretches to fill all remaining width.</summary>
+    public static Grid FieldRow(string title, FrameworkElement control, double labelWidth = 90)
+    {
+        var grid = new Grid { MinHeight = 32, Margin = new Thickness(0, 4, 0, 4) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(labelWidth) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        var label = Text(title, 13, FontWeights.SemiBold, Theme.Ink);
+        grid.Children.Add(label);
+        Grid.SetColumn(control, 1);
+        control.HorizontalAlignment = HorizontalAlignment.Stretch;
+        grid.Children.Add(control);
+        return grid;
+    }
+
     /// <summary>A segmented control: a row of choices, one selected.</summary>
     public static Border Segmented<T>(IReadOnlyList<(T Value, string Title)> options, T selected, Action<T> changed)
     {

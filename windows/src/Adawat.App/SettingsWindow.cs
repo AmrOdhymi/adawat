@@ -36,11 +36,36 @@ public static class SettingsWindow
             ("Alt+Shift+F", "Alt + Shift + F"),
             ("None", "None")
         ];
+        (string, string)[] quickHotkeys = [
+            ("Ctrl+Space", "Ctrl + Space"),
+            ("Ctrl+Shift+Space", "Ctrl + Shift + Space"),
+            ("Alt+Space", "Alt + Space"),
+            ("Ctrl+Alt+Space", "Ctrl + Alt + Space"),
+            ("None", "None")
+        ];
         stack.Children.Add(UI.Row("Open Float shelf", UI.Picker(hotkeys, settings.FloatHotkey, k => { settings.FloatHotkey = k; Save(); GlobalHotkeys.Update(); })));
+        stack.Children.Add(UI.Row("Quick tools wheel", UI.Picker(quickHotkeys, settings.QuickWheelHotkey, k => { settings.QuickWheelHotkey = k; Save(); GlobalHotkeys.Update(); })));
         stack.Children.Add(UI.Row("Convert wheel", UI.Picker(keys, settings.ConvertKey, k => { settings.ConvertKey = k; Save(); })));
         stack.Children.Add(UI.Row("Tools wheel", UI.Picker(keys, settings.ToolsKey, k => { settings.ToolsKey = k; Save(); })));
         stack.Children.Add(UI.Row("Actions wheel", UI.Picker(keys, settings.ActionsKey, k => { settings.ActionsKey = k; Save(); })));
         stack.Children.Add(UI.Caption("Drag files anywhere, then press the key to open its wheel right away."));
+        stack.Children.Add(UI.Divider());
+
+        Section("Quick Wheel Tools");
+        (string Id, string Name)[] quickTools = [
+            ("screenshot", "Screenshot"),
+            ("bluetooth", "Bluetooth Transfer"),
+            ("make_qr", "Create QR Code"),
+            ("read_qr", "Read QR Code"),
+            ("keyboard_swap", "Fix Keyboard Layout (Ar/En)"),
+            ("launcher", "Quick Launcher"),
+            ("notepad", "Notepad"),
+            ("clipboard", "Clipboard History"),
+        ];
+        foreach (var (id, name) in quickTools)
+        {
+            stack.Children.Add(UI.Check(name, settings.IsQuickToolEnabled(id), v => { settings.SetQuickToolEnabled(id, v); Save(); }).Pad(0, 3));
+        }
         stack.Children.Add(UI.Divider());
 
         Section("Results");

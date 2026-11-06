@@ -7,6 +7,7 @@ public static class GlobalHotkeys
 {
     private static HwndSource? _source;
     private const int HotkeyId = 0xAD01;
+    private const int QuickWheelHotkeyId = 0xAD02;
 
     public static void Start()
     {
@@ -19,6 +20,7 @@ public static class GlobalHotkeys
         };
         _source = new HwndSource(parameters);
         _source.AddHook(HwndHook);
+        Native.AddClipboardFormatListener(_source.Handle);
         Register();
     }
 
@@ -26,19 +28,25 @@ public static class GlobalHotkeys
     {
         if (_source == null) return;
         Native.UnregisterHotKey(_source.Handle, HotkeyId);
+        Native.UnregisterHotKey(_source.Handle, QuickWheelHotkeyId);
         Register();
     }
 
     private static void Register()
     {
         if (_source == null) return;
-        var shortcut = Settings.Current.FloatHotkey;
-        if (string.IsNullOrWhiteSpace(shortcut) || shortcut.Equals("None", StringComparison.OrdinalIgnoreCase)) return;
+        RegisterOne(Settings.Current.FloatHotkey, HotkeyId);
+        RegisterOne(Settings.Current.QuickWheelHotkey, QuickWheelHotkeyId);
+    }
+
+    private static void RegisterOne(string shortcut, int id)
+    {
+        if (_source == null || string.IsNullOrWhiteSpace(shortcut) || shortcut.Equals("None", StringComparison.OrdinalIgnoreCase)) return;
 
         ParseShortcut(shortcut, out var mod, out var vk);
         if (vk != 0)
         {
-            Native.RegisterHotKey(_source.Handle, HotkeyId, mod | Native.MOD_NOREPEAT, vk);
+            Native.RegisterHotKey(_source.Handle, id, mod | Native.MOD_NOREPEAT, vk);
         }
     }
 
@@ -65,9 +73,23 @@ public static class GlobalHotkeys
 
     private static IntPtr HwndHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        if (msg == Native.WM_HOTKEY && wParam.ToInt32() == HotkeyId)
+        if (msg == Native.WM_HOTKEY)
         {
-            Floats.ToggleOrShow();
+            var id = wParam.ToInt32();
+            if (id == HotkeyId)
+            {
+                Floats.ToggleOrShow();
+                handled = true;
+            }
+            else if (id == QuickWheelHotkeyId)
+            {
+                Wheel.QuickWheel.ToggleOrShow();
+                handled = true;
+            }
+        }
+        else if (msg == Native.WM_CLIPBOARDUPDATE)
+        {
+            ClipboardHistory.OnClipboardUpdated();
             handled = true;
         }
         return IntPtr.Zero;
@@ -77,7 +99,9 @@ public static class GlobalHotkeys
     {
         if (_source != null)
         {
+            Native.RemoveClipboardFormatListener(_source.Handle);
             Native.UnregisterHotKey(_source.Handle, HotkeyId);
+            Native.UnregisterHotKey(_source.Handle, QuickWheelHotkeyId);
             _source.RemoveHook(HwndHook);
             _source.Dispose();
             _source = null;

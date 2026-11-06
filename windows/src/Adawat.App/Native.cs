@@ -11,6 +11,7 @@ internal static partial class Native
     public const int GWL_EXSTYLE = -20;
     public const int WS_EX_NOACTIVATE = 0x08000000, WS_EX_TOOLWINDOW = 0x00000080, WS_EX_TOPMOST = 0x00000008, WS_EX_TRANSPARENT = 0x00000020;
     public const int WM_HOTKEY = 0x0312;
+    public const int WM_CLIPBOARDUPDATE = 0x031D;
     public const uint MOD_ALT = 0x0001, MOD_CONTROL = 0x0002, MOD_SHIFT = 0x0004, MOD_WIN = 0x0008, MOD_NOREPEAT = 0x4000;
 
     [LibraryImport("user32.dll", SetLastError = true)]
@@ -20,6 +21,14 @@ internal static partial class Native
     [LibraryImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool UnregisterHotKey(IntPtr hWnd, int id);
+
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool AddClipboardFormatListener(IntPtr hwnd);
+
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool RemoveClipboardFormatListener(IntPtr hwnd);
 
     public delegate IntPtr HookProc(int code, IntPtr wParam, IntPtr lParam);
 
@@ -68,6 +77,35 @@ internal static partial class Native
     public static partial int GetSystemMetrics(int index);
 
     public const int SM_CXDRAG = 68, SM_CYDRAG = 69;
+    public const int SM_XVIRTUALSCREEN = 76, SM_YVIRTUALSCREEN = 77, SM_CXVIRTUALSCREEN = 78, SM_CYVIRTUALSCREEN = 79;
+    public const uint SRCCOPY = 0x00CC0020, CAPTUREBLT = 0x40000000;
+
+    [LibraryImport("user32.dll")]
+    public static partial IntPtr GetDC(IntPtr hwnd);
+
+    [LibraryImport("user32.dll")]
+    public static partial int ReleaseDC(IntPtr hwnd, IntPtr hdc);
+
+    [LibraryImport("gdi32.dll")]
+    public static partial IntPtr CreateCompatibleDC(IntPtr hdc);
+
+    [LibraryImport("gdi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool DeleteDC(IntPtr hdc);
+
+    [LibraryImport("gdi32.dll")]
+    public static partial IntPtr CreateCompatibleBitmap(IntPtr hdc, int width, int height);
+
+    [LibraryImport("gdi32.dll")]
+    public static partial IntPtr SelectObject(IntPtr hdc, IntPtr hgdiobj);
+
+    [LibraryImport("gdi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool DeleteObject(IntPtr hObject);
+
+    [LibraryImport("gdi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool BitBlt(IntPtr hdcDest, int nXDest, int nYDest, int nWidth, int nHeight, IntPtr hdcSrc, int nXSrc, int nYSrc, uint dwRop);
 
     [LibraryImport("dwmapi.dll")]
     public static partial int DwmSetWindowAttribute(IntPtr window, int attribute, ref int value, int size);
