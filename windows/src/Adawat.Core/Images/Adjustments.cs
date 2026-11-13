@@ -2,7 +2,7 @@ using ImageMagick;
 
 namespace Adawat.Core.Images;
 
-/// <summary>The photo editor's sliders, the same set and ranges as the Mac app's.</summary>
+/// <summary>The photo editor's sliders and their ranges.</summary>
 public enum Adjust
 {
     Exposure, Brightness, Contrast, Highlights, Shadows, Whites, Blacks, Gamma,

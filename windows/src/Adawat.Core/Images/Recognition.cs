@@ -4,8 +4,8 @@ using ZXing.Common;
 
 namespace Adawat.Core.Images;
 
-/// <summary>Text, QR codes and faces in pictures, all recognised on this computer. Codes are read the same way everywhere;
-/// text and faces use each system's own engines (Platform/Windows, Platform/Linux).</summary>
+/// <summary>Text, QR codes and faces in pictures, all recognised on this computer. Codes are read with ZXing;
+/// text and faces use Windows' own engines (WinRT, in this folder).</summary>
 public static partial class Recognition
 {
     /// <summary>Every QR code (and other barcode) payload in the picture.</summary>

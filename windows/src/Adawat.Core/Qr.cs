@@ -1,11 +1,7 @@
 using System.Globalization;
 using System.Text;
-#if WINDOWS
 using System.Windows;
 using System.Windows.Media;
-#else
-using Adawat.Core.Graphics;
-#endif
 using QRCoder;
 
 namespace Adawat.Core;

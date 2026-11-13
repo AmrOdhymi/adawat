@@ -14,17 +14,10 @@ public static class Output
         return IsWritable(parent) ? parent : Downloads;
     }
 
-#if WINDOWS
     public static string Downloads =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
 
     private static string DesktopFolder => Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
-#else
-    // On Linux the folders have translated names (التنزيلات on an Arabic system), listed in ~/.config/user-dirs.dirs.
-    public static string Downloads => Desktop.UserFolder("DOWNLOAD", "Downloads");
-
-    private static string DesktopFolder => Desktop.UserFolder("DESKTOP", "Desktop");
-#endif
 
     /// <summary>A free path named after <paramref name="source"/>, with a new extension and optional suffix.</summary>
     public static string PathFor(string source, string extension, string? suffix = null)

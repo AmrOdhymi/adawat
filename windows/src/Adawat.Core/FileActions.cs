@@ -61,16 +61,11 @@ public static class FileActions
         return moved;
     }
 
-    /// <summary>Windows Terminal at the folder (or the file's folder), falling back to PowerShell; the desktop's terminal on Linux.</summary>
+    /// <summary>Windows Terminal at the folder (or the file's folder), falling back to PowerShell.</summary>
     public static Task<IReadOnlyList<string>> OpenTerminal(IReadOnlyList<string> files, OperationContext context)
     {
         var first = files[0];
         var folder = Directory.Exists(first) ? first : Path.GetDirectoryName(first) ?? first;
-#if !WINDOWS
-        Desktop.OpenTerminal(folder);
-        context.Finish($"Opened Terminal in {Path.GetFileName(folder)}");
-        return Task.FromResult<IReadOnlyList<string>>([]);
-#else
         var terminal = ProcessRunner.Find("wt");
         var info = terminal != null
             ? new ProcessStartInfo(terminal) { ArgumentList = { "-d", folder }, UseShellExecute = false }
@@ -78,14 +73,9 @@ public static class FileActions
         Process.Start(info);
         context.Finish($"Opened Terminal in {Path.GetFileName(folder)}");
         return Task.FromResult<IReadOnlyList<string>>([]);
-#endif
     }
 
-#if WINDOWS
+    /// <summary>The file selected in File Explorer.</summary>
     public static void ShowInExplorer(string path) =>
         Process.Start(new ProcessStartInfo("explorer.exe") { ArgumentList = { "/select,", path }, UseShellExecute = false });
-#else
-    /// <summary>The file selected in the desktop's file manager.</summary>
-    public static void ShowInExplorer(string path) => Desktop.ShowInFileManager(path);
-#endif
 }

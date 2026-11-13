@@ -257,12 +257,10 @@ public static class MediaTools
     /// <summary>A short temporary rendering for in-window previews (channel output, bleeps).</summary>
     public static async Task<string> PreviewAudio(string file, string filter, bool complex)
     {
-        // Windows plays AAC itself; the Linux players (pw-play, paplay) read WAV.
-        var ext = OperatingSystem.IsWindows() ? "m4a" : "wav";
-        var output = Path.Combine(Path.GetTempPath(), "Adawat", $"preview-{Guid.NewGuid():N}.{ext}");
+        var output = Path.Combine(Path.GetTempPath(), "Adawat", $"preview-{Guid.NewGuid():N}.m4a");
         Directory.CreateDirectory(Path.GetDirectoryName(output)!);
         string[] args = complex ? ["-filter_complex", filter, "-map", "[a]"] : ["-vn", "-map", "0:a:0", "-af", filter];
-        string[] codec = OperatingSystem.IsWindows() ? ["-c:a", FFmpeg.Aac, "-b:a", "160k"] : ["-c:a", "pcm_s16le"];
+        string[] codec = ["-c:a", FFmpeg.Aac, "-b:a", "160k"];
         await MediaOps.Encode(file, output, [.. args, .. codec], new MediaInfo(), null);
         return output;
     }

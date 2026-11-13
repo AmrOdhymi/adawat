@@ -3,7 +3,7 @@ using System.Windows.Media;
 
 namespace Adawat.App;
 
-/// <summary>Colours and type shared by every window, matching the Mac app: light surfaces, one violet accent.</summary>
+/// <summary>Colours and type shared by every window: light surfaces, one violet accent.</summary>
 public static class Theme
 {
     public static readonly Color AccentColor = Color.FromRgb(0x5B, 0x47, 0xE6);

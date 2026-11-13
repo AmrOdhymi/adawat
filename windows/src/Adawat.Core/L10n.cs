@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 namespace Adawat.Core;
 
 /// <summary>
-/// Translations for every visible string, shared with the Mac app. Keys are the English text. Exact matches come
+/// Translations for every visible string. Keys are the English text. Exact matches come
 /// from strings.ar.json; text with values in it ("Converting 2 of 5") from patterns.ar.json, where {1}, {2}… mark
 /// the values. Captured values are translated too when they are known words.
 /// </summary>

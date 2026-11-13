@@ -10,7 +10,7 @@ using Adawat.Core;
 
 namespace Adawat.App.Wheel;
 
-/// <summary>Sizes of the wheel in device-independent pixels, the same as the Mac app's.</summary>
+/// <summary>Sizes of the wheel in device-independent pixels.</summary>
 public static class WheelGeometry
 {
     public const double Size = 300, OuterRadius = 119.5, InnerRadius = 48.6;

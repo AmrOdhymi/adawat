@@ -1,5 +1,5 @@
 ﻿; Adawat for Windows: a per-user installer (no administrator rights), in Arabic or English.
-; Built by windows/tools/build-installer.sh, which publishes the app and passes:
+; Built by windows/tools/build-installer.ps1, which publishes the app and passes:
 ;   /DArch=arm64|x64  /DSource=<published folder>  /DAppVersion=1.0.0
 
 #ifndef Arch

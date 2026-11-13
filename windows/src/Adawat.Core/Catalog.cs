@@ -5,7 +5,7 @@ using Adawat.Core.Documents;
 
 namespace Adawat.Core;
 
-/// <summary>Decides which wheel choices fit the dragged files. Mirrors the Mac app's catalog, choice for choice.</summary>
+/// <summary>Decides which wheel choices fit the dragged files.</summary>
 public static class Catalog
 {
     // Segoe Fluent Icons glyphs, drawn in tool and action petals.

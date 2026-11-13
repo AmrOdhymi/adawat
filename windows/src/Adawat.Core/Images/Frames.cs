@@ -115,7 +115,7 @@ public static class Frames
             case FrameBackground.Gradient gradient:
             {
                 var stops = FrameBackground.Gradients[gradient.Index % FrameBackground.Gradients.Length];
-                // Diagonal, light at the bottom left to the second colour at the top right, as on the Mac.
+                // Diagonal, light at the bottom left to the second colour at the top right.
                 var settings = new MagickReadSettings { Width = width, Height = height };
                 settings.SetDefine("gradient:angle", "45");
                 return new MagickImage($"gradient:{stops[0].Hex}-{stops[1].Hex}", settings);

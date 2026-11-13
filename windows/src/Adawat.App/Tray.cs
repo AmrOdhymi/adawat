@@ -6,7 +6,7 @@ using H.NotifyIcon;
 
 namespace Adawat.App;
 
-/// <summary>The icon next to the clock and its menu, the counterpart of the Mac app's menu bar item.</summary>
+/// <summary>The icon next to the clock and its menu.</summary>
 public sealed class Tray : IDisposable
 {
     private readonly TaskbarIcon _icon;

@@ -9,7 +9,7 @@ using Adawat.Core;
 
 namespace Adawat.App;
 
-/// <summary>Small builders for the controls every window uses, styled like the Mac app: soft grey buttons, rows with the
+/// <summary>Small builders for the controls every window uses: soft grey buttons, rows with the
 /// title at the start and the control at the end, segmented choices, and a violet accent.</summary>
 public static class UI
 {
