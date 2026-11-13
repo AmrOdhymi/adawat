@@ -50,11 +50,18 @@ public sealed class AdawatApp : Application
         base.OnStartup(e);
         Log.Write($"started {typeof(AdawatApp).Assembly.GetName().Version} on {Environment.OSVersion}");
         _wheel = new WheelWindow();
+        _drags.IsWheelActive = () => _wheel?.IsWheelShown == true;
         _drags.KeyDuringDrag += (key, point) =>
         {
             var settings = Settings.Current;
             WheelMode? mode = key == settings.ConvertKey ? WheelMode.Convert : key == settings.ToolsKey ? WheelMode.Tools : key == settings.ActionsKey ? WheelMode.Actions : null;
-            if (mode is { } m) _wheel.Show(m, point);
+            if (mode is { } m)
+            {
+                if (_wheel.IsWheelShown && _wheel.Mode == m)
+                    _wheel.HideWheel();
+                else
+                    _wheel.Show(m, point);
+            }
         };
         _drags.DragEnded += () =>
         {

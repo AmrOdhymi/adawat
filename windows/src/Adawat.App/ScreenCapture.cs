@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -99,10 +100,60 @@ public static class ScreenCapture
         }
     }
 
+    /// <summary>Copies the captured bitmap directly to clipboard with user feedback.</summary>
+    public static void CopyToClipboard(BitmapSource bitmap)
+    {
+        try
+        {
+            System.Windows.Clipboard.SetImage(bitmap);
+            Sounds.Tick();
+            Hud.Shared.ShowMessage(L10n.T("Screenshot copied to clipboard"), Hud.Style.Success);
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"Copy screenshot error: {ex}");
+            Hud.Shared.ShowMessage(L10n.T("Could not copy screenshot"), Hud.Style.Failure);
+        }
+    }
+
+    /// <summary>Saves screenshot to a temp file and opens it with the default image editor (or MS Paint).</summary>
+    public static void OpenInEditor(BitmapSource bitmap)
+    {
+        try
+        {
+            var tempFolder = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "Adawat");
+            Directory.CreateDirectory(tempFolder);
+            var tempFile = System.IO.Path.Combine(tempFolder, $"Screenshot_{DateTime.Now:yyyyMMdd_HHmmss}.png");
+
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(bitmap));
+            using (var stream = File.Create(tempFile))
+            {
+                encoder.Save(stream);
+            }
+
+            try
+            {
+                Process.Start(new ProcessStartInfo(tempFile) { UseShellExecute = true, Verb = "edit" });
+            }
+            catch
+            {
+                Process.Start(new ProcessStartInfo(tempFile) { UseShellExecute = true });
+            }
+
+            Sounds.Tick();
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"Open editor error: {ex}");
+            Hud.Shared.ShowMessage(L10n.T("Could not open editor"), Hud.Style.Failure);
+        }
+    }
+
     /// <summary>
     /// Launches the modern interactive snipping overlay.
     /// If onCaptured is provided, it receives the captured bitmap (e.g. for QR scanning).
-    /// Otherwise, it saves the screenshot to the Downloads folder.
+    /// Otherwise, it shows the ScreenshotPreviewWindow for confirmation.
     /// </summary>
     public static void StartSnipping(Action<BitmapSource>? onCaptured = null, string? prompt = null)
     {
@@ -123,7 +174,7 @@ public static class ScreenCapture
                     return;
                 }
 
-                var overlay = new SnippingOverlayWindow(snapshot, onCaptured ?? (img => SaveScreenshot(img)), prompt);
+                var overlay = new SnippingOverlayWindow(snapshot, onCaptured ?? (img => ScreenshotPreviewWindow.Present(img)), prompt);
                 overlay.Show();
             };
             timer.Start();

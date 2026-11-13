@@ -131,6 +131,13 @@ public static class QuickLauncherWindow
 
         window.Trailing(UI.Button("Close", window.Close, primary: true));
 
+        // Auto-close when clicking outside, unless an open child dialog exists
+        window.Deactivated += (_, _) =>
+        {
+            if (window.OwnedWindows.Count > 0) return;
+            window.Close();
+        };
+
         window.Loaded += (_, _) => searchBox.Focus();
         return window;
     }

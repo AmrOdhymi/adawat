@@ -48,9 +48,11 @@ public sealed class QuickWheelWindow : Window
     private readonly Grid _root = new() { Width = WheelGeometry.Size, Height = WheelGeometry.Size, Background = Brushes.Transparent };
     private readonly Canvas _petals = new() { Width = WheelGeometry.Size, Height = WheelGeometry.Size, IsHitTestVisible = false };
     private readonly TextBlock _center = new() { TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap, Foreground = Brushes.Black, MaxWidth = 72 };
+    private readonly Border _centerPill;
     private readonly ScaleTransform _scale = new(0.9, 0.9, WheelGeometry.Size / 2, WheelGeometry.Size / 2);
     private List<QuickToolItem> _items = [];
     private int? _hovered;
+    private bool _isOverCenter;
     private bool _shown;
 
     public bool IsWheelShown => _shown;
@@ -79,7 +81,7 @@ public sealed class QuickWheelWindow : Window
             new CombinedGeometry(GeometryCombineMode.Exclude, new EllipseGeometry(new Point(WheelGeometry.Size / 2, WheelGeometry.Size / 2), WheelGeometry.OuterRadius + 6.5, WheelGeometry.OuterRadius + 6.5), hole)))
         { Stretch = Stretch.None, ViewboxUnits = BrushMappingMode.Absolute, Viewbox = new Rect(WheelGeometry.Size / 2 - WheelGeometry.OuterRadius - 6.5, WheelGeometry.Size / 2 - WheelGeometry.OuterRadius - 6.5, (WheelGeometry.OuterRadius + 6.5) * 2, (WheelGeometry.OuterRadius + 6.5) * 2) };
 
-        var centerPill = new Border
+        _centerPill = new Border
         {
             Child = _center, Background = new SolidColorBrush(Color.FromArgb(0xEE, 0xFF, 0xFF, 0xFF)), CornerRadius = new CornerRadius(24),
             BorderBrush = new SolidColorBrush(Color.FromArgb(0xB3, 0xFF, 0xFF, 0xFF)), BorderThickness = new Thickness(1),
@@ -91,20 +93,31 @@ public sealed class QuickWheelWindow : Window
 
         _root.Children.Add(disc);
         _root.Children.Add(_petals);
-        _root.Children.Add(centerPill);
+        _root.Children.Add(_centerPill);
         _root.RenderTransform = _scale;
 
         _root.MouseMove += (_, e) =>
         {
             var p = e.GetPosition(_root);
+            double dx = p.X - WheelGeometry.Size / 2;
+            double dy = p.Y - WheelGeometry.Size / 2;
+            double dist = Math.Sqrt(dx * dx + dy * dy);
+            var isCenter = dist <= WheelGeometry.InnerRadius;
+
             var index = _items.Count > 0 ? WheelGeometry.Index(p, _items.Count) : null;
-            SetHovered(index);
+            SetHoverState(index, isCenter);
         };
 
-        _root.MouseLeave += (_, _) => SetHovered(null);
+        _root.MouseLeave += (_, _) => SetHoverState(null, false);
 
         _root.MouseLeftButtonUp += (_, _) =>
         {
+            if (_isOverCenter)
+            {
+                HideWheel();
+                return;
+            }
+
             if (_hovered is { } index && index < _items.Count)
             {
                 var action = _items[index].Action;
@@ -122,6 +135,34 @@ public sealed class QuickWheelWindow : Window
             if (e.Key == Key.Escape)
             {
                 HideWheel();
+                e.Handled = true;
+            }
+            else if (e.Key is Key.Right or Key.Down)
+            {
+                if (_items.Count > 0)
+                {
+                    var next = _hovered == null ? 0 : (_hovered.Value + 1) % _items.Count;
+                    SetHoverState(next, false);
+                }
+                e.Handled = true;
+            }
+            else if (e.Key is Key.Left or Key.Up)
+            {
+                if (_items.Count > 0)
+                {
+                    var prev = _hovered == null ? _items.Count - 1 : (_hovered.Value - 1 + _items.Count) % _items.Count;
+                    SetHoverState(prev, false);
+                }
+                e.Handled = true;
+            }
+            else if (e.Key is Key.Enter or Key.Space)
+            {
+                if (_hovered is { } index && index < _items.Count)
+                {
+                    var action = _items[index].Action;
+                    HideWheel();
+                    Dispatcher.BeginInvoke(action, System.Windows.Threading.DispatcherPriority.Background);
+                }
                 e.Handled = true;
             }
         };
@@ -185,12 +226,15 @@ public sealed class QuickWheelWindow : Window
         Top = y / scale;
     }
 
-    private void SetHovered(int? index)
+    private void SetHovered(int? index) => SetHoverState(index, false);
+
+    private void SetHoverState(int? index, bool isCenter)
     {
-        if (index == _hovered) return;
+        if (index == _hovered && isCenter == _isOverCenter) return;
         _hovered = index;
+        _isOverCenter = isCenter;
         Draw();
-        if (index != null) Sounds.Tick();
+        if (index != null || isCenter) Sounds.Tick();
     }
 
     private void Draw()
@@ -230,11 +274,27 @@ public sealed class QuickWheelWindow : Window
             _petals.Children.Add(group);
         }
 
-        var current = _hovered is { } h && h < count ? _items[h] : null;
-        _center.Text = current != null ? current.Title : (count == 0 ? L10n.Upper(L10n.T("NO OPTIONS")) : L10n.Upper(L10n.T("Tools")));
-        _center.FontFamily = Theme.Font;
-        _center.FontSize = current == null ? 11 : 10;
-        _center.FontWeight = FontWeights.SemiBold;
+        if (_isOverCenter)
+        {
+            _center.Text = L10n.Upper(L10n.T("CANCEL"));
+            _center.Foreground = new SolidColorBrush(Color.FromRgb(0xC6, 0x28, 0x28));
+            _centerPill.Background = new SolidColorBrush(Color.FromArgb(0xF6, 0xFF, 0xEB, 0xEE));
+            _centerPill.BorderBrush = new SolidColorBrush(Color.FromArgb(0xD0, 0xEF, 0x53, 0x50));
+            _center.FontFamily = Theme.Font;
+            _center.FontSize = 11;
+            _center.FontWeight = FontWeights.Bold;
+        }
+        else
+        {
+            var current = _hovered is { } h && h < count ? _items[h] : null;
+            _center.Text = current != null ? current.Title : (count == 0 ? L10n.Upper(L10n.T("NO OPTIONS")) : L10n.Upper(L10n.T("Tools")));
+            _center.Foreground = Brushes.Black;
+            _centerPill.Background = new SolidColorBrush(Color.FromArgb(0xEE, 0xFF, 0xFF, 0xFF));
+            _centerPill.BorderBrush = new SolidColorBrush(Color.FromArgb(0xB3, 0xFF, 0xFF, 0xFF));
+            _center.FontFamily = Theme.Font;
+            _center.FontSize = current == null ? 11 : 10;
+            _center.FontWeight = FontWeights.SemiBold;
+        }
     }
 
     private static FrameworkElement RenderLabel(QuickToolItem item, bool hovered, int count)

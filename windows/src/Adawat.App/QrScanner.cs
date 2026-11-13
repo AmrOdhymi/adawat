@@ -39,9 +39,7 @@ public static class QrScanner
                         }
 
                         var text = string.Join(Environment.NewLine, codes);
-                        Adawat.Core.Clipboard.CopyText(text);
                         Sounds.Tick();
-                        Hud.Shared.ShowMessage(L10n.T("QR Code copied to clipboard"), Hud.Style.Success);
                         QrResultWindow.ShowResult(text);
                     });
                 }

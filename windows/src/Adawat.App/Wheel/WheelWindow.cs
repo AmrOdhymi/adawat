@@ -96,10 +96,12 @@ public sealed class WheelWindow : Window
     // Windows would show "no drop". The steady background takes the drag, and the angle decides the petal.
     private readonly Canvas _petals = new() { Width = WheelGeometry.Size, Height = WheelGeometry.Size, IsHitTestVisible = false };
     private readonly TextBlock _center = new() { TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap, Foreground = Brushes.Black, MaxWidth = 64 };
+    private readonly Border _centerPill;
     private readonly ScaleTransform _scale = new(0.9, 0.9, WheelGeometry.Size / 2, WheelGeometry.Size / 2);
     private IReadOnlyList<AdawatOperation> _operations = [];
     private IReadOnlyList<string> _files = [];
     private int? _hovered;
+    private bool _isOverCenter;
     private bool _shown;
 
     public WheelMode Mode { get; private set; }
@@ -128,7 +130,7 @@ public sealed class WheelWindow : Window
         disc.OpacityMask = new DrawingBrush(new GeometryDrawing(Brushes.Black, null,
             new CombinedGeometry(GeometryCombineMode.Exclude, new EllipseGeometry(new Point(WheelGeometry.Size / 2, WheelGeometry.Size / 2), WheelGeometry.OuterRadius + 6.5, WheelGeometry.OuterRadius + 6.5), hole)))
         { Stretch = Stretch.None, ViewboxUnits = BrushMappingMode.Absolute, Viewbox = new Rect(WheelGeometry.Size / 2 - WheelGeometry.OuterRadius - 6.5, WheelGeometry.Size / 2 - WheelGeometry.OuterRadius - 6.5, (WheelGeometry.OuterRadius + 6.5) * 2, (WheelGeometry.OuterRadius + 6.5) * 2) };
-        var centerPill = new Border
+        _centerPill = new Border
         {
             Child = _center, Background = new SolidColorBrush(Color.FromArgb(0xEE, 0xFF, 0xFF, 0xFF)), CornerRadius = new CornerRadius(24),
             BorderBrush = new SolidColorBrush(Color.FromArgb(0xB3, 0xFF, 0xFF, 0xFF)), BorderThickness = new Thickness(1),
@@ -139,7 +141,7 @@ public sealed class WheelWindow : Window
         _center.VerticalAlignment = VerticalAlignment.Center;
         _root.Children.Add(disc);
         _root.Children.Add(_petals);
-        _root.Children.Add(centerPill);
+        _root.Children.Add(_centerPill);
         _root.RenderTransform = _scale;
         _root.AllowDrop = true;
         _root.DragEnter += (_, e) => OnDrag(e, entering: true);
@@ -215,12 +217,23 @@ public sealed class WheelWindow : Window
             _files = files;
             _operations = Catalog.For(Mode, _files);
             _hovered = null;
+            _isOverCenter = false;
             Draw();
         }
-        var index = _operations.Count > 0 ? WheelGeometry.Index(e.GetPosition(_root), _operations.Count) : null;
-        SetHovered(index);
+
+        var pos = e.GetPosition(_root);
+        double dx = pos.X - WheelGeometry.Size / 2;
+        double dy = pos.Y - WheelGeometry.Size / 2;
+        double dist = Math.Sqrt(dx * dx + dy * dy);
+        var isCenter = dist <= WheelGeometry.InnerRadius;
+
+        var index = _operations.Count > 0 ? WheelGeometry.Index(pos, _operations.Count) : null;
+        SetHoverState(index, isCenter);
+
         // Never "move": Explorer would delete the originals after the drop.
-        e.Effects = index != null && e.AllowedEffects.HasFlag(DragDropEffects.Copy) ? DragDropEffects.Copy
+        // If over center, effects is None to indicate cancel.
+        e.Effects = isCenter ? DragDropEffects.None
+                  : index != null && e.AllowedEffects.HasFlag(DragDropEffects.Copy) ? DragDropEffects.Copy
                   : index != null && e.AllowedEffects.HasFlag(DragDropEffects.Link) ? DragDropEffects.Link : DragDropEffects.None;
     }
 
@@ -228,20 +241,26 @@ public sealed class WheelWindow : Window
     {
         e.Handled = true;
         var operation = _hovered is { } index && index < _operations.Count ? _operations[index] : null;
-        e.Effects = operation != null ? DragDropEffects.Copy : DragDropEffects.None;
         var files = e.Data.GetData(DataFormats.FileDrop) as string[] ?? _files.ToArray();
+        var wasOverCenter = _isOverCenter;
         HideWheel();
-        if (operation == null || files.Length == 0) return;
+
+        // Dropping on the center cancels the drag cleanly without executing any tool
+        if (wasOverCenter || operation == null || files.Length == 0) return;
+
         // Start after the drag has fully ended, so windows the operation opens can take focus.
         Dispatcher.BeginInvoke(() => Runner.Start(operation, files), System.Windows.Threading.DispatcherPriority.Background);
     }
 
-    private void SetHovered(int? index)
+    private void SetHovered(int? index) => SetHoverState(index, false);
+
+    private void SetHoverState(int? index, bool isCenter)
     {
-        if (index == _hovered) return;
+        if (index == _hovered && isCenter == _isOverCenter) return;
         _hovered = index;
+        _isOverCenter = isCenter;
         Draw();
-        if (index != null) Sounds.Tick();
+        if (index != null || isCenter) Sounds.Tick();
     }
 
     private void Draw()
@@ -278,12 +297,29 @@ public sealed class WheelWindow : Window
             }
             _petals.Children.Add(group);
         }
-        var current = _hovered is { } h && h < count ? _operations[h] : null;
-        var isTool = current is { Badge: null };
-        _center.Text = current?.WheelLabel ?? (_files.Count > 0 && count == 0 ? L10n.Upper(L10n.T("NO OPTIONS")) : L10n.Upper(L10n.T(ModeTitle(Mode))));
-        _center.FontFamily = Theme.Font;
-        _center.FontSize = isTool || current == null ? 10 : 13;
-        _center.FontWeight = isTool || current == null ? FontWeights.SemiBold : FontWeights.Medium;
+
+        if (_isOverCenter)
+        {
+            _center.Text = L10n.Upper(L10n.T("CANCEL"));
+            _center.Foreground = new SolidColorBrush(Color.FromRgb(0xC6, 0x28, 0x28));
+            _centerPill.Background = new SolidColorBrush(Color.FromArgb(0xF6, 0xFF, 0xEB, 0xEE));
+            _centerPill.BorderBrush = new SolidColorBrush(Color.FromArgb(0xD0, 0xEF, 0x53, 0x50));
+            _center.FontFamily = Theme.Font;
+            _center.FontSize = 11;
+            _center.FontWeight = FontWeights.Bold;
+        }
+        else
+        {
+            var current = _hovered is { } h && h < count ? _operations[h] : null;
+            var isTool = current is { Badge: null };
+            _center.Text = current?.WheelLabel ?? (_files.Count > 0 && count == 0 ? L10n.Upper(L10n.T("NO OPTIONS")) : L10n.Upper(L10n.T(ModeTitle(Mode))));
+            _center.Foreground = Brushes.Black;
+            _centerPill.Background = new SolidColorBrush(Color.FromArgb(0xEE, 0xFF, 0xFF, 0xFF));
+            _centerPill.BorderBrush = new SolidColorBrush(Color.FromArgb(0xB3, 0xFF, 0xFF, 0xFF));
+            _center.FontFamily = Theme.Font;
+            _center.FontSize = isTool || current == null ? 10 : 13;
+            _center.FontWeight = isTool || current == null ? FontWeights.SemiBold : FontWeights.Medium;
+        }
     }
 
     /// <summary>The wheel's drawing for a given state, detached from any window, for snapshots and the welcome guide.</summary>

@@ -21,6 +21,9 @@ public sealed class DragMonitor : IDisposable
     /// <summary>The left button came back up: the drag ended, dropped somewhere or cancelled.</summary>
     public event Action? DragEnded;
 
+    /// <summary>Predicate allowing key triggers to continue when the wheel window is already shown.</summary>
+    public Func<bool>? IsWheelActive { get; set; }
+
     public bool IsDragging => _buttonDown && _moved;
 
     public DragMonitor()
@@ -96,7 +99,8 @@ public sealed class DragMonitor : IDisposable
     {
         var down = Native.IsDown(key);
         if (down && !was && File.Exists(Path.Combine(Settings.Folder, "debug-drag"))) Log.Write($"key {modifier} moved={_moved} shellDrag={Native.ShellDragInProgress()}");
-        if (down && !was && _moved && Native.ShellDragInProgress() && Native.GetCursorPos(out var point))
+        var active = IsWheelActive?.Invoke() == true;
+        if (down && !was && _moved && (active || Native.ShellDragInProgress()) && Native.GetCursorPos(out var point))
             KeyDuringDrag?.Invoke(modifier, new System.Windows.Point(point.X, point.Y));
         was = down;
     }

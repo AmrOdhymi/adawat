@@ -80,7 +80,11 @@ public static class SettingsWindow
         stack.Children.Add(UI.Row("Save results", UI.Picker([(OutputLocation.NextToOriginal, "Next to the original"), (OutputLocation.Downloads, "Downloads folder"), (OutputLocation.Desktop, "Desktop")],
                                                              settings.OutputLocation, v => { settings.OutputLocation = v; Save(); })));
         stack.Children.Add(UI.Check("Show results in a Float", settings.ShowResultsInFloat, v => { settings.ShowResultsInFloat = v; Save(); }).Pad(0, 4));
-        stack.Children.Add(UI.Check("Sound and haptic feedback", settings.PlaySounds, v => { settings.PlaySounds = v; Save(); }).Pad(0, 4));
+        stack.Children.Add(UI.Divider());
+
+        Section("Sounds");
+        stack.Children.Add(UI.Check("Play application sounds (ticks, notifications, and chimes)", settings.PlaySounds, v => { settings.PlaySounds = v; Save(); }).Pad(0, 4));
+        stack.Children.Add(UI.Caption("Uncheck to mute all sounds across the entire app."));
         stack.Children.Add(UI.Divider());
 
         Section("Compression");

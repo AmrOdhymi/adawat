@@ -120,10 +120,6 @@ public sealed class QrResultWindow : Window
         DockPanel.SetDock(copyBtn, Dock.Left);
         actions.Children.Add(copyBtn);
 
-        var dismissBtn = UI.Button("Dismiss", Close, primary: false);
-        DockPanel.SetDock(dismissBtn, Dock.Right);
-        actions.Children.Add(dismissBtn);
-
         stack.Children.Add(actions);
         root.Child = stack;
         Content = root;
