@@ -8,7 +8,6 @@ namespace Adawat.Cli;
 /// adawat-cli list &lt;files…&gt;            the wheel choices for these files
 /// adawat-cli run &lt;id&gt; &lt;files…&gt;        runs one choice with its saved defaults
 /// adawat-cli doctor                     versions, tools and encoders, for bug reports
-/// Add --lang ar or --lang en to any command to choose the language of its messages.
 /// </summary>
 public static class Program
 {
@@ -17,12 +16,6 @@ public static class Program
     {
         Console.OutputEncoding = Encoding.UTF8;
         var list = args.ToList();
-        var lang = list.IndexOf("--lang");
-        if (lang >= 0 && lang + 1 < list.Count)
-        {
-            L10n.Override(list[lang + 1]);
-            list.RemoveRange(lang, 2);
-        }
         if (list.Count == 0) return Usage();
         try
         {
@@ -43,7 +36,7 @@ public static class Program
 
     private static int Usage()
     {
-        Console.Error.WriteLine("usage: adawat-cli list <files…> | adawat-cli run <operation-id> <files…> | adawat-cli doctor   [--lang ar|en]");
+        Console.Error.WriteLine("usage: adawat-cli list <files…> | adawat-cli run <operation-id> <files…> | adawat-cli doctor");
         return 2;
     }
 
@@ -78,8 +71,7 @@ public static class Program
 
     private static async Task<int> Doctor()
     {
-        Console.WriteLine($"Adawat {typeof(Catalog).Assembly.GetName().Version} · {Environment.OSVersion.VersionString} · {System.Runtime.InteropServices.RuntimeInformation.OSArchitecture}");
-        Console.WriteLine($"Language: {(L10n.IsArabic ? "ar" : "en")} · .NET {Environment.Version}");
+        Console.WriteLine($"Adawat {typeof(Catalog).Assembly.GetName().Version} · {Environment.OSVersion.VersionString} · {System.Runtime.InteropServices.RuntimeInformation.OSArchitecture} · .NET {Environment.Version}");
         var ffmpeg = ProcessRunner.Find("ffmpeg");
         var ffprobe = ProcessRunner.Find("ffprobe");
         Console.WriteLine($"ffmpeg: {ffmpeg ?? "not found"}");

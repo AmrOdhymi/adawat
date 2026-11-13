@@ -6,7 +6,7 @@ namespace Adawat.App;
 
 /// <summary>
 /// Renders windows to PNG for checking builds and for the documentation, without showing them:
-///   Adawat.exe --snapshot-window &lt;name&gt; &lt;out.png&gt; [files…] [--lang ar|en]
+///   Adawat.exe --snapshot-window &lt;name&gt; &lt;out.png&gt; [files…]
 ///   Adawat.exe --snapshot-wheel &lt;convert|tools|actions&gt; &lt;out.png&gt; &lt;files…&gt; [hovered index]
 /// </summary>
 public static class Snapshots

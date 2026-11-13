@@ -47,8 +47,6 @@ public sealed class Settings
     public int CompressImageMaxPixels { get; set; }
     public int CompressVideoMaxHeight { get; set; }
     public bool HasSeenWelcome { get; set; }
-    /// <summary>"ar" or "en". The first run follows Windows' display language.</summary>
-    public string Language { get; set; } = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar" ? "ar" : "en";
 
     public void Save()
     {

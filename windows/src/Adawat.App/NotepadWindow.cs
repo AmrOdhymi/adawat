@@ -228,7 +228,7 @@ public static class NotepadWindow
         var stack = new StackPanel();
 
         var isInitialArabic = (current.Title + " " + current.Content).Any(c => c >= 0x0600 && c <= 0x06FF);
-        var initialDir = isInitialArabic ? FlowDirection.RightToLeft : (L10n.IsArabic ? FlowDirection.RightToLeft : FlowDirection.LeftToRight);
+        var initialDir = isInitialArabic ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
 
         var titleBox = new TextBox
         {

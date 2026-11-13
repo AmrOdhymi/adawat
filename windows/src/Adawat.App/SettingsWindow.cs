@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using Adawat.Core;
@@ -6,7 +5,7 @@ using Microsoft.Win32;
 
 namespace Adawat.App;
 
-/// <summary>Keys, where results go, compression defaults, startup and language.</summary>
+/// <summary>Keys, where results go, compression defaults and startup.</summary>
 public static class SettingsWindow
 {
     private static ToolWindow? _open;
@@ -96,25 +95,6 @@ public static class SettingsWindow
 
         Section("General");
         stack.Children.Add(UI.Check("Start Adawat when Windows starts", Startup.IsEnabled, Startup.Set).Pad(0, 4));
-        var restart = UI.Button("Restart Now", () =>
-        {
-            Process.Start(new ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = true });
-            Application.Current.Shutdown();
-        });
-        restart.Visibility = Visibility.Collapsed;
-        stack.Children.Add(UI.Row("Language", UI.Picker([("ar", "العربية"), ("en", "English")], settings.Language, v =>
-        {
-            settings.Language = v;
-            Save();
-            restart.Visibility = v != (L10n.IsArabic ? "ar" : "en") ? Visibility.Visible : Visibility.Collapsed;
-        })));
-        var restartRow = new DockPanel { LastChildFill = false };
-        var note = UI.Caption("Adawat restarts to change the language.");
-        DockPanel.SetDock(restart, Dock.Right);
-        restartRow.Children.Add(restart);
-        restartRow.Children.Add(note);
-        note.SetBinding(UIElement.VisibilityProperty, new System.Windows.Data.Binding(nameof(Visibility)) { Source = restart });
-        stack.Children.Add(restartRow);
         var ffmpeg = ProcessRunner.Find("ffmpeg");
         stack.Children.Add(UI.Caption(ffmpeg != null ? $"ffmpeg: {ffmpeg}" : "ffmpeg is not installed. Install it with: winget install ffmpeg").Pad(0, 8));
 

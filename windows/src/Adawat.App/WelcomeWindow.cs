@@ -153,20 +153,6 @@ public static class WelcomeWindow
         var title = UI.Text("Make it yours", 22, FontWeights.Bold);
         title.Margin = new Thickness(0, 0, 0, 18);
         var card = new StackPanel { Width = 420 };
-        var restart = UI.Button("Restart Now", () =>
-        {
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = true });
-            Application.Current.Shutdown();
-        });
-        restart.Visibility = Visibility.Collapsed;
-        card.Children.Add(UI.Row("Language", UI.Picker([("ar", "العربية"), ("en", "English")], settings.Language, v =>
-        {
-            settings.Language = v;
-            settings.Save();
-            restart.Visibility = v != (L10n.IsArabic ? "ar" : "en") ? Visibility.Visible : Visibility.Collapsed;
-        })));
-        card.Children.Add(restart);
-        card.Children.Add(UI.Divider());
         card.Children.Add(UI.Check("Start Adawat when Windows starts", Startup.IsEnabled, Startup.Set).Pad(0, 4));
         card.Children.Add(UI.Caption("Adawat lives next to the clock, so it is ready whenever you drag a file."));
         card.Children.Add(UI.Divider());

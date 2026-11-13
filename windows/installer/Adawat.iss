@@ -1,4 +1,4 @@
-﻿; Adawat for Windows: a per-user installer (no administrator rights), in Arabic or English.
+﻿; Adawat for Windows: a per-user installer (no administrator rights), in English.
 ; Built by windows/tools/build-installer.ps1, which publishes the app and passes:
 ;   /DArch=arm64|x64  /DSource=<published folder>  /DAppVersion=1.0.0
 
@@ -41,7 +41,7 @@ Compression=lzma2/ultra64
 SolidCompression=yes
 LZMAUseSeparateProcess=yes
 WizardStyle=modern
-ShowLanguageDialog=auto
+ShowLanguageDialog=no
 MinVersion=10.0.17763
 ; A running Adawat locks its files; PrepareToInstall below closes it before anything is copied.
 CloseApplications=no
@@ -55,17 +55,12 @@ ArchitecturesInstallIn64BitMode=x64compatible
 
 [Languages]
 Name: "en"; MessagesFile: "compiler:Default.isl"
-Name: "ar"; MessagesFile: "compiler:Languages\Arabic.isl"
 
 [CustomMessages]
 en.StartWithWindows=Start Adawat when Windows starts
-ar.StartWithWindows=تشغيل أدوات مع بدء Windows
 en.DesktopIcon=Create a desktop shortcut
-ar.DesktopIcon=إنشاء اختصار على سطح المكتب
 en.Extras=Options:
-ar.Extras=خيارات:
 en.Launch=Start Adawat
-ar.Launch=تشغيل أدوات
 
 [Tasks]
 Name: "startup"; Description: "{cm:StartWithWindows}"; GroupDescription: "{cm:Extras}"
@@ -78,7 +73,6 @@ Source: "..\..\THIRD-PARTY-NOTICES.md"; DestDir: "{app}"; Flags: ignoreversion
 
 [InstallDelete]
 ; Files from an earlier version that this one no longer ships.
-Type: filesandordirs; Name: "{app}\ar"
 Type: files; Name: "{app}\*.pdb"
 Type: files; Name: "{app}\Microsoft.Web.WebView2.*.xml"
 
@@ -109,20 +103,4 @@ begin
   Exec(ExpandConstant('{sys}\taskkill.exe'), '/f /im adawat-cli.exe', '', SW_HIDE, ewWaitUntilTerminated, Code);
   Sleep(500);
   Result := '';
-end;
-
-{ A first install in Arabic starts the app in Arabic too; later installs keep the language chosen in Settings. }
-procedure CurStepChanged(CurStep: TSetupStep);
-var
-  Folder: String;
-begin
-  if CurStep = ssPostInstall then
-  begin
-    Folder := ExpandConstant('{userappdata}\Adawat');
-    if not FileExists(Folder + '\settings.json') then
-    begin
-      ForceDirectories(Folder);
-      SaveStringToFile(Folder + '\settings.json', '{"Language":"' + ActiveLanguage + '"}', False);
-    end;
-  end;
 end;

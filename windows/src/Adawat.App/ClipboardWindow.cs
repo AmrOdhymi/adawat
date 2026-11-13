@@ -680,7 +680,7 @@ public static class ClipboardWindow
         var dialog = new ToolWindow("Add to Clipboard", 520) { Owner = owner };
         var stack = new StackPanel();
 
-        var initialDir = L10n.IsArabic ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
+        var initialDir = FlowDirection.LeftToRight;
 
         var textBox = new TextBox
         {
@@ -737,7 +737,7 @@ public static class ClipboardWindow
         var stack = new StackPanel();
 
         var isInitialArabic = entry.Text.Any(c => c >= 0x0600 && c <= 0x06FF);
-        var initialDir = isInitialArabic ? FlowDirection.RightToLeft : (L10n.IsArabic ? FlowDirection.RightToLeft : FlowDirection.LeftToRight);
+        var initialDir = isInitialArabic ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
 
         var textBox = new TextBox
         {

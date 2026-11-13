@@ -13,10 +13,8 @@ public static class Program
         // Test and documentation modes render a window to a picture and exit; they never touch the running app.
         if (args.Length > 0 && args[0].StartsWith("--snapshot"))
         {
-            var lang = Array.IndexOf(args, "--lang");
-            if (lang >= 0 && lang + 1 < args.Length) L10n.Override(args[lang + 1]);
             var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-            return Snapshots.Run(app, args.Where((a, i) => a != "--lang" && (i == 0 || args[i - 1] != "--lang")).ToArray());
+            return Snapshots.Run(app, args);
         }
         using var single = new Mutex(true, "Local\\Adawat.SingleInstance", out var first);
         if (!first) return 0;
@@ -42,7 +40,7 @@ public sealed class AdawatApp : Application
             e.Handled = true;
         };
         FrameworkElement.LanguageProperty.OverrideMetadata(typeof(FrameworkElement),
-            new FrameworkPropertyMetadata(XmlLanguage.GetLanguage(L10n.IsArabic ? "ar" : "en-US")));
+            new FrameworkPropertyMetadata(XmlLanguage.GetLanguage("en-US")));
     }
 
     protected override void OnStartup(StartupEventArgs e)

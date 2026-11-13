@@ -298,7 +298,7 @@ public static class EditPhotoWindow
         var resets = new List<Action>();
         foreach (var (title, items) in PhotoAdjustments.Sections)
         {
-            sliders.Children.Add(UI.Text(title == "Light" && L10n.IsArabic ? "الإضاءة" : title, 11.5, FontWeights.SemiBold, Theme.Muted).Pad(0, 6));
+            sliders.Children.Add(UI.Text(title, 11.5, FontWeights.SemiBold, Theme.Muted).Pad(0, 6));
             foreach (var item in items)
             {
                 var control = UI.Slider(item.Min, item.Max, 0, v => { adjustments[item.Key] = item.Key == Adjust.Exposure ? Math.Round(v, 2) : Math.Round(v); pending.Stop(); pending.Start(); },

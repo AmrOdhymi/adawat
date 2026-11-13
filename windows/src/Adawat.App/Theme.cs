@@ -25,7 +25,7 @@ public static class Theme
     public static readonly FontFamily Display = new("Segoe UI Variable Display, Segoe UI, Tahoma");
     public static readonly FontFamily Icons = new("Segoe Fluent Icons, Segoe MDL2 Assets");
 
-    public static FlowDirection Direction => Core.L10n.IsRightToLeft ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
+    public static FlowDirection Direction => FlowDirection.LeftToRight;
 
     private static Brush Freeze(Brush brush)
     {

@@ -35,8 +35,7 @@ smaller size, an edited copy. No upload, no account, no limits. Everything happe
    Not sure? Open **Settings → System → About** and look at **System type**.
 2. Open the installer. If Windows shows *Windows protected your PC*, press **More info**, then **Run anyway**.
    If your browser says the file is not commonly downloaded, choose **Keep**.
-3. Pick **العربية** or **English**, then **Next** and **Install**. No administrator password is needed: Adawat
-   installs for your account only.
+3. Press **Next** and **Install**. No administrator password is needed: Adawat installs for your account only.
 4. Adawat starts next to the clock (look under the **^** arrow if the icon is hidden). The welcome guide lets you
    practice once.
 
@@ -103,10 +102,10 @@ fix keyboard layout, Bluetooth sending, and more from the quick wheel (<kbd>Ctrl
 A small floating shelf for files. Drop files on it to keep them at hand, drag them out to any app, or attach it
 to the edge of the screen. Results can open in a Float automatically.
 
-## Arabic and English
+## Language
 
-The whole interface is available in Arabic, right to left, and in English. Adawat follows your system's
-language on first launch (the language you pick in the installer), and you can switch at any time in Settings.
+The interface is in English. Arabic content is still fully supported: documents keep their right-to-left
+layout, and text recognition works with Arabic when the Windows Arabic OCR language pack is installed.
 
 ## Build from source
 
@@ -135,7 +134,6 @@ location. `adawat-cli` runs any wheel choice from the command line, for testing:
 | `windows/src/Adawat.App` | Tray icon, drag watching, the wheel, Floats and the option windows |
 | `windows/src/Adawat.Cli` | The `adawat-cli` command line |
 | `windows/src/Adawat.Core/Platform` | Windows-specific helpers: OCR, PDF printing, clipboard, RTF, QR drawing |
-| `windows/shared` | Arabic translations for the interface |
 | `windows/installer`, `windows/tools` | The Inno Setup script, ffmpeg and installer scripts |
 | `windows/assets` | App icon |
 
