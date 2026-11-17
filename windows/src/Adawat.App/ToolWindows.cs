@@ -20,7 +20,16 @@ public static class ToolWindows
         {
             var window = make(files);
             if (window == null) return true;
-            if (window is ToolWindow tool) tool.Present(); else { window.Show(); window.Activate(); }
+            WindowLifecycle.Track(window);
+            if (window is ToolWindow tool)
+            {
+                tool.Present();
+            }
+            else if (!WindowLifecycle.IsClosingOrClosed(window))
+            {
+                window.Show();
+                WindowLifecycle.ActivateIfOpen(window);
+            }
             return true;
         }
         catch (Core.AdawatException e)

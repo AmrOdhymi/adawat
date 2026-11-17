@@ -30,6 +30,7 @@ public sealed class ScreenshotPreviewWindow : Window
     public ScreenshotPreviewWindow(BitmapSource bitmap)
     {
         _bitmap = bitmap;
+        WindowLifecycle.Track(this);
 
         WindowStyle = WindowStyle.None;
         AllowsTransparency = true;
@@ -78,7 +79,7 @@ public sealed class ScreenshotPreviewWindow : Window
 
         header.Children.Add(titleRow);
 
-        var closeBtn = UI.IconButton("", Close, "Close", 24);
+        var closeBtn = UI.IconButton("", () => WindowLifecycle.CloseOnce(this), "Close", 24);
         Grid.SetColumn(closeBtn, 1);
         header.Children.Add(closeBtn);
 
@@ -119,7 +120,7 @@ public sealed class ScreenshotPreviewWindow : Window
         actionsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
         var leftActions = new StackPanel { Orientation = Orientation.Horizontal };
-        var cancelBtn = UI.Button(L10n.T("Cancel"), Close);
+        var cancelBtn = UI.Button(L10n.T("Cancel"), () => WindowLifecycle.CloseOnce(this));
         cancelBtn.Margin = new Thickness(0, 0, 8, 0);
         leftActions.Children.Add(cancelBtn);
         actionsGrid.Children.Add(leftActions);
@@ -149,14 +150,18 @@ public sealed class ScreenshotPreviewWindow : Window
         Content = root;
 
         // Dismiss when user clicks outside
-        Deactivated += (_, _) => Close();
+        Deactivated += (_, _) =>
+        {
+            if (!WindowLifecycle.CanAutoClose(this)) return;
+            WindowLifecycle.CloseOnce(this);
+        };
 
         // Keyboard shortcuts
         KeyDown += (_, e) =>
         {
             if (e.Key == Key.Escape)
             {
-                Close();
+                WindowLifecycle.CloseOnce(this);
             }
             else if (e.Key == Key.Enter || (e.Key == Key.S && (Keyboard.Modifiers & ModifierKeys.Control) != 0))
             {
@@ -175,19 +180,19 @@ public sealed class ScreenshotPreviewWindow : Window
 
     private void OnSave()
     {
-        Close();
+        WindowLifecycle.CloseOnce(this);
         ScreenCapture.SaveScreenshot(_bitmap);
     }
 
     private void OnCopy()
     {
-        Close();
+        WindowLifecycle.CloseOnce(this);
         ScreenCapture.CopyToClipboard(_bitmap);
     }
 
     private void OnEdit()
     {
-        Close();
+        WindowLifecycle.CloseOnce(this);
         ScreenCapture.OpenInEditor(_bitmap);
     }
 }

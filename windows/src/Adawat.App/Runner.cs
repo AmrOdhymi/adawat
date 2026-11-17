@@ -16,17 +16,24 @@ public static class Runner
     public static void Run(string title, IReadOnlyList<string> files, OperationWork work, bool producesFiles = true) =>
         Run(new AdawatOperation("window", title, "", work) { ProducesFiles = producesFiles }, files);
 
+    /// <summary>True once the app is exiting; background work must not open or update windows after that.</summary>
+    private static bool ShuttingDown =>
+        Application.Current is not { } app || app.Dispatcher.HasShutdownStarted || app.Dispatcher.HasShutdownFinished;
+
     public static async void Run(AdawatOperation operation, IReadOnlyList<string> files)
     {
+        if (ShuttingDown) return;
         var hud = Hud.Shared;
         hud.ShowMessage($"{operation.Title}…", Hud.Style.Working);
         var dispatcher = Application.Current.Dispatcher;
         var context = new OperationContext(
-            text => dispatcher.BeginInvoke(() => hud.Update(text)),
-            fraction => dispatcher.BeginInvoke(() => hud.SetProgress(fraction)));
+            text => { if (!ShuttingDown) dispatcher.BeginInvoke(() => hud.Update(text)); },
+            fraction => { if (!ShuttingDown) dispatcher.BeginInvoke(() => hud.SetProgress(fraction)); });
         try
         {
             var outputs = await Task.Run(() => operation.Run(files, context));
+            // The app may have started exiting while the work ran; do not touch windows after that.
+            if (ShuttingDown) return;
             var message = context.Message ?? outputs.Count switch
             {
                 0 => $"{operation.Title} done",

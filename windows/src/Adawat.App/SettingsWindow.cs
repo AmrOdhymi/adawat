@@ -12,7 +12,7 @@ public static class SettingsWindow
 
     public static void Present()
     {
-        if (_open != null) { _open.Activate(); return; }
+        if (_open != null) { WindowLifecycle.ActivateIfOpen(_open); return; }
         _open = Make();
         _open.Closed += (_, _) => _open = null;
         _open.Present();
@@ -106,10 +106,11 @@ public static class SettingsWindow
             settings.OutputLocation = defaults.OutputLocation; settings.ShowResultsInFloat = defaults.ShowResultsInFloat; settings.PlaySounds = defaults.PlaySounds;
             settings.CompressPreset = defaults.CompressPreset; settings.VideoQuality = defaults.VideoQuality;
             Save();
-            window.Close();
-            Present();
+            // Reopen after this window has fully closed; reopening inside the click handler races the close.
+            window.Closed += (_, _) => Present();
+            window.CloseOnce();
         }));
-        window.Trailing(UI.Button("Close", window.Close, primary: true));
+        window.Trailing(UI.Button("Close", window.CloseOnce, primary: true));
         return window;
     }
 }

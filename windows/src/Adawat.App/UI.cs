@@ -198,7 +198,8 @@ public class ToolWindow : Window
         WindowChrome.SetWindowChrome(this, new WindowChrome { CaptionHeight = 44, ResizeBorderThickness = new Thickness(0), GlassFrameThickness = new Thickness(0, 0, 0, 1), UseAeroCaptionButtons = false });
         var header = new Grid { Height = 44 };
         header.Children.Add(new TextBlock { Text = Title, FontFamily = Theme.Font, FontSize = 15, FontWeight = FontWeights.SemiBold, Foreground = Theme.Ink, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center });
-        var close = UI.IconButton("", Close, "Close", 24);
+        WindowLifecycle.Track(this);
+        var close = UI.IconButton("", CloseOnce, "Close", 24);
         close.HorizontalAlignment = HorizontalAlignment.Left;
         close.Margin = new Thickness(12, 0, 0, 0);
         WindowChrome.SetIsHitTestVisibleInChrome(close, true);
@@ -221,7 +222,7 @@ public class ToolWindow : Window
         _body.Margin = new Thickness(16);
         stack.Children.Add(_body);
         Content = stack;
-        KeyDown += (_, e) => { if (e.Key == Key.Escape) Close(); };
+        KeyDown += (_, e) => { if (e.Key == Key.Escape) CloseOnce(); };
         SourceInitialized += (_, _) => Native.RoundCorners(new WindowInteropHelper(this).Handle);
     }
 
@@ -231,10 +232,14 @@ public class ToolWindow : Window
 
     public void Trailing(params UIElement[] items) { foreach (var item in items) { if (item is FrameworkElement f) f.Margin = new Thickness(8, 0, 0, 0); _trailing.Children.Add(item); } }
 
+    /// <summary>Closes the window once; safe to call from a <c>Deactivated</c> handler or a second click.</summary>
+    public void CloseOnce() => WindowLifecycle.CloseOnce(this);
+
     /// <summary>Shows the window in front, as tool windows open from a drop while another app has focus.</summary>
     public void Present()
     {
-        Show();
+        if (WindowLifecycle.IsClosingOrClosed(this)) return;
+        if (!IsVisible) Show();
         Activate();
         Topmost = true;
         Topmost = false;

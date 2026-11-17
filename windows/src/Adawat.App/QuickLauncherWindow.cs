@@ -30,7 +30,7 @@ public static class QuickLauncherWindow
 
     public static void Present()
     {
-        if (_open != null) { _open.Activate(); return; }
+        if (_open != null) { WindowLifecycle.ActivateIfOpen(_open); return; }
         _open = Make();
         _open.Closed += (_, _) => _open = null;
         _open.Present();
@@ -129,13 +129,13 @@ public static class QuickLauncherWindow
         RefreshList();
         window.Body = root;
 
-        window.Trailing(UI.Button("Close", window.Close, primary: true));
+        window.Trailing(UI.Button("Close", window.CloseOnce, primary: true));
 
         // Auto-close when clicking outside, unless an open child dialog exists
         window.Deactivated += (_, _) =>
         {
-            if (window.OwnedWindows.Count > 0) return;
-            window.Close();
+            if (!WindowLifecycle.CanAutoClose(window)) return;
+            window.CloseOnce();
         };
 
         window.Loaded += (_, _) => searchBox.Focus();
@@ -203,9 +203,10 @@ public static class QuickLauncherWindow
                 target = "https://" + target;
             }
 
+            // The process steals focus, so Deactivated may already have closed the window; CloseOnce is safe either way.
             Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
             Sounds.Tick();
-            window.Close();
+            WindowLifecycle.CloseOnce(window);
         }
         catch (Exception ex)
         {

@@ -27,6 +27,7 @@ public sealed class QrResultWindow : Window
 
     public QrResultWindow(string text)
     {
+        WindowLifecycle.Track(this);
         WindowStyle = WindowStyle.None;
         AllowsTransparency = true;
         Background = Brushes.Transparent;
@@ -61,7 +62,7 @@ public sealed class QrResultWindow : Window
 
         // ── Header ──
         var header = new DockPanel { LastChildFill = true, Margin = new Thickness(0, 0, 0, 12) };
-        var closeBtn = UI.IconButton("", Close, "Close", 24);
+        var closeBtn = UI.IconButton("", () => WindowLifecycle.CloseOnce(this), "Close", 24);
         DockPanel.SetDock(closeBtn, Dock.Right);
         header.Children.Add(closeBtn);
 
@@ -103,7 +104,7 @@ public sealed class QrResultWindow : Window
             var openBtn = UI.Button("Open Link", () =>
             {
                 try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); } catch { }
-                Close();
+                WindowLifecycle.CloseOnce(this);
             }, primary: true, icon: "");
             DockPanel.SetDock(openBtn, Dock.Left);
             actions.Children.Add(openBtn);
@@ -114,7 +115,7 @@ public sealed class QrResultWindow : Window
             Adawat.Core.Clipboard.CopyText(text);
             Sounds.Tick();
             Hud.Shared.ShowMessage(L10n.T("Copied to clipboard"), Hud.Style.Success);
-            Close();
+            WindowLifecycle.CloseOnce(this);
         }, primary: !isUrl, icon: "");
         copyBtn.Margin = new Thickness(isUrl ? 8 : 0, 0, 0, 0);
         DockPanel.SetDock(copyBtn, Dock.Left);
@@ -125,13 +126,17 @@ public sealed class QrResultWindow : Window
         Content = root;
 
         // Dismiss when user clicks outside
-        Deactivated += (_, _) => Close();
+        Deactivated += (_, _) =>
+        {
+            if (!WindowLifecycle.CanAutoClose(this)) return;
+            WindowLifecycle.CloseOnce(this);
+        };
 
         KeyDown += (_, e) =>
         {
             if (e.Key is Key.Escape or Key.Enter)
             {
-                Close();
+                WindowLifecycle.CloseOnce(this);
                 e.Handled = true;
             }
         };

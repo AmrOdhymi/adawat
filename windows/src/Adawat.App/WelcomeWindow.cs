@@ -18,7 +18,7 @@ public static class WelcomeWindow
 
     public static void Present()
     {
-        if (_open != null) { _open.Activate(); return; }
+        if (_open != null) { WindowLifecycle.ActivateIfOpen(_open); return; }
         _open = Make(0);
         _open.Closed += (_, _) =>
         {
@@ -60,7 +60,7 @@ public static class WelcomeWindow
             if (page == 1) timer.Start(); else timer.Stop();
         }
         back.Click += (_, _) => { page = Math.Max(0, page - 1); Show(); };
-        next.Click += (_, _) => { if (page == 3) window.Close(); else { page++; Show(); } };
+        next.Click += (_, _) => { if (page == 3) window.CloseOnce(); else { page++; Show(); } };
         window.Closed += (_, _) => timer.Stop();
         window.Body = host;
         window.Leading(back);

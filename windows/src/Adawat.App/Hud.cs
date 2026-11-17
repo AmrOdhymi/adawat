@@ -25,6 +25,7 @@ public sealed class Hud : Window
 
     private Hud()
     {
+        WindowLifecycle.Track(this);
         WindowStyle = WindowStyle.None;
         AllowsTransparency = true;
         Background = Brushes.Transparent;
@@ -55,6 +56,7 @@ public sealed class Hud : Window
 
     public void ShowMessage(string text, Style style)
     {
+        if (WindowLifecycle.IsClosingOrClosed(this)) return;
         _style = style;
         _text.Text = L10n.T(text);
         _icon.Text = style switch { Style.Working => "", Style.Success => "", _ => "" };
@@ -84,8 +86,9 @@ public sealed class Hud : Window
 
     private void Fade()
     {
+        if (WindowLifecycle.IsClosingOrClosed(this)) return;
         var fade = new DoubleAnimation(0, TimeSpan.FromMilliseconds(220));
-        fade.Completed += (_, _) => { if (Opacity == 0) Hide(); };
+        fade.Completed += (_, _) => { if (Opacity == 0) WindowLifecycle.HideOnce(this); };
         BeginAnimation(OpacityProperty, fade);
     }
 

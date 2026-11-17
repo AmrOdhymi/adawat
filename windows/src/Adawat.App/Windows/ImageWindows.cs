@@ -130,7 +130,12 @@ public static class FrameWindow
         stack.Children.Add(UI.Row("Ratio", UI.Segmented(Enum.GetValues<FrameRatio>().Select(r => (r, r.Title())).ToList(), FrameRatio.Auto, r => { options = options with { Ratio = r }; Refresh(); })));
         if (files.Count > 1) stack.Children.Add(UI.Caption($"The same background is added to all {files.Count} images."));
         window.Body = stack;
-        window.Leading(UI.Button("Reset", () => { window.Close(); ToolWindows.Open("frame", files); }));
+        window.Leading(UI.Button("Reset", () =>
+        {
+            // Reopen only after the current window has fully closed.
+            window.Closed += (_, _) => ToolWindows.Open("frame", files);
+            window.CloseOnce();
+        }));
         window.Trailing(UI.Button("Save with Background", () =>
         {
             var chosen = options;

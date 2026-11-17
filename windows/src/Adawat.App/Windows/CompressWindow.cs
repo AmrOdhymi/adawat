@@ -143,7 +143,16 @@ public static class CompressWindow
         stack.Children.Add(estimateRow);
 
         window.Body = stack;
-        window.Leading(UI.Button("Restore Defaults", () => { window.Close(); app.CompressPreset = CompressPreset.Balanced; app.CompressImageMaxPixels = 0; app.CompressVideoMaxHeight = 0; app.Save(); ToolWindows.Open("compress", files); }));
+        window.Leading(UI.Button("Restore Defaults", () =>
+        {
+            app.CompressPreset = CompressPreset.Balanced;
+            app.CompressImageMaxPixels = 0;
+            app.CompressVideoMaxHeight = 0;
+            app.Save();
+            // Reopen only after the current window has fully closed.
+            window.Closed += (_, _) => ToolWindows.Open("compress", files);
+            window.CloseOnce();
+        }));
         compressButton.Click += (_, _) =>
         {
             app.CompressPreset = preset;

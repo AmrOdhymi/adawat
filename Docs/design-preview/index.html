@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="en" data-design="fluent" data-mode="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adawat — Five Design Directions</title>
+<link rel="stylesheet" href="preview.css">
+</head>
+<body>
+
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <symbol id="i-convert" viewBox="0 0 24 24"><path d="M4 8h13m0 0-4-4m4 4-4 4M20 16H7m0 0 4 4m-4-4 4-4"/></symbol>
+  <symbol id="i-compress" viewBox="0 0 24 24"><path d="M9 4v5H4M15 20v-5h5M4 9l5 5M20 15l-5-5M14 4h6v6M10 20H4v-6"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m4 17 5-5 4 4 3-3 4 4"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></symbol>
+  <symbol id="i-qr" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v3M17 20h4M14 20h.01"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l2-2h6l2 2h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+  <symbol id="i-scan" viewBox="0 0 24 24"><path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4M3 12h18"/></symbol>
+  <symbol id="i-layout" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M9 11h12"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24"><path d="M5 4h11l4 4v12H5z"/><path d="M16 4v4h4M8 12h8M8 16h6"/></symbol>
+  <symbol id="i-clipboard" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 9h6M9 13h6M9 17h4"/></symbol>
+  <symbol id="i-text" viewBox="0 0 24 24"><path d="M4 6h16M4 12h11M4 18h14"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-min" viewBox="0 0 24 24"><path d="M6 12h12"/></symbol>
+  <symbol id="i-max" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 5H6a1 1 0 0 0-1 1v9"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="m14 3 7 7-3 1-3 3-1 5-3-3-5-5 5-1 3-3zM8 16l-4 4"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l2.2 6.2L20 11l-5.8 1.8L12 19l-2.2-6.2L4 11l5.8-1.8z"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M9 20h6M12 16v4"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13M10 11v5M14 11v5"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 19h16"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.3 10.8 7.4-4.3M8.3 13.2l7.4 4.3"/></symbol>
+  <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.7 0 2-1.3 1.2-2.2-.9-1 .1-2.8 1.6-2.8H18a3 3 0 0 0 3-3A9 9 0 0 0 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></symbol>
+  <symbol id="i-type" viewBox="0 0 24 24"><path d="M4 20 10 4l6 16M6.5 14h7M16 20h4"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 5 14h6l-1 8 8-12h-6z"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5zM3 12l9 5 9-5M3 16l9 5 9-5"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m0 0-5-5m5 5-5 5"/></symbol>
+</svg>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand__mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+    <span class="brand__text"><strong>Adawat</strong><small>Design directions</small></span>
+  </div>
+  <nav class="switcher" id="switcher" aria-label="Choose a design direction"></nav>
+  <div class="mode-switch" role="group" aria-label="Color mode">
+    <button type="button" class="mode-btn" data-mode-btn="light"><svg class="ico"><use href="#i-sun"></use></svg><span>Light</span></button>
+    <button type="button" class="mode-btn" data-mode-btn="dark"><svg class="ico"><use href="#i-moon"></use></svg><span>Dark</span></button>
+  </div>
+</header>
+
+<main>
+  <section class="intro">
+    <div class="intro__lead">
+      <p class="eyebrow"><span id="introIndex">01 / 05</span> — Interface direction</p>
+      <h1 id="designName">Fluent Calm</h1>
+      <p class="tagline" id="designTagline"></p>
+      <ul class="traits" id="designTraits"></ul>
+    </div>
+    <dl class="meta" id="designMeta"></dl>
+  </section>
+
+  <section class="lang" aria-label="Design language">
+    <article class="lang__card">
+      <span class="lang__label">Color</span>
+      <div class="swatches" aria-hidden="true">
+        <i style="background:var(--accent)"></i>
+        <i style="background:var(--accent-2)"></i>
+        <i style="background:var(--accent-soft)"></i>
+        <i style="background:var(--surface)"></i>
+        <i style="background:var(--line)"></i>
+      </div>
+      <p class="lang__note" id="langColor"></p>
+    </article>
+    <article class="lang__card">
+      <span class="lang__label">Type</span>
+      <div class="lang__type" id="langType">Aa</div>
+      <p class="lang__note" id="langTypeNote"></p>
+    </article>
+    <article class="lang__card">
+      <span class="lang__label">Shape</span>
+      <div class="shape-demo" aria-hidden="true"><span></span><span></span><span></span></div>
+      <p class="lang__note" id="langShape"></p>
+    </article>
+    <article class="lang__card">
+      <span class="lang__label">Motion</span>
+      <div class="motion-demo" aria-hidden="true"><i></i><i></i><i></i></div>
+      <p class="lang__note" id="langMotion"></p>
+    </article>
+  </section>
+
+  <section class="board" aria-label="Interface surfaces">
+
+    <!-- WHEEL -->
+    <article class="panel span-7 panel--wheel">
+      <header class="panel__head">
+        <div>
+          <h2>Quick Wheel</h2>
+          <p>Hold the hotkey, flick toward a tool, release.</p>
+        </div>
+        <span class="badge">6 drag tools</span>
+      </header>
+      <div class="wheel-stage">
+        <div class="wheel-halo" aria-hidden="true"></div>
+        <div class="wheel" data-wheel="main" data-size="356" role="group" aria-label="Quick Wheel preview"></div>
+      </div>
+      <div class="wheel-hint"><kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>Space</kbd><span>summon · release to open</span></div>
+      <ul class="legend">
+        <li><i style="background:var(--accent)"></i>Convert<small>documents</small></li>
+        <li><i style="background:var(--accent-2)"></i>Compress<small>archives</small></li>
+        <li><i style="background:var(--accent)"></i>Image<small>resize · convert</small></li>
+        <li><i style="background:var(--accent-2)"></i>PDF<small>merge · split</small></li>
+        <li><i style="background:var(--accent)"></i>QR<small>make · scan</small></li>
+        <li><i style="background:var(--accent-2)"></i>Folder<small>drop zone</small></li>
+      </ul>
+    </article>
+
+    <!-- HUD + QUICK WHEEL -->
+    <article class="panel span-5">
+      <header class="panel__head">
+        <div>
+          <h2>HUD &amp; Quick Wheel</h2>
+          <p>Small, glanceable, never in the way.</p>
+        </div>
+        <span class="badge badge--ghost">Overlay</span>
+      </header>
+      <div class="hud-mock">
+        <span class="hud__rec" aria-hidden="true"></span>
+        <div class="hud__copy"><strong>Recording</strong><small>00:12 · 1440p</small></div>
+        <div class="hud__wave" aria-hidden="true"></div>
+        <button type="button" class="btn btn--sm btn--accent" data-toast="HUD · stop recording">Stop</button>
+      </div>
+      <div class="quickwheel-wrap">
+        <div class="wheel" data-wheel="quick" data-size="216" role="group" aria-label="Quick Wheel compact preview"></div>
+        <div class="quickwheel-copy">
+          <span class="kicker">Compact</span>
+          <p>Icon-only ring for eight one-shot actions. Opens around the cursor.</p>
+          <div class="chip-row">
+            <span class="chip">Screenshot</span><span class="chip">Scan QR</span><span class="chip">Extract text</span>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- CLIPBOARD -->
+    <article class="panel span-6">
+      <header class="panel__head">
+        <div><h2>Clipboard</h2><p>Searchable history with pins and type filters.</p></div>
+        <span class="badge badge--ghost">Window</span>
+      </header>
+      <div class="win">
+        <div class="win__bar">
+          <div class="win__dots" aria-hidden="true"><i></i><i></i><i></i></div>
+          <span class="win__title">Clipboard</span>
+          <div class="win__actions" aria-hidden="true">
+            <svg class="ico"><use href="#i-pin"></use></svg><svg class="ico"><use href="#i-min"></use></svg><svg class="ico"><use href="#i-close"></use></svg>
+          </div>
+        </div>
+        <div class="win__body">
+          <label class="search">
+            <svg class="ico" aria-hidden="true"><use href="#i-search"></use></svg>
+            <input id="clipSearch" type="search" placeholder="Search clipboard history" autocomplete="off">
+            <kbd>Ctrl K</kbd>
+          </label>
+          <div class="chip-row" data-segmented>
+            <button type="button" class="chip is-on">All</button>
+            <button type="button" class="chip">Text</button>
+            <button type="button" class="chip">Links</button>
+            <button type="button" class="chip">Images</button>
+          </div>
+          <ul class="clip-list" id="clipList">
+            <li class="clip-item" data-text="design tokens shared across every surface">
+              <span class="clip-item__ico"><svg class="ico"><use href="#i-text"></use></svg></span>
+              <div class="clip-item__body"><p>Design tokens shared across every surface</p><small>Text · 2 min ago</small></div>
+              <button type="button" class="icon-btn is-on" aria-label="Unpin item" data-toast="Item unpinned"><svg class="ico"><use href="#i-pin"></use></svg></button>
+            </li>
+            <li class="clip-item" data-text="https://adawat.app/docs/wheel">
+              <span class="clip-item__ico"><svg class="ico"><use href="#i-globe"></use></svg></span>
+              <div class="clip-item__body"><p>https://adawat.app/docs/wheel</p><small>Link · 14 min ago</small></div>
+              <button type="button" class="icon-btn" aria-label="Copy item" data-toast="Copied to clipboard"><svg class="ico"><use href="#i-copy"></use></svg></button>
+            </li>
+            <li class="clip-item" data-text="Screenshot 2026-11-17 214402.png">
+              <span class="clip-item__ico"><svg class="ico"><use href="#i-image"></use></svg></span>
+              <div class="clip-item__body"><p>Screenshot 2026-11-17 214402.png</p><small>Image · 1 hr ago</small></div>
+              <button type="button" class="icon-btn" aria-label="Copy item" data-toast="Copied to clipboard"><svg class="ico"><use href="#i-copy"></use></svg></button>
+            </li>
+            <li class="clip-item" data-text="Invoice_2026_Q4.pdf">
+              <span class="clip-item__ico"><svg class="ico"><use href="#i-file"></use></svg></span>
+              <div class="clip-item__body"><p>Invoice_2026_Q4.pdf</p><small>File · yesterday</small></div>
+              <button type="button" class="icon-btn" aria-label="Copy item" data-toast="Copied to clipboard"><svg class="ico"><use href="#i-copy"></use></svg></button>
+            </li>
+          </ul>
+          <p class="empty" id="clipEmpty" hidden>No matches in this filter.</p>
+        </div>
+      </div>
+    </article>
+
+    <!-- NOTEPAD -->
+    <article class="panel span-6">
+      <header class="panel__head">
+        <div><h2>Notepad</h2><p>Quiet editor with a light formatting bar.</p></div>
+        <span class="badge badge--ghost">Window</span>
+      </header>
+      <div class="win">
+        <div class="win__bar">
+          <div class="win__dots" aria-hidden="true"><i></i><i></i><i></i></div>
+          <span class="win__title">Untitled — Notepad</span>
+          <div class="win__actions" aria-hidden="true">
+            <svg class="ico"><use href="#i-min"></use></svg><svg class="ico"><use href="#i-max"></use></svg><svg class="ico"><use href="#i-close"></use></svg>
+          </div>
+        </div>
+        <div class="win__body">
+          <div class="editor-bar">
+            <button type="button" class="icon-btn" data-toast="Bold">B</button>
+            <button type="button" class="icon-btn" data-toast="Italic"><em>I</em></button>
+            <button type="button" class="icon-btn" data-toast="Underline"><u>U</u></button>
+            <span class="editor-bar__sep"></span>
+            <button type="button" class="icon-btn" data-toast="Heading">H1</button>
+            <button type="button" class="icon-btn" data-toast="Bulleted list"><svg class="ico"><use href="#i-text"></use></svg></button>
+            <span class="editor-bar__sep"></span>
+            <span class="swatch-dot" title="Highlight color"></span>
+            <button type="button" class="icon-btn" data-toast="Insert link"><svg class="ico"><use href="#i-globe"></use></svg></button>
+            <span class="spacer"></span>
+            <button type="button" class="btn btn--sm" data-toast="Saved to disk">Save</button>
+          </div>
+          <div class="editor" contenteditable="true" spellcheck="false">
+            <h3>Wheel release notes</h3>
+            <p>The wheel keeps its six drag tools in the same order: <strong>Convert, Compress, Image, PDF, QR, Folder</strong>.</p>
+            <p>Auto-close stays on. The Quick Wheel still takes focus when it opens, so <em>Esc</em> closes it before any other window.</p>
+            <ul><li>Place → draw → show → animate</li><li>One close path, guarded once</li></ul>
+          </div>
+          <div class="editor-foot"><span>1,284 words</span><span>UTF-8</span><span class="spacer"></span><span>Saved just now</span></div>
+        </div>
+      </div>
+    </article>
+
+    <!-- SETTINGS -->
+    <article class="panel span-7">
+      <header class="panel__head">
+        <div><h2>Settings</h2><p>Grouped, predictable, keyboard friendly.</p></div>
+        <span class="badge badge--ghost">Window</span>
+      </header>
+      <div class="win win--settings">
+        <div class="win__bar">
+          <div class="win__dots" aria-hidden="true"><i></i><i></i><i></i></div>
+          <span class="win__title">Settings</span>
+          <div class="win__actions" aria-hidden="true"><svg class="ico"><use href="#i-min"></use></svg><svg class="ico"><use href="#i-max"></use></svg><svg class="ico"><use href="#i-close"></use></svg></div>
+        </div>
+        <div class="settings">
+          <nav class="settings__nav" aria-label="Settings sections">
+            <button type="button" class="settings__tab is-on"><svg class="ico"><use href="#i-settings"></use></svg>General</button>
+            <button type="button" class="settings__tab"><svg class="ico"><use href="#i-grid"></use></svg>Wheel</button>
+            <button type="button" class="settings__tab"><svg class="ico"><use href="#i-bolt"></use></svg>Shortcuts</button>
+            <button type="button" class="settings__tab"><svg class="ico"><use href="#i-palette"></use></svg>Appearance</button>
+            <button type="button" class="settings__tab"><svg class="ico"><use href="#i-lock"></use></svg>Privacy</button>
+          </nav>
+          <div class="settings__main">
+            <h3>General</h3>
+            <p class="settings__sub">Startup, language, and window behavior.</p>
+            <div class="setting">
+              <div><strong>Launch at startup</strong><small>Start Adawat with Windows.</small></div>
+              <button type="button" class="toggle is-on" role="switch" aria-checked="true"><i></i></button>
+            </div>
+            <div class="setting">
+              <div><strong>Language</strong><small>Interface language.</small></div>
+              <div class="select"><span>English</span><svg class="ico"><use href="#i-chevron"></use></svg></div>
+            </div>
+            <div class="setting">
+              <div><strong>Theme</strong><small>Follow the system or force one mode.</small></div>
+              <div class="segmented" data-segmented>
+                <button type="button" class="is-on">Light</button>
+                <button type="button">Dark</button>
+                <button type="button">System</button>
+              </div>
+            </div>
+            <div class="setting">
+              <div><strong>Wheel size</strong><small>Scale the ring on high-DPI screens.</small></div>
+              <input class="range" type="range" min="80" max="140" value="100" aria-label="Wheel size">
+            </div>
+            <div class="setting">
+              <div><strong>Show HUD</strong><small>Recording and progress overlay.</small></div>
+              <button type="button" class="toggle is-on" role="switch" aria-checked="true"><i></i></button>
+            </div>
+            <div class="settings__foot">
+              <button type="button" class="btn btn--ghost" data-toast="Changes discarded">Cancel</button>
+              <button type="button" class="btn btn--accent" data-toast="Settings saved">Save changes</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- FLOAT + MENU -->
+    <article class="panel span-5">
+      <header class="panel__head">
+        <div><h2>Float &amp; Menu</h2><p>Always-on-top mini bar and a compact menu.</p></div>
+        <span class="badge badge--ghost">Overlay</span>
+      </header>
+      <div class="float-stage">
+        <div class="float-bar">
+          <span class="float-bar__grip" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          <button type="button" class="icon-btn" data-toast="Float · screenshot"><svg class="ico"><use href="#i-camera"></use></svg></button>
+          <button type="button" class="icon-btn" data-toast="Float · extract text"><svg class="ico"><use href="#i-text"></use></svg></button>
+          <button type="button" class="icon-btn" data-toast="Float · clipboard"><svg class="ico"><use href="#i-clipboard"></use></svg></button>
+          <span class="float-bar__sep"></span>
+          <button type="button" class="icon-btn" data-toast="Float · pin"><svg class="ico"><use href="#i-pin"></use></svg></button>
+          <button type="button" class="icon-btn" data-toast="Float · close"><svg class="ico"><use href="#i-close"></use></svg></button>
+        </div>
+        <div class="menu">
+          <span class="menu__label">Float</span>
+          <button type="button" class="menu__item" data-toast="Float · shown on all desktops"><svg class="ico"><use href="#i-eye"></use></svg>Show on all desktops<kbd>✓</kbd></button>
+          <button type="button" class="menu__item" data-toast="Float · opacity"><svg class="ico"><use href="#i-layers"></use></svg>Opacity<span class="menu__val">92%</span></button>
+          <button type="button" class="menu__item" data-toast="Float · position pinned"><svg class="ico"><use href="#i-pin"></use></svg>Pin position</button>
+          <span class="menu__sep"></span>
+          <button type="button" class="menu__item menu__item--danger" data-toast="Float · closed"><svg class="ico"><use href="#i-close"></use></svg>Close Float</button>
+        </div>
+      </div>
+      <p class="footnote">Auto-close on outside click stays enabled. The menu never steals focus from the wheel.</p>
+    </article>
+
+    <!-- QR -->
+    <article class="panel span-6">
+      <header class="panel__head">
+        <div><h2>QR Result</h2><p>Readable code, one primary action.</p></div>
+        <span class="badge badge--ghost">Dialog</span>
+      </header>
+      <div class="win win--dialog">
+        <div class="win__bar">
+          <div class="win__dots" aria-hidden="true"><i></i><i></i><i></i></div>
+          <span class="win__title">QR code</span>
+          <div class="win__actions" aria-hidden="true"><svg class="ico"><use href="#i-close"></use></svg></div>
+        </div>
+        <div class="win__body qr-body">
+          <div class="qr-frame"><div class="qr" id="qrGrid" role="img" aria-label="Sample QR code"></div></div>
+          <div class="qr-copy">
+            <span class="kicker">Scanned link</span>
+            <p class="qr-url">https://adawat.app/download</p>
+            <div class="chip-row"><span class="chip chip--ok"><svg class="ico"><use href="#i-check"></use></svg>Copied</span></div>
+            <div class="btn-row">
+              <button type="button" class="btn btn--accent" data-toast="Link copied">Copy link</button>
+              <button type="button" class="btn" data-toast="Opening in browser">Open</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- SCREENSHOT -->
+    <article class="panel span-6">
+      <header class="panel__head">
+        <div><h2>Screenshot Preview</h2><p>Crop, annotate, then copy or save.</p></div>
+        <span class="badge badge--ghost">Window</span>
+      </header>
+      <div class="win">
+        <div class="win__bar">
+          <div class="win__dots" aria-hidden="true"><i></i><i></i><i></i></div>
+          <span class="win__title">Screenshot — 1440 × 900</span>
+          <div class="win__actions" aria-hidden="true"><svg class="ico"><use href="#i-min"></use></svg><svg class="ico"><use href="#i-close"></use></svg></div>
+        </div>
+        <div class="win__body">
+          <div class="shot">
+            <div class="shot__scene" aria-hidden="true">
+              <span class="shot__win shot__win--a"></span>
+              <span class="shot__win shot__win--b"></span>
+              <span class="shot__win shot__win--c"></span>
+              <span class="shot__sel"></span>
+            </div>
+          </div>
+          <div class="shot-bar">
+            <button type="button" class="icon-btn" data-toast="Crop"><svg class="ico"><use href="#i-scan"></use></svg></button>
+            <button type="button" class="icon-btn" data-toast="Arrow"><svg class="ico"><use href="#i-arrow"></use></svg></button>
+            <button type="button" class="icon-btn" data-toast="Text"><svg class="ico"><use href="#i-type"></use></svg></button>
+            <button type="button" class="icon-btn" data-toast="Blur"><svg class="ico"><use href="#i-eye"></use></svg></button>
+            <span class="spacer"></span>
+            <button type="button" class="btn btn--sm" data-toast="Copied to clipboard"><svg class="ico"><use href="#i-copy"></use></svg>Copy</button>
+            <button type="button" class="btn btn--sm btn--accent" data-toast="Saved to Pictures"><svg class="ico"><use href="#i-download"></use></svg>Save</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- CONTROLS -->
+    <article class="panel span-7">
+      <header class="panel__head">
+        <div><h2>Controls</h2><p>One set of primitives, reused everywhere.</p></div>
+        <span class="badge badge--ghost">System</span>
+      </header>
+      <div class="controls">
+        <div class="control-block">
+          <span class="kicker">Buttons</span>
+          <div class="btn-row">
+            <button type="button" class="btn btn--accent" data-toast="Primary action">Primary</button>
+            <button type="button" class="btn" data-toast="Secondary action">Secondary</button>
+            <button type="button" class="btn btn--ghost" data-toast="Ghost action">Ghost</button>
+            <button type="button" class="btn btn--danger" data-toast="Destructive action">Delete</button>
+            <button type="button" class="btn btn--icon" aria-label="Add" data-toast="Add"><svg class="ico"><use href="#i-plus"></use></svg></button>
+          </div>
+        </div>
+        <div class="control-block">
+          <span class="kicker">Inputs</span>
+          <div class="field-row">
+            <label class="field"><span>Name</span><input type="text" value="Adawat wheel" autocomplete="off"></label>
+            <label class="field"><span>Format</span><span class="select"><span>PNG</span><svg class="ico"><use href="#i-chevron"></use></svg></span></label>
+          </div>
+          <label class="search search--flat"><svg class="ico" aria-hidden="true"><use href="#i-search"></use></svg><input type="search" placeholder="Search tools" autocomplete="off"></label>
+        </div>
+        <div class="control-block">
+          <span class="kicker">Selection</span>
+          <div class="check-row">
+            <label class="check"><input type="checkbox" checked><span class="check__box"><svg class="ico"><use href="#i-check"></use></svg></span>Remember last tool</label>
+            <label class="check"><input type="checkbox"><span class="check__box"><svg class="ico"><use href="#i-check"></use></svg></span>Open at cursor</label>
+            <label class="check"><input type="radio" name="anchor" checked><span class="check__box check__box--round"></span>Center of screen</label>
+          </div>
+        </div>
+        <div class="control-block">
+          <span class="kicker">Progress</span>
+          <div class="progress"><i style="width:68%"></i></div>
+          <div class="progress progress--indeterminate"><i></i></div>
+          <div class="slider-row"><span>Quiet</span><input class="range" type="range" min="0" max="100" value="72" aria-label="Volume"><span>Loud</span></div>
+        </div>
+      </div>
+    </article>
+
+    <!-- PALETTE -->
+    <article class="panel span-5">
+      <header class="panel__head">
+        <div><h2>Palette</h2><p>Token names stay fixed; values change per design.</p></div>
+      </header>
+      <ul class="tokens">
+        <li><i style="background:var(--accent)"></i><span>Accent</span><code data-token="--accent">—</code></li>
+        <li><i style="background:var(--accent-2)"></i><span>Accent alt</span><code data-token="--accent-2">—</code></li>
+        <li><i style="background:var(--accent-soft)"></i><span>Soft</span><code data-token="--accent-soft">—</code></li>
+        <li><i style="background:var(--surface)"></i><span>Surface</span><code data-token="--surface">—</code></li>
+        <li><i style="background:var(--line)"></i><span>Line</span><code data-token="--line">—</code></li>
+        <li><i style="background:var(--text)"></i><span>Ink</span><code data-token="--text">—</code></li>
+      </ul>
+    </article>
+
+    <!-- TYPE -->
+    <article class="panel span-6">
+      <header class="panel__head">
+        <div><h2>Typography</h2><p>System fonts only. Nothing to download.</p></div>
+      </header>
+      <div class="type-spec">
+        <div class="type-spec__hero" aria-hidden="true">Ag</div>
+        <div class="type-spec__names">
+          <p><span>Display</span><strong id="typeDisplay">Segoe UI Variable Display</strong></p>
+          <p><span>Body</span><strong id="typeBody">Segoe UI Variable Text</strong></p>
+          <p><span>Mono</span><strong>Cascadia Mono</strong></p>
+        </div>
+      </div>
+      <div class="scale">
+        <div><span>28 / 600</span><p class="scale__display">Design that stays quiet</p></div>
+        <div><span>18 / 600</span><p class="scale__title">Section heading</p></div>
+        <div><span>14 / 400</span><p class="scale__body">Body copy keeps a comfortable 1.55 line height for long settings pages.</p></div>
+        <div><span>11 / 500</span><p class="scale__caption">CAPTION · METADATA · SHORTCUTS</p></div>
+      </div>
+    </article>
+
+    <!-- ICONS -->
+    <article class="panel span-6">
+      <header class="panel__head">
+        <div><h2>Icons</h2><p>One 24 px stroke grid, 1.6 px weight.</p></div>
+      </header>
+      <div class="icon-grid">
+        <span><svg class="ico"><use href="#i-convert"></use></svg><small>Convert</small></span>
+        <span><svg class="ico"><use href="#i-compress"></use></svg><small>Compress</small></span>
+        <span><svg class="ico"><use href="#i-image"></use></svg><small>Image</small></span>
+        <span><svg class="ico"><use href="#i-file"></use></svg><small>PDF</small></span>
+        <span><svg class="ico"><use href="#i-qr"></use></svg><small>QR</small></span>
+        <span><svg class="ico"><use href="#i-folder"></use></svg><small>Folder</small></span>
+        <span><svg class="ico"><use href="#i-camera"></use></svg><small>Capture</small></span>
+        <span><svg class="ico"><use href="#i-scan"></use></svg><small>Scan</small></span>
+        <span><svg class="ico"><use href="#i-clipboard"></use></svg><small>Clipboard</small></span>
+        <span><svg class="ico"><use href="#i-note"></use></svg><small>Notepad</small></span>
+        <span><svg class="ico"><use href="#i-layout"></use></svg><small>Layout</small></span>
+        <span><svg class="ico"><use href="#i-settings"></use></svg><small>Settings</small></span>
+      </div>
+    </article>
+  </section>
+
+  <section class="future" aria-label="Future surfaces">
+    <div class="future__head">
+      <div>
+        <p class="eyebrow">Beyond the current build</p>
+        <h2>Future surfaces</h2>
+      </div>
+      <p class="future__note">Shown so each direction can absorb new windows without a redesign. Not part of Phase 2 delivery.</p>
+    </div>
+    <div class="future__grid">
+      <article class="panel">
+        <header class="panel__head">
+          <div><h3>File Viewer</h3><p>Preview documents without opening an editor.</p></div>
+          <span class="badge badge--ghost">Future</span>
+        </header>
+        <div class="mini-viewer">
+          <div class="mini-viewer__list">
+            <span class="is-on"><svg class="ico"><use href="#i-file"></use></svg>Report.pdf</span>
+            <span><svg class="ico"><use href="#i-image"></use></svg>Cover.png</span>
+            <span><svg class="ico"><use href="#i-file"></use></svg>Notes.txt</span>
+          </div>
+          <div class="mini-viewer__page"><i></i><i></i><i></i><i></i><i class="short"></i></div>
+        </div>
+      </article>
+      <article class="panel">
+        <header class="panel__head">
+          <div><h3>Translation</h3><p>Side-by-side text, same quiet chrome.</p></div>
+          <span class="badge badge--ghost">Future</span>
+        </header>
+        <div class="mini-translate">
+          <div><span>English</span><p>Select text anywhere, press the hotkey.</p></div>
+          <svg class="ico"><use href="#i-arrow"></use></svg>
+          <div><span>Spanish</span><p>Selecciona texto en cualquier lugar y pulsa la tecla rápida.</p></div>
+        </div>
+      </article>
+      <article class="panel">
+        <header class="panel__head">
+          <div><h3>Network Monitor</h3><p>Live throughput in a small, calm card.</p></div>
+          <span class="badge badge--ghost">Future</span>
+        </header>
+        <div class="mini-net">
+          <div class="mini-net__top"><strong>1.8 MB/s</strong><span>↓ 24.6 GB today</span></div>
+          <svg viewBox="0 0 200 46" preserveAspectRatio="none" aria-hidden="true">
+            <polyline points="0,36 14,32 28,34 42,24 56,28 70,18 84,22 98,12 112,20 126,10 140,16 154,8 168,14 182,6 200,10"/>
+          </svg>
+          <div class="mini-net__rows"><span>Wi-Fi</span><code>192.168.1.24</code></div>
+        </div>
+      </article>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <p><strong>Adawat</strong> · Design preview · Phase 2</p>
+  <p>Press <kbd>1</kbd>–<kbd>5</kbd> to switch directions · <kbd>L</kbd> toggles light and dark</p>
+  <p class="footer__muted">Static HTML preview. No application code is changed.</p>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="preview.js"></script>
+</body>
+</html>

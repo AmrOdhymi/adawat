@@ -108,6 +108,7 @@ public sealed class WheelWindow : Window
 
     public WheelWindow()
     {
+        WindowLifecycle.Track(this);
         WindowStyle = WindowStyle.None;
         AllowsTransparency = true;
         Background = Brushes.Transparent;
@@ -160,16 +161,24 @@ public sealed class WheelWindow : Window
     /// <summary>Opens (or switches) the wheel for <paramref name="mode"/> centred on <paramref name="screenPixels"/>.</summary>
     public void Show(WheelMode mode, Point screenPixels)
     {
+        if (WindowLifecycle.IsClosingOrClosed(this)) return;
         Mode = mode;
         if (!_shown)
         {
             _files = [];
             _operations = [];
+            _hovered = null;
+            _isOverCenter = false;
             Opacity = 0;
-            if (!IsLoaded) { Left = -10000; Top = -10000; base.Show(); }
+
+            // Create the handle and lay the wheel out while it is still hidden, so the first visible
+            // frame is already drawn in place instead of flashing at the old position.
+            new WindowInteropHelper(this).EnsureHandle();
             Place(screenPixels);
+            Draw();
             base.Show();
             _shown = true;
+
             BeginAnimation(OpacityProperty, new DoubleAnimation(1, TimeSpan.FromMilliseconds(120)));
             var grow = new DoubleAnimation(0.9, 1, TimeSpan.FromMilliseconds(220)) { EasingFunction = new BackEase { Amplitude = 0.3, EasingMode = EasingMode.EaseOut } };
             _scale.BeginAnimation(ScaleTransform.ScaleXProperty, grow);
@@ -188,8 +197,12 @@ public sealed class WheelWindow : Window
     {
         if (!_shown) return;
         _shown = false;
+        if (WindowLifecycle.IsClosingOrClosed(this)) return;
         var fade = new DoubleAnimation(0, TimeSpan.FromMilliseconds(120));
-        fade.Completed += (_, _) => { if (!_shown) base.Hide(); };
+        fade.Completed += (_, _) =>
+        {
+            if (!_shown) WindowLifecycle.HideOnce(this);
+        };
         BeginAnimation(OpacityProperty, fade);
     }
 

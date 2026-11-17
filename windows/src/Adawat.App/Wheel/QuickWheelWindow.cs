@@ -59,6 +59,7 @@ public sealed class QuickWheelWindow : Window
 
     public QuickWheelWindow()
     {
+        WindowLifecycle.Track(this);
         WindowStyle = WindowStyle.None;
         AllowsTransparency = true;
         Background = Brushes.Transparent;
@@ -175,14 +176,19 @@ public sealed class QuickWheelWindow : Window
 
     public void ShowWheel(Point screenPixels)
     {
+        if (WindowLifecycle.IsClosingOrClosed(this)) return;
         _items = LoadActiveItems();
         _hovered = null;
 
         if (!_shown)
         {
             Opacity = 0;
-            if (!IsLoaded) { Left = -10000; Top = -10000; base.Show(); }
+
+            // Create the handle and lay the wheel out while it is still hidden, so the first visible
+            // frame is already drawn in place instead of flashing at the old position.
+            new WindowInteropHelper(this).EnsureHandle();
             Place(screenPixels);
+            Draw();
             base.Show();
             Activate();
             _shown = true;
@@ -208,8 +214,12 @@ public sealed class QuickWheelWindow : Window
     {
         if (!_shown) return;
         _shown = false;
+        if (WindowLifecycle.IsClosingOrClosed(this)) return;
         var fade = new DoubleAnimation(0, TimeSpan.FromMilliseconds(120));
-        fade.Completed += (_, _) => { if (!_shown) base.Hide(); };
+        fade.Completed += (_, _) =>
+        {
+            if (!_shown) WindowLifecycle.HideOnce(this);
+        };
         BeginAnimation(OpacityProperty, fade);
     }
 

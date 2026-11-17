@@ -36,13 +36,21 @@ public static class Floats
     /// <summary>Results go into the most recent Float, or a new one.</summary>
     public static void ShowResults(IReadOnlyList<string> files)
     {
-        if (Open.LastOrDefault() is { } last) { last.Add(files); last.Activate(); }
-        else Create(files);
+        var last = Open.LastOrDefault(w => !WindowLifecycle.IsClosingOrClosed(w));
+        if (last != null)
+        {
+            last.Add(files);
+            WindowLifecycle.ActivateIfOpen(last);
+        }
+        else
+        {
+            Create(files);
+        }
     }
 
     public static void CloseAll()
     {
-        foreach (var window in Open.ToList()) window.Close();
+        foreach (var window in Open.ToList()) WindowLifecycle.CloseOnce(window);
     }
 }
 
@@ -76,6 +84,7 @@ public sealed class FloatWindow : Window
 
     public FloatWindow(IReadOnlyList<string> files)
     {
+        WindowLifecycle.Track(this);
         WindowStyle = WindowStyle.None;
         AllowsTransparency = true;
         Background = Brushes.Transparent;
@@ -102,7 +111,7 @@ public sealed class FloatWindow : Window
 
 var closeBtn = UI.IconButton(
     "",
-    Close,
+    () => WindowLifecycle.CloseOnce(this),
     "Close Float without deleting files",
     24
 );
@@ -338,6 +347,7 @@ header.Children.Add(closeBtn);
 
     public void Add(IEnumerable<string> files)
     {
+        if (WindowLifecycle.IsClosingOrClosed(this)) return;
         foreach (var file in files) if (!_files.Contains(file)) _files.Add(file);
         Draw();
     }
