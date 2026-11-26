@@ -155,8 +155,8 @@ Program.Main
 |---|---|
 | لا حالة دورة حياة موحدة للنوافذ | D-01/D-02 وأخطاء عند إضافة قوائم سياق أو حوارات |
 | الثيم غير قابل للتبديل | F-12/G-03 يتطلبان إعادة بناء الأنماط |
-| لا طبقة عرض مستندات | F-01/F-02/F-05/F-10 غير ممكنة دون مكون جديد |
-| `MarkdownViewer` نصي فقط | لا GFM/LaTeX/صور/روابط |
+| ~~لا طبقة عرض مستندات~~ | أُضيفت في المرحلة 4: `MarkdownViewer` + `DocumentViewer` + `PdfView` |
+| ~~`MarkdownViewer` نصي فقط~~ | أُصلح: GFM/LaTeX/صور/روابط/PDF عبر WPF أصلي |
 | لا خدمة شبكة | B-01/B-02 من الصفر |
 | لا تجريد ترجمة | A-01/A-03/A-02 من الصفر |
 | تكرار Clipboard/Notepad | E-01/R-01/R-02 وصيانة أصعب |
@@ -178,13 +178,13 @@ Program.Main
 
 ### 7.2 عارض المستندات
 
-- واجهة `IDocumentViewer` بمسؤوليات: فتح/عرض/بحث/تكبير/تنقل.
-- مضيف WebView2 مشترك، مع محولات:
-  - Markdown → Markdig → HTML → WebView2.
-  - HTML → تعقيم → WebView2.
-  - PDF → PDF.js.
+> **نُفِّذ أصلياً في المرحلة 4 (لا WebView2):** `MarkdownViewer` معاينة بسيطة للحافظة/المفكرة، و`DocumentViewer` عارض متعدد التبويبات من العجلتين، و`PdfView` صفحات صور عند الطلب بحد ذاكرة 256MB.
+
+- `FlowKit`/`MarkdownFlow`/`DocFlow`/`TexFlow`/`MathText`: Markdig AST و`Doc` وLaTeX ← `FlowDocument` واحد بفرش الثيم.
+- `PdfOps.PageSizes`/`RenderPagePng` + `PdfView`: صفحات عند الطلب، LRU 256MB، وحفظ المسار ونسبة التمرير.
+- `PreviewTabsStore`: مسارات التبويبات وترتيبها وتمريرها وتكبيرها في `preview-tabs.json`.
 - مكوّن واحد يعيد استخدامه: Clipboard Preview، Notes Preview، Wheel File Viewer.
-- أصول KaTeX/Highlight.js/Mermaid/PDF.js محلية أو عبر CDN حسب قرار المستخدم.
+- لا KaTeX ولا Highlight.js ولا Mermaid ولا PDF.js ولا أصول خارجية.
 
 ### 7.3 الترجمة
 

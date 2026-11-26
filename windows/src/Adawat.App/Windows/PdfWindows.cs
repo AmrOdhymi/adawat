@@ -60,7 +60,7 @@ public static class OrderWindow
                 arrows.Children.Add(Arrow("", i < items.Count - 1, 1));
                 Grid.SetColumn(arrows, 3);
                 row.Children.Add(arrows);
-                list.Children.Add(new Border { Background = Theme.Card, CornerRadius = new CornerRadius(9), Padding = new Thickness(12, 8, 12, 8), Child = row, Margin = new Thickness(0, 0, 0, 6) });
+                list.Children.Add(new Border { Background = Theme.Card, Padding = new Thickness(12, 8, 12, 8), Child = row, Margin = new Thickness(0, 0, 0, 6) }.Radius("Theme.RadiusMedium"));
             }
         }
         Build();
@@ -107,15 +107,15 @@ public static class OrganizeWindow
             {
                 var slot = slots[index];
                 var card = new Grid { Width = 122, Height = 150, Margin = new Thickness(7), Background = Brushes.Transparent, AllowDrop = true, Cursor = Cursors.Hand };
-                card.Children.Add(new Border { Background = Brushes.White, CornerRadius = new CornerRadius(8),
-                                               Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 6, ShadowDepth = 1, Direction = 270, Opacity = 0.18 } });
+                card.Children.Add(new Border { Background = Brushes.White,
+                                               Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 6, ShadowDepth = 1, Direction = 270, Opacity = 0.18, Color = Theme.ShadowColor } }.Radius("Theme.RadiusSmall"));
                 var picture = new Image { Margin = new Thickness(10), Stretch = Stretch.Uniform, RenderTransformOrigin = new Point(0.5, 0.5),
                                           RenderTransform = new RotateTransform(slot.Rotation) };
                 if (thumbnails.TryGetValue(slot.Source, out var thumb)) picture.Source = thumb;
                 card.Children.Add(picture);
                 var top = new DockPanel { Margin = new Thickness(6), VerticalAlignment = VerticalAlignment.Top, LastChildFill = false };
                 var number = new Border { Width = 20, Height = 20, CornerRadius = new CornerRadius(10), Background = Theme.Accent,
-                                          Child = new TextBlock { Text = L10n.T($"{index + 1}"), FontSize = 10, FontWeight = FontWeights.Bold, Foreground = Brushes.White, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center } };
+                                          Child = new TextBlock { Text = L10n.T($"{index + 1}"), FontSize = 10, FontWeight = FontWeights.Bold, Foreground = Theme.OnAccent, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center } };
                 DockPanel.SetDock(number, Dock.Left);
                 top.Children.Add(number);
                 var turn = new Border { Width = 20, Height = 20, CornerRadius = new CornerRadius(10), Background = new SolidColorBrush(Color.FromArgb(0x99, 0, 0, 0)), ToolTip = L10n.T("Rotate clockwise"),
@@ -125,8 +125,8 @@ public static class OrganizeWindow
                 DockPanel.SetDock(turn, Dock.Right);
                 top.Children.Add(turn);
                 card.Children.Add(top);
-                var menu = new ContextMenu();
-                MenuItem Item(string title, Action act, bool enabled = true) { var item = new MenuItem { Header = L10n.T(title), IsEnabled = enabled }; item.Click += (_, _) => act(); return item; }
+                var menu = UI.Menu();
+                MenuItem Item(string title, Action act, bool enabled = true) => UI.MenuEntry(title, act, enabled: enabled);
                 menu.Items.Add(Item("Rotate Clockwise", () => Rotate(slot)));
                 menu.Items.Add(Item("Duplicate Page", () => Duplicate(slot)));
                 menu.Items.Add(new Separator());

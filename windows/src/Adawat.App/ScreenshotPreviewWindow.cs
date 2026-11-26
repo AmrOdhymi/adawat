@@ -47,8 +47,7 @@ public sealed class ScreenshotPreviewWindow : Window
         var root = new Border
         {
             Background = Theme.Surface,
-            CornerRadius = new CornerRadius(14),
-            BorderBrush = Theme.Hairline,
+            BorderBrush = Theme.LineStrong,
             BorderThickness = new Thickness(1),
             Padding = new Thickness(16),
             Margin = new Thickness(20),
@@ -58,9 +57,9 @@ public sealed class ScreenshotPreviewWindow : Window
                 ShadowDepth = 6,
                 Direction = 270,
                 Opacity = 0.25,
-                Color = Color.FromRgb(0x20, 0x20, 0x24)
+                Color = Theme.ShadowColor
             }
-        };
+        }.Radius("Theme.RadiusXl");
 
         var stack = new StackPanel();
 
@@ -103,14 +102,13 @@ public sealed class ScreenshotPreviewWindow : Window
 
         var previewBorder = new Border
         {
-            Background = new SolidColorBrush(Color.FromArgb(0x0C, 0, 0, 0)),
-            CornerRadius = new CornerRadius(8),
+            Background = Theme.Card,
             BorderBrush = Theme.Hairline,
             BorderThickness = new Thickness(1),
             Padding = new Thickness(8),
             Margin = new Thickness(0, 0, 0, 14),
             Child = previewImage
-        };
+        }.Radius("Theme.RadiusMedium");
         stack.Children.Add(previewBorder);
 
         // ── Action Buttons ──

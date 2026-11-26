@@ -107,12 +107,11 @@ internal sealed class SingleRenameWindow : Window
         Content = new Border
         {
             Child = stack,
-            CornerRadius = new CornerRadius(14),
-            Background = Brushes.White,
-            BorderBrush = Theme.Hairline,
+            Background = Theme.Surface,
+            BorderBrush = Theme.LineStrong,
             BorderThickness = new Thickness(1),
-            Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 24, ShadowDepth = 6, Opacity = 0.2 },
-        };
+            Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 24, ShadowDepth = 6, Opacity = 0.24, Color = Theme.ShadowColor },
+        }.Radius("Theme.RadiusXl");
 
         Loaded += (_, _) =>
         {
@@ -295,17 +294,16 @@ internal sealed class BatchRenameWindow : Window
             Content = _previewList,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             Height = 220,
-            Background = new SolidColorBrush(Color.FromArgb(0x50, 0xF0, 0xF2, 0xF5)),
+            Background = Theme.Field,
         };
 
         var previewBorder = new Border
         {
-            CornerRadius = new CornerRadius(8),
             BorderBrush = Theme.Hairline,
             BorderThickness = new Thickness(1),
             Child = previewScroll,
             Margin = new Thickness(0, 0, 0, 16),
-        };
+        }.Radius("Theme.RadiusMedium");
 
         // Actions
         var bottomBar = new DockPanel { LastChildFill = false };
@@ -328,12 +326,11 @@ internal sealed class BatchRenameWindow : Window
         Content = new Border
         {
             Child = layout,
-            CornerRadius = new CornerRadius(16),
-            Background = Brushes.White,
-            BorderBrush = Theme.Hairline,
+            Background = Theme.Surface,
+            BorderBrush = Theme.LineStrong,
             BorderThickness = new Thickness(1),
-            Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 24, ShadowDepth = 6, Opacity = 0.2 },
-        };
+            Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 24, ShadowDepth = 6, Opacity = 0.24, Color = Theme.ShadowColor },
+        }.Radius("Theme.RadiusXl");
 
         // Event hooks for live preview
         _findBox.TextChanged += (_, _) => UpdatePreview();
@@ -581,11 +578,10 @@ internal sealed class PropertiesWindow : Window
         Content = new Border
         {
             Child = stack,
-            CornerRadius = new CornerRadius(16),
-            Background = Brushes.White,
-            BorderBrush = Theme.Hairline,
+            Background = Theme.Surface,
+            BorderBrush = Theme.LineStrong,
             BorderThickness = new Thickness(1),
-            Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 24, ShadowDepth = 6, Opacity = 0.2 },
-        };
+            Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 24, ShadowDepth = 6, Opacity = 0.24, Color = Theme.ShadowColor },
+        }.Radius("Theme.RadiusXl");
     }
 }

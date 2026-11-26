@@ -51,9 +51,9 @@ public static class ColorWell
         panel.Children.Add(hex);
         popup.Child = new Border
         {
-            Background = Brushes.White, CornerRadius = new CornerRadius(10), Padding = new Thickness(8), BorderBrush = Theme.Hairline, BorderThickness = new Thickness(1), Margin = new Thickness(6),
-            Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 12, ShadowDepth = 2, Direction = 270, Opacity = 0.2 }, Child = panel,
-        };
+            Background = Theme.Surface, Padding = new Thickness(8), BorderBrush = Theme.LineStrong, BorderThickness = new Thickness(1), Margin = new Thickness(6),
+            Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 12, ShadowDepth = 2, Direction = 270, Opacity = 0.2, Color = Theme.ShadowColor }, Child = panel,
+        }.Radius("Theme.RadiusMedium");
         swatch.MouseLeftButtonUp += (_, _) => { if (swatch.IsEnabled) popup.IsOpen = true; };
         return swatch;
     }
@@ -115,7 +115,7 @@ public static class QrWindow
         var placeholder = UI.Icon("", 64, Theme.Muted);
         placeholder.HorizontalAlignment = HorizontalAlignment.Center;
         placeholder.Opacity = 0.5;
-        var previewBox = new Border { Width = 290, Height = 290, CornerRadius = new CornerRadius(14), Background = Theme.Card, AllowDrop = true, BorderThickness = new Thickness(3), BorderBrush = Brushes.Transparent };
+        var previewBox = new Border { Width = 290, Height = 290, Background = Theme.Card, AllowDrop = true, BorderThickness = new Thickness(3), BorderBrush = Brushes.Transparent }.Radius("Theme.RadiusLarge");
         var previewGrid = new Grid();
         previewGrid.Children.Add(placeholder);
         previewGrid.Children.Add(preview);
@@ -166,7 +166,7 @@ public static class QrWindow
                     if (current != generation) return;
                     var readable = found.Contains(payload);
                     status.Text = L10n.T(readable ? "Scans correctly" : "May not scan. Use a smaller logo, more contrast or higher correction.");
-                    status.Foreground = readable ? new SolidColorBrush(Color.FromRgb(0x1F, 0x9D, 0x55)) : new SolidColorBrush(Color.FromRgb(0xC2, 0x6A, 0x00));
+                    status.Foreground = readable ? Theme.Ok : Theme.Accent;
                 });
             });
         }
@@ -174,7 +174,7 @@ public static class QrWindow
         void Changed() { timer.Stop(); timer.Start(); }
 
         // Content
-        var textBox = new TextBox { Text = model.Text, Height = 70, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Padding = new Thickness(4) };
+        var textBox = new TextBox { Text = model.Text, Height = 70, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, VerticalContentAlignment = VerticalAlignment.Top, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Padding = new Thickness(4) };
         textBox.TextChanged += (_, _) => { model.Text = textBox.Text; Changed(); };
         var wifiPanel = new StackPanel { Visibility = Visibility.Collapsed };
         var network = new TextBox { Height = 26, VerticalContentAlignment = VerticalAlignment.Center, Width = 170 };
@@ -226,9 +226,9 @@ public static class QrWindow
             drawing.Children.Add(new GeometryDrawing(Brushes.Transparent, null, new RectangleGeometry(new Rect(0, 0, units, units))));
             drawing.Children.Add(new GeometryDrawing(Theme.Ink, null, geometry));
             var image = new Image { Source = new DrawingImage(drawing), Width = 22, Height = 22 };
-            var border = new Border { Width = 34, Height = 34, CornerRadius = new CornerRadius(7), Margin = new Thickness(0, 0, 4, 0), Cursor = Cursors.Hand, ToolTip = L10n.T(title),
-                                      Child = image, BorderThickness = new Thickness(2) };
-            void Paint(Border b, bool on) { b.Background = new SolidColorBrush(Color.FromArgb((byte)(on ? 0x1A : 0x0A), 0, 0, 0)); b.BorderBrush = on ? Theme.Accent : Brushes.Transparent; }
+            var border = new Border { Width = 34, Height = 34, Margin = new Thickness(0, 0, 4, 0), Cursor = Cursors.Hand, ToolTip = L10n.T(title),
+                                      Child = image, BorderThickness = new Thickness(2) }.Radius("Theme.RadiusSmall");
+            void Paint(Border b, bool on) { b.Background = on ? Theme.AccentSoft : Theme.ButtonFill; b.BorderBrush = on ? Theme.Accent : Brushes.Transparent; }
             Paint(border, selected);
             border.MouseLeftButtonUp += (_, _) => { foreach (var b in group) Paint(b, b == border); pick(); Changed(); };
             group.Add(border);

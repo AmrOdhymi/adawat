@@ -27,6 +27,8 @@ public static class Snapshots
     private static int Render(string[] args)
     {
         if (args.Length < 3) return 2;
+        Theme.ApplyFromSettings();
+        UI.InstallThemeResources();
         FrameworkElement? element = null;
         Window? window = null;
         if (args[0] == "--snapshot-window")

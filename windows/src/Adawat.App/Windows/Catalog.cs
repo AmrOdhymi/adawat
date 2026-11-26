@@ -1,3 +1,5 @@
+using Adawat.App.Documents;
+
 namespace Adawat.App.Windows;
 
 /// <summary>Registers each tool window under the name the operation catalog uses.</summary>
@@ -36,5 +38,6 @@ public static class Catalog
 
         // Text
         ToolWindows.Register("qr", QrWindow.Make);
+        ToolWindows.Register("documents", DocumentViewer.Make);
     }
 }

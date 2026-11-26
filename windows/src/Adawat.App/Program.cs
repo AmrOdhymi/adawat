@@ -47,6 +47,8 @@ public sealed class AdawatApp : Application
     {
         base.OnStartup(e);
         Log.Write($"started {typeof(AdawatApp).Assembly.GetName().Version} on {Environment.OSVersion}");
+        Theme.ApplyFromSettings();
+        UI.InstallThemeResources();
         _wheel = new WheelWindow();
         _drags.IsWheelActive = () => _wheel?.IsWheelShown == true;
         _drags.KeyDuringDrag += (key, point) =>

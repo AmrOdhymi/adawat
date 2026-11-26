@@ -260,6 +260,7 @@ public static class ClipboardWindow
         var countLabel = UI.Caption("");
         countLabel.HorizontalAlignment = HorizontalAlignment.Right;
         countLabel.VerticalAlignment = VerticalAlignment.Center;
+        countLabel.Margin = new Thickness(12, 0, 0, 0);
 
         void RefreshList(string filter = "")
         {
@@ -346,9 +347,9 @@ public static class ClipboardWindow
             Sounds.Tick();
             Hud.Shared.ShowMessage(L10n.T("Cleared non-pinned history"), Hud.Style.Success);
         }, primary: false, icon: "");
-        clearBtn.Margin = new Thickness(6, 0, 0, 0);
+        clearBtn.Margin = new Thickness(8, 0, 0, 0);
 
-        var topRow = new DockPanel { LastChildFill = true, Margin = new Thickness(0, 0, 0, 10) };
+        var topRow = new DockPanel { LastChildFill = true, Margin = new Thickness(0, 0, 0, 12) };
         DockPanel.SetDock(clearBtn, Dock.Right);
         DockPanel.SetDock(addBtn, Dock.Right);
         topRow.Children.Add(clearBtn);
@@ -357,7 +358,7 @@ public static class ClipboardWindow
         root.Children.Add(topRow);
 
         // ── Filter Row (All / Texts / Images + Count) ──
-        var filterRow = new DockPanel { Margin = new Thickness(0, 0, 0, 10) };
+        var filterRow = new DockPanel { Margin = new Thickness(0, 0, 0, 12) };
         DockPanel.SetDock(countLabel, Dock.Right);
         filterRow.Children.Add(countLabel);
 
@@ -459,7 +460,7 @@ public static class ClipboardWindow
         row.Children.Add(pinBtn);
 
         var copyBtn = UI.IconButton("", onCopy, "Copy", 26);
-        copyBtn.Margin = new Thickness(0, 0, 4, 0);
+        copyBtn.Margin = new Thickness(0, 0, 6, 0);
         DockPanel.SetDock(copyBtn, Dock.Right);
         row.Children.Add(copyBtn);
 
@@ -467,36 +468,36 @@ public static class ClipboardWindow
         {
             // Preview full image
             var previewBtn = UI.IconButton("", () => OpenImagePreview(owner, item), "Preview Image", 26);
-            previewBtn.Margin = new Thickness(0, 0, 4, 0);
+            previewBtn.Margin = new Thickness(0, 0, 6, 0);
             DockPanel.SetDock(previewBtn, Dock.Right);
             row.Children.Add(previewBtn);
 
             // Save As...
             var saveBtn = UI.IconButton("", () => SaveImageAs(item, owner), "Save Image As...", 26);
-            saveBtn.Margin = new Thickness(0, 0, 4, 0);
+            saveBtn.Margin = new Thickness(0, 0, 6, 0);
             DockPanel.SetDock(saveBtn, Dock.Right);
             row.Children.Add(saveBtn);
         }
         else
         {
             var previewBtn = UI.IconButton("", () => MarkdownViewer.OpenPreview("Clipboard Preview", item.Text, owner), "Preview Markdown", 26);
-            previewBtn.Margin = new Thickness(0, 0, 4, 0);
+            previewBtn.Margin = new Thickness(0, 0, 6, 0);
             DockPanel.SetDock(previewBtn, Dock.Right);
             row.Children.Add(previewBtn);
 
             var exportBtn = UI.IconButton("", () => MarkdownViewer.Export("Clipboard Entry", item.Text, owner), "Export (.txt / .md)", 26);
-            exportBtn.Margin = new Thickness(0, 0, 4, 0);
+            exportBtn.Margin = new Thickness(0, 0, 6, 0);
             DockPanel.SetDock(exportBtn, Dock.Right);
             row.Children.Add(exportBtn);
 
             var editBtn = UI.IconButton("", onEdit, "Edit", 26);
-            editBtn.Margin = new Thickness(0, 0, 4, 0);
+            editBtn.Margin = new Thickness(0, 0, 6, 0);
             DockPanel.SetDock(editBtn, Dock.Right);
             row.Children.Add(editBtn);
         }
 
         var delBtn = UI.IconButton("", onDelete, "Delete", 26);
-        delBtn.Margin = new Thickness(0, 0, 4, 0);
+        delBtn.Margin = new Thickness(0, 0, 6, 0);
         DockPanel.SetDock(delBtn, Dock.Right);
         row.Children.Add(delBtn);
 
@@ -518,18 +519,17 @@ public static class ClipboardWindow
             {
                 imageDisplay = new Border
                 {
-                    CornerRadius = new CornerRadius(6),
                     ClipToBounds = true,
                     Width = 56,
                     Height = 44,
-                    Background = new SolidColorBrush(Color.FromArgb(0x10, 0, 0, 0)),
+                    Background = Theme.Card,
                     Margin = new Thickness(0, 0, 10, 0),
                     Child = new Image
                     {
                         Source = thumb,
                         Stretch = Stretch.UniformToFill
                     }
-                };
+                }.Radius("Theme.RadiusSmall");
             }
             else
             {
@@ -538,10 +538,9 @@ public static class ClipboardWindow
                     Width = 56,
                     Height = 44,
                     Background = Theme.ButtonFill,
-                    CornerRadius = new CornerRadius(6),
                     Margin = new Thickness(0, 0, 10, 0),
                     Child = UI.Icon(Catalog.Icons.Photo, 18, Theme.Muted)
-                };
+                }.Radius("Theme.RadiusSmall");
             }
             DockPanel.SetDock(imageDisplay, Dock.Left);
             row.Children.Add(imageDisplay);
@@ -574,11 +573,10 @@ public static class ClipboardWindow
         {
             Child = row,
             Background = item.IsPinned ? Theme.AccentSoft : Theme.ButtonFill,
-            CornerRadius = new CornerRadius(8),
             Padding = new Thickness(12, 8, 12, 8),
-            Margin = new Thickness(0, 3, 0, 3),
+            Margin = new Thickness(0, 4, 0, 4),
             Cursor = Cursors.Hand,
-        };
+        }.Radius("Theme.RadiusCard");
 
         card.MouseEnter += (_, _) => card.Background = Theme.ButtonPressed;
         card.MouseLeave += (_, _) => card.Background = item.IsPinned ? Theme.AccentSoft : Theme.ButtonFill;
@@ -626,14 +624,13 @@ public static class ClipboardWindow
 
         var border = new Border
         {
-            Background = new SolidColorBrush(Color.FromArgb(0x0C, 0, 0, 0)),
-            CornerRadius = new CornerRadius(8),
+            Background = Theme.Card,
             BorderBrush = Theme.Hairline,
             BorderThickness = new Thickness(1),
             Padding = new Thickness(6),
             Margin = new Thickness(0, 4, 0, 10),
             Child = imgView
-        };
+        }.Radius("Theme.RadiusMedium");
         stack.Children.Add(border);
 
         dialog.Body = stack;
@@ -689,6 +686,7 @@ public static class ClipboardWindow
             Padding = new Thickness(8),
             AcceptsReturn = true,
             TextWrapping = TextWrapping.Wrap,
+            VerticalContentAlignment = VerticalAlignment.Top,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             FontFamily = Theme.Font,
             FlowDirection = initialDir,
@@ -747,6 +745,7 @@ public static class ClipboardWindow
             Padding = new Thickness(8),
             AcceptsReturn = true,
             TextWrapping = TextWrapping.Wrap,
+            VerticalContentAlignment = VerticalAlignment.Top,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             FontFamily = Theme.Font,
             FlowDirection = initialDir,

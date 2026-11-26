@@ -44,8 +44,8 @@ public static class WelcomeWindow
             foreach (var (cap, key) in keycaps)
             {
                 var down = Native.IsDown(key);
-                cap.Background = down ? Theme.Accent : Brushes.White;
-                foreach (var text in ((StackPanel)cap.Child).Children.OfType<TextBlock>()) text.Foreground = down ? Brushes.White : Theme.Ink;
+                cap.Background = down ? Theme.Accent : Theme.Surface;
+                foreach (var text in ((StackPanel)cap.Child).Children.OfType<TextBlock>()) text.Foreground = down ? Theme.OnAccent : Theme.Ink;
             }
         };
         void Show()
@@ -122,7 +122,7 @@ public static class WelcomeWindow
             var label = UI.Text(Tray.Key(key), 10.5, color: Theme.Muted);
             label.HorizontalAlignment = HorizontalAlignment.Center;
             inner.Children.Add(label);
-            var cap = new Border { Width = 70, Height = 60, CornerRadius = new CornerRadius(10), Background = Brushes.White, BorderBrush = Theme.Hairline, BorderThickness = new Thickness(1), Child = inner, Margin = new Thickness(5, 0, 5, 0), Padding = new Thickness(0, 8, 0, 0) };
+            var cap = new Border { Width = 70, Height = 60, Background = Theme.Surface, BorderBrush = Theme.Hairline, BorderThickness = new Thickness(1), Child = inner, Margin = new Thickness(5, 0, 5, 0), Padding = new Thickness(0, 8, 0, 0) }.Radius("Theme.RadiusMedium");
             var column = new StackPanel();
             column.Children.Add(cap);
             var caption = UI.Text(mode, 11, color: Theme.Muted);
@@ -136,15 +136,15 @@ public static class WelcomeWindow
         Grid.SetColumn(second, 1);
         steps.Children.Add(first);
         steps.Children.Add(second);
-        var hint = new Border { Background = Theme.Card, CornerRadius = new CornerRadius(14), Padding = new Thickness(14, 6, 14, 6), Margin = new Thickness(0, 26, 0, 0),
-                                Child = UI.Text("The wheel stays open until you drop.", 12, color: Theme.Muted) };
+        var hint = new Border { Background = Theme.Card, Padding = new Thickness(14, 6, 14, 6), Margin = new Thickness(0, 26, 0, 0),
+                                Child = UI.Text("The wheel stays open until you drop.", 12, color: Theme.Muted) }.Radius("Theme.RadiusLarge");
         return Centered(title, steps, hint);
     }
 
     private static Border Badge(string number) => new()
     {
         Width = 26, Height = 26, CornerRadius = new CornerRadius(13), Background = Theme.Accent,
-        Child = new TextBlock { Text = number, Foreground = Brushes.White, FontWeight = FontWeights.Bold, FontFamily = Theme.Font, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
+        Child = new TextBlock { Text = number, Foreground = Theme.OnAccent, FontWeight = FontWeights.Bold, FontFamily = Theme.Font, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
     };
 
     private static UIElement Preferences()
@@ -158,7 +158,7 @@ public static class WelcomeWindow
         card.Children.Add(UI.Divider());
         card.Children.Add(UI.Check("Sound and haptic feedback", settings.PlaySounds, v => { settings.PlaySounds = v; settings.Save(); }).Pad(0, 4));
         card.Children.Add(UI.Check("Show results in a Float", settings.ShowResultsInFloat, v => { settings.ShowResultsInFloat = v; settings.Save(); }).Pad(0, 4));
-        var box = new Border { Background = Brushes.White, CornerRadius = new CornerRadius(14), Padding = new Thickness(18), BorderBrush = Theme.Hairline, BorderThickness = new Thickness(1), Child = card };
+        var box = new Border { Background = Theme.Surface, Padding = new Thickness(18), BorderBrush = Theme.Hairline, BorderThickness = new Thickness(1), Child = card }.Radius("Theme.RadiusLarge");
         return Centered(title, box);
     }
 

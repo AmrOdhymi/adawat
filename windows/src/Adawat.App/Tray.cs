@@ -10,6 +10,7 @@ namespace Adawat.App;
 public sealed class Tray : IDisposable
 {
     private readonly TaskbarIcon _icon;
+    private ContextMenu? _menu;
 
     public Tray()
     {
@@ -18,26 +19,38 @@ public sealed class Tray : IDisposable
         {
             ToolTipText = L10n.T($"Drag files, then press {Key(settings.ConvertKey)}, {Key(settings.ToolsKey)} or {Key(settings.ActionsKey)}"),
             IconSource = new BitmapImage(new Uri("pack://application:,,,/Assets/Adawat.ico")),
-            ContextMenu = Menu(),
             NoLeftClickDelay = true,
         };
-        _icon.TrayLeftMouseUp += (_, _) => _icon.ContextMenu!.IsOpen = true;
+        // Both clicks open our own menu. Leaving ContextMenu on the icon would send right-click
+        // through the library's internal popup path, which is where the menu lost its text colours.
+        _icon.TrayLeftMouseUp += (_, _) => OpenMenu();
+        _icon.TrayRightMouseUp += (_, _) => OpenMenu();
+        Theme.Changed += ResetMenu;
         _icon.ForceCreate(enablesEfficiencyMode: false);
+    }
+
+    private void OpenMenu()
+    {
+        var menu = _menu ??= Menu();
+        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
+        menu.IsOpen = true;
+    }
+
+    /// <summary>Drops the cached menu so the next open builds it from the current theme resources.</summary>
+    private void ResetMenu()
+    {
+        if (_menu is null) return;
+        _menu.IsOpen = false;
+        _menu = null;
     }
 
     public static string Key(ModifierKey key) => key switch { ModifierKey.Shift => "Shift", ModifierKey.Ctrl => "Ctrl", ModifierKey.Alt => "Alt", _ => "—" };
 
     private static ContextMenu Menu()
     {
-        var menu = new ContextMenu { FlowDirection = Theme.Direction, FontFamily = Theme.Font };
-        MenuItem Item(string title, Action action, string? icon = null)
-        {
-            var item = new MenuItem { Header = L10n.T(title) };
-            if (icon != null) item.Icon = new TextBlock { Text = icon, FontFamily = Theme.Icons, FontSize = 14 };
-            item.Click += (_, _) => action();
-            return item;
-        }
-        var hint = new MenuItem { Header = L10n.T("Adawat — drag files, then press a modifier key"), IsEnabled = false };
+        var menu = UI.Menu();
+        MenuItem Item(string title, Action action, string? icon = null) => UI.MenuEntry(title, action, icon);
+        var hint = UI.MenuEntry("Adawat — drag files, then press a modifier key", enabled: false);
         menu.Items.Add(hint);
         menu.Items.Add(new Separator());
         menu.Items.Add(Item("New Float", () => Floats.Create([]), ""));
@@ -52,5 +65,9 @@ public sealed class Tray : IDisposable
         return menu;
     }
 
-    public void Dispose() => _icon.Dispose();
+    public void Dispose()
+    {
+        Theme.Changed -= ResetMenu;
+        _icon.Dispose();
+    }
 }

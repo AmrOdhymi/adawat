@@ -206,11 +206,10 @@ public static class NotepadWindow
         {
             Child = row,
             Background = note.IsPinned ? Theme.AccentSoft : Theme.ButtonFill,
-            CornerRadius = new CornerRadius(8),
             Padding = new Thickness(12, 8, 12, 8),
             Margin = new Thickness(0, 3, 0, 3),
             Cursor = Cursors.Hand,
-        };
+        }.Radius("Theme.RadiusCard");
 
         card.MouseEnter += (_, _) => card.Background = Theme.ButtonPressed;
         card.MouseLeave += (_, _) => card.Background = note.IsPinned ? Theme.AccentSoft : Theme.ButtonFill;
@@ -224,7 +223,7 @@ public static class NotepadWindow
         var isNew = note == null;
         var current = note ?? new NoteEntry();
 
-        var editor = new ToolWindow(isNew ? "New Note" : "Edit Note", 620) { Owner = owner };
+        var editor = new ToolWindow(isNew ? "New Note" : "Edit Note", 620) { Owner = owner, ShowInTaskbar = false };
         var stack = new StackPanel();
 
         var isInitialArabic = (current.Title + " " + current.Content).Any(c => c >= 0x0600 && c <= 0x06FF);
@@ -242,7 +241,7 @@ public static class NotepadWindow
             FlowDirection = initialDir,
             Margin = new Thickness(0, 0, 0, 8)
         };
-        stack.Children.Add(UI.Row("Title", titleBox));
+        stack.Children.Add(UI.FieldRow("Title", titleBox, 60));
 
         var contentBox = new TextBox
         {
@@ -252,6 +251,7 @@ public static class NotepadWindow
             Padding = new Thickness(8),
             AcceptsReturn = true,
             TextWrapping = TextWrapping.Wrap,
+            VerticalContentAlignment = VerticalAlignment.Top,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             FontFamily = Theme.Font,
             FlowDirection = initialDir,

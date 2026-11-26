@@ -165,7 +165,7 @@ public static class VisualizerWindow
             var scale = Math.Min(ActualWidth / pw, ActualHeight / ph);
             var size = new Size(pw * scale, ph * scale);
             var frame = new Rect((ActualWidth - size.Width) / 2, (ActualHeight - size.Height) / 2, size.Width, size.Height);
-            dc.PushClip(new RectangleGeometry(frame, 12, 12));
+            dc.PushClip(new RectangleGeometry(frame, Theme.MediumRadiusValue, Theme.MediumRadiusValue));
             dc.DrawRectangle(Brushes.Black, null, frame);
             if (Still && Picture != null)
             {
@@ -210,7 +210,7 @@ public static class ChannelsWindow
             var badge = new Border { Width = 24, Height = 24, CornerRadius = new CornerRadius(12), Background = Theme.AccentSoft, HorizontalAlignment = HorizontalAlignment.Left,
                                      Child = new TextBlock { Text = channel == 0 ? (stereo ? "L" : "M") : "R", FontSize = 11, FontWeight = FontWeights.SemiBold, Foreground = Theme.Ink, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center } };
             row.Children.Add(badge);
-            var wave = new Timeline(media, 44) { Levels = [], WaveBrush = new SolidColorBrush(Color.FromArgb(0x59, 0, 0, 0)), ShowPlayhead = false };
+            var wave = new Timeline(media, 44) { Levels = [], WaveBrush = new SolidColorBrush(Color.FromArgb(0x59, Theme.Ink.Color.R, Theme.Ink.Color.G, Theme.Ink.Color.B)), ShowPlayhead = false };
             wave.Pressed = (_, _) => true;
             wave.Dragged = _ => { };
             Grid.SetColumn(wave, 1);
@@ -337,7 +337,7 @@ public static class BleepWindow
             reset.IsEnabled = save.IsEnabled = bleeped.IsEnabled = sections.Count > 0;
             layer.InvalidateVisual();
         }
-        var trackBrush = new SolidColorBrush(Color.FromArgb(0x0D, 0, 0, 0));
+        var trackBrush = new SolidColorBrush(Color.FromArgb(0x0D, Theme.Ink.Color.R, Theme.Ink.Color.G, Theme.Ink.Color.B));
         layer.Overlay = (dc, w, h) =>
         {
             dc.DrawRoundedRectangle(trackBrush, null, new Rect(0, 0, w, h), 7, 7);
@@ -348,9 +348,9 @@ public static class BleepWindow
                 var rect = new Rect(x1, 0, Math.Max(8, x2 - x1), h);
                 var fill = Color.FromArgb((byte)(s == selected ? 0xD9 : 0x99), Theme.AccentColor.R, Theme.AccentColor.G, Theme.AccentColor.B);
                 dc.DrawRoundedRectangle(new SolidColorBrush(fill), null, rect, 6, 6);
-                dc.DrawRoundedRectangle(Brushes.White, null, new Rect(rect.X + 4, h / 2 - 7, 2, 14), 1, 1);
-                dc.DrawRoundedRectangle(Brushes.White, null, new Rect(rect.Right - 6, h / 2 - 7, 2, 14), 1, 1);
-                var text = new FormattedText(L10n.T("Bleep"), CultureInfo.CurrentUICulture, Theme.Direction, new Typeface(Theme.Font, FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal), 10, Brushes.White, 1.0);
+                dc.DrawRoundedRectangle(Theme.OnAccent, null, new Rect(rect.X + 4, h / 2 - 7, 2, 14), 1, 1);
+                dc.DrawRoundedRectangle(Theme.OnAccent, null, new Rect(rect.Right - 6, h / 2 - 7, 2, 14), 1, 1);
+                var text = new FormattedText(L10n.T("Bleep"), CultureInfo.CurrentUICulture, Theme.Direction, new Typeface(Theme.Font, FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal), 10, Theme.OnAccent, 1.0);
                 if (text.Width < rect.Width - 16) dc.DrawText(text, new Point(rect.X + (rect.Width - text.Width) / 2 + (Theme.Direction == FlowDirection.RightToLeft ? text.Width : 0), (h - text.Height) / 2));
             }
         };

@@ -322,14 +322,14 @@ public static class AnnotateWindow
             canvas.Tool = Tools[index].Tool;
             hint.Text = L10n.T(Tools[index].Hint);
             for (var i = 0; i < toolButtons.Count; i++) toolButtons[i].Background = i == index ? Theme.Accent : Theme.ButtonFill;
-            for (var i = 0; i < toolButtons.Count; i++) ((TextBlock)toolButtons[i].Child).Foreground = i == index ? Brushes.White : Theme.Ink;
+            for (var i = 0; i < toolButtons.Count; i++) ((TextBlock)toolButtons[i].Child).Foreground = i == index ? Theme.OnAccent : Theme.Ink;
             if (Tools[index].Tool == AnnotationTool.Image) AddImage(canvas, null);
         }
         for (var i = 0; i < Tools.Length; i++)
         {
             var index = i;
-            var button = new Border { Width = 34, Height = 28, CornerRadius = new CornerRadius(7), Margin = new Thickness(0, 0, 4, 0), Cursor = Cursors.Hand, ToolTip = L10n.T(Tools[i].Title),
-                                      Child = UI.Icon(Tools[i].Glyph, 14) };
+            var button = new Border { Width = 34, Height = 28, Margin = new Thickness(0, 0, 6, 0), Cursor = Cursors.Hand, ToolTip = L10n.T(Tools[i].Title),
+                                      Child = UI.Icon(Tools[i].Glyph, 14) }.Radius("Theme.RadiusSmall");
             ((TextBlock)button.Child).HorizontalAlignment = HorizontalAlignment.Center;
             button.MouseLeftButtonUp += (_, _) => PickTool(index);
             toolButtons.Add(button);

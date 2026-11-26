@@ -210,7 +210,7 @@ html {
 [data-design="graphite"] {
   --font-ui: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   --font-display: "Segoe UI Variable Display", "Segoe UI Semibold", "Segoe UI", sans-serif;
-  --r-xs: 2px; --r-sm: 3px; --r-md: 4px; --r-lg: 5px; --r-xl: 8px;
+  --r-xs: 6px; --r-sm: 10px; --r-md: 14px; --r-lg: 18px; --r-xl: 20px;
   --pad: 16px;
   --dur: 120ms;
   --ease: linear;
@@ -1350,15 +1350,15 @@ main { max-width: 1440px; margin: 0 auto; padding: 0 28px 60px; }
   text-transform: uppercase;
 }
 [data-design="graphite"] .panel__head p { font-size: 10.5px; }
-[data-design="graphite"] .badge { padding: 2px 6px; border-radius: 2px; font-size: 9px; letter-spacing: .1em; }
+[data-design="graphite"] .badge { padding: 2px 6px; border-radius: var(--r-sm); font-size: 9px; letter-spacing: .1em; }
 [data-design="graphite"] .badge--ghost { border-color: var(--line-strong); }
 [data-design="graphite"] .win__bar { height: 30px; padding: 0 8px; }
-[data-design="graphite"] .win__dots i { width: 6px; height: 6px; border-radius: 1px; }
+[data-design="graphite"] .win__dots i { width: 6px; height: 6px; border-radius: var(--r-xs); }
 [data-design="graphite"] .win__title { font: 500 10px var(--font-mono); letter-spacing: .04em; text-transform: uppercase; }
 [data-design="graphite"] .btn { height: 28px; font-size: 10.5px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; }
 [data-design="graphite"] .btn--sm { height: 25px; font-size: 9.5px; }
-[data-design="graphite"] .chip { border-radius: 2px; font: 500 9.5px var(--font-mono); letter-spacing: .05em; text-transform: uppercase; }
-[data-design="graphite"] .traits li { border-radius: 2px; font: 500 9.5px var(--font-mono); letter-spacing: .05em; text-transform: uppercase; }
+[data-design="graphite"] .chip { border-radius: var(--r-sm); font: 500 9.5px var(--font-mono); letter-spacing: .05em; text-transform: uppercase; }
+[data-design="graphite"] .traits li { border-radius: var(--r-sm); font: 500 9.5px var(--font-mono); letter-spacing: .05em; text-transform: uppercase; }
 [data-design="graphite"] .legend li { font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase; }
 [data-design="graphite"] .wheel__label span { font: 500 8.5px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; }
 [data-design="graphite"] .wheel__label .ico { width: 16px; height: 16px; }
@@ -1371,13 +1371,13 @@ main { max-width: 1440px; margin: 0 auto; padding: 0 28px 60px; }
 [data-design="graphite"] .lang__type { font-family: var(--font-mono); }
 [data-design="graphite"] .hud-mock { border: 1px solid var(--line-strong); }
 [data-design="graphite"] .float-bar,
-[data-design="graphite"] .menu { border-radius: 3px; }
-[data-design="graphite"] .menu__item { border-radius: 1px; }
+[data-design="graphite"] .menu { border-radius: var(--r-md); }
+[data-design="graphite"] .menu__item { border-radius: var(--r-sm); }
 [data-design="graphite"] .eyebrow,
 [data-design="graphite"] .kicker,
 [data-design="graphite"] .lang__label { letter-spacing: .14em; }
-[data-design="graphite"] .toggle { border-radius: 3px; }
-[data-design="graphite"] .progress { border-radius: 2px; }
+[data-design="graphite"] .toggle { border-radius: var(--r-md); }
+[data-design="graphite"] .progress { border-radius: var(--r-xs); }
 
 /* Violet Studio — soft depth, violet light, editorial spacing */
 [data-design="violet"] .panel__head { padding-bottom: 12px; border-bottom: 1px solid var(--line); }

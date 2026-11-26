@@ -55,7 +55,7 @@ public static class TrimWindow
             foreach (var x in new[] { x1, x2 - 12 })
             {
                 dc.DrawRoundedRectangle(Theme.Accent, null, new Rect(x, 0, 12, h), 4, 4);
-                dc.DrawRoundedRectangle(Brushes.White, null, new Rect(x + 4.75, h / 2 - 9, 2.5, 18), 1.25, 1.25);
+                dc.DrawRoundedRectangle(Theme.OnAccent, null, new Rect(x + 4.75, h / 2 - 9, 2.5, 18), 1.25, 1.25);
             }
         };
         var mode = 0;
@@ -352,7 +352,7 @@ public static class SplitWindow
             foreach (var point in points)
             {
                 var x = timeline.XAt(point);
-                dc.DrawRoundedRectangle(Brushes.White, new Pen(Theme.Accent, 1), new Rect(x - 1.5, 0, 3, h), 1.5, 1.5);
+                dc.DrawRoundedRectangle(Theme.OnAccent, new Pen(Theme.Accent, 1), new Rect(x - 1.5, 0, 3, h), 1.5, 1.5);
             }
         };
         timeline.Pressed = (t, _) =>
@@ -371,9 +371,10 @@ public static class SplitWindow
         var equalText = UI.Text("2", 13, FontWeights.SemiBold);
         equalText.MinWidth = 26;
         equalText.TextAlignment = TextAlignment.Center;
-        equalRow.Children.Add(UI.IconButton("", () => { equalClips = Math.Max(2, equalClips - 1); equalText.Text = equalClips.ToString(); }, "Fewer", 24));
+        equalText.Margin = new Thickness(4, 0, 4, 0);
+        equalRow.Children.Add(UI.IconButton("", () => { equalClips = Math.Max(2, equalClips - 1); equalText.Text = equalClips.ToString(); }, "Fewer", 24).Pad(4, 0));
         equalRow.Children.Add(equalText);
-        equalRow.Children.Add(UI.IconButton("", () => { equalClips = Math.Min(50, equalClips + 1); equalText.Text = equalClips.ToString(); }, "More", 24));
+        equalRow.Children.Add(UI.IconButton("", () => { equalClips = Math.Min(50, equalClips + 1); equalText.Text = equalClips.ToString(); }, "More", 24).Pad(4, 0));
         equalRow.Children.Add(new Border { Width = 10 });
         equalRow.Children.Add(UI.Button("Set", () =>
         {
@@ -381,7 +382,7 @@ public static class SplitWindow
             removed.Clear();
             selected = null;
             refresh();
-        }));
+        }).Pad(6, 0));
         stack.Children.Add(UI.Row("Equal clips", equalRow, 34));
         var join = UI.Segmented([(true, "Join the rest into one video"), (false, "Export separate clips")], true, v => joinKept = v);
         join.Margin = new Thickness(0, 6, 0, 0);
@@ -648,18 +649,18 @@ public static class RedactVideoWindow
         protected override void OnRender(DrawingContext dc)
         {
             var (w, h) = (ActualWidth, ActualHeight);
-            dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromArgb(0x0D, 0, 0, 0)), null, new Rect(0, 0, w, h), 6, 6);
+            dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromArgb(0x0D, Theme.Ink.Color.R, Theme.Ink.Color.G, Theme.Ink.Color.B)), null, new Rect(0, 0, w, h), 6, 6);
             var x1 = X(_range.Start);
             var x2 = X(_range.End);
             var bar = new Rect(x1, 0, Math.Max(12, x2 - x1), h);
             var fill = Color.FromArgb((byte)(_selected ? 0xBF : 0x73), Theme.AccentColor.R, Theme.AccentColor.G, Theme.AccentColor.B);
             dc.DrawRoundedRectangle(new SolidColorBrush(fill), null, bar, 6, 6);
-            var text = new FormattedText(_label, CultureInfo.CurrentUICulture, Theme.Direction, new Typeface(Theme.Font, FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal), 10, Brushes.White, 1.0);
+            var text = new FormattedText(_label, CultureInfo.CurrentUICulture, Theme.Direction, new Typeface(Theme.Font, FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal), 10, Theme.OnAccent, 1.0);
             if (text.Width < bar.Width - 16) dc.DrawText(text, new Point(bar.X + (bar.Width - text.Width) / 2 + (Theme.Direction == FlowDirection.RightToLeft ? text.Width : 0), (h - text.Height) / 2));
-            dc.DrawRoundedRectangle(Brushes.White, null, new Rect(x1, h / 2 - 8, 6, 16), 3, 3);
-            dc.DrawRoundedRectangle(Brushes.White, null, new Rect(Math.Max(x1 + 6, x2 - 6), h / 2 - 8, 6, 16), 3, 3);
+            dc.DrawRoundedRectangle(Theme.OnAccent, null, new Rect(x1, h / 2 - 8, 6, 16), 3, 3);
+            dc.DrawRoundedRectangle(Theme.OnAccent, null, new Rect(Math.Max(x1 + 6, x2 - 6), h / 2 - 8, 6, 16), 3, 3);
             var playhead = X(_media.Current);
-            dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(0xB3, 0x28, 0x2B, 0x29)), null, new Rect(playhead - 0.5, 0, 1, h));
+            dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(0xB3, Theme.Ink.Color.R, Theme.Ink.Color.G, Theme.Ink.Color.B)), null, new Rect(playhead - 0.5, 0, 1, h));
         }
 
         protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)

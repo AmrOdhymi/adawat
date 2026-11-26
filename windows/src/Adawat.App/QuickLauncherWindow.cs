@@ -180,11 +180,10 @@ public static class QuickLauncherWindow
         {
             Child = row,
             Background = Theme.ButtonFill,
-            CornerRadius = new CornerRadius(8),
             Padding = new Thickness(12, 8, 12, 8),
             Margin = new Thickness(0, 3, 0, 3),
             Cursor = Cursors.Hand,
-        };
+        }.Radius("Theme.RadiusCard");
 
         card.MouseEnter += (_, _) => card.Background = Theme.ButtonPressed;
         card.MouseLeave += (_, _) => card.Background = Theme.ButtonFill;
@@ -220,11 +219,10 @@ public static class QuickLauncherWindow
         var dialog = new ToolWindow("Add Shortcut", 460) { Owner = owner };
         var stack = new StackPanel();
 
-        var nameBox = new TextBox { Height = 28, Margin = new Thickness(0, 4, 0, 8), VerticalContentAlignment = VerticalAlignment.Center };
-        stack.Children.Add(UI.Row("Name", nameBox));
+        var nameBox = new TextBox { Height = 32, Margin = new Thickness(0, 4, 0, 8), VerticalContentAlignment = VerticalAlignment.Center };
+        stack.Children.Add(UI.FieldRow("Name", nameBox, 110));
 
-        var targetBox = new TextBox { Height = 28, Margin = new Thickness(0, 4, 0, 8), VerticalContentAlignment = VerticalAlignment.Center };
-        var browseRow = new DockPanel { LastChildFill = true };
+        var targetBox = new TextBox { Height = 32, VerticalContentAlignment = VerticalAlignment.Center };
 
         var browseFile = UI.Button("Browse File...", () =>
         {
@@ -236,7 +234,6 @@ public static class QuickLauncherWindow
                     nameBox.Text = Path.GetFileNameWithoutExtension(dlg.FileName);
             }
         });
-        browseFile.Margin = new Thickness(6, 0, 0, 0);
 
         var browseFolder = UI.Button("Browse Folder...", () =>
         {
@@ -248,15 +245,14 @@ public static class QuickLauncherWindow
                     nameBox.Text = Path.GetFileName(dlg.FolderName);
             }
         });
-        browseFolder.Margin = new Thickness(6, 0, 0, 0);
 
-        DockPanel.SetDock(browseFolder, Dock.Right);
-        DockPanel.SetDock(browseFile, Dock.Right);
-        browseRow.Children.Add(browseFolder);
+        stack.Children.Add(UI.FieldRow("Target / URL", targetBox, 110));
+
+        var browseRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 6, 0, 0) };
+        browseFile.Margin = new Thickness(0, 0, 6, 0);
         browseRow.Children.Add(browseFile);
-        browseRow.Children.Add(targetBox);
-
-        stack.Children.Add(UI.Row("Target / URL", browseRow));
+        browseRow.Children.Add(browseFolder);
+        stack.Children.Add(browseRow);
 
         dialog.Body = stack;
 

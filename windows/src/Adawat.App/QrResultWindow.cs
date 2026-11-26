@@ -44,8 +44,7 @@ public sealed class QrResultWindow : Window
         var root = new Border
         {
             Background = Theme.Surface,
-            CornerRadius = new CornerRadius(14),
-            BorderBrush = Theme.Hairline,
+            BorderBrush = Theme.LineStrong,
             BorderThickness = new Thickness(1),
             Padding = new Thickness(16),
             Effect = new DropShadowEffect
@@ -54,9 +53,9 @@ public sealed class QrResultWindow : Window
                 ShadowDepth = 6,
                 Direction = 270,
                 Opacity = 0.25,
-                Color = Color.FromRgb(0x20, 0x20, 0x24)
+                Color = Theme.ShadowColor
             }
-        };
+        }.Radius("Theme.RadiusXl");
 
         var stack = new StackPanel();
 
@@ -79,6 +78,7 @@ public sealed class QrResultWindow : Window
             Text = text,
             IsReadOnly = true,
             TextWrapping = TextWrapping.Wrap,
+            VerticalContentAlignment = VerticalAlignment.Top,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             MaxHeight = 220,
             MinHeight = 60,
@@ -86,7 +86,7 @@ public sealed class QrResultWindow : Window
             FontSize = 13,
             FontFamily = Theme.Font,
             FlowDirection = isArabic ? FlowDirection.RightToLeft : FlowDirection.LeftToRight,
-            Background = Theme.ButtonFill,
+            Background = Theme.Field,
             BorderThickness = new Thickness(0),
             Margin = new Thickness(0, 0, 0, 12)
         };
@@ -141,6 +141,11 @@ public sealed class QrResultWindow : Window
             }
         };
 
-        SourceInitialized += (_, _) => Native.RoundCorners(new WindowInteropHelper(this).Handle);
+        SourceInitialized += (_, _) =>
+        {
+            var handle = new WindowInteropHelper(this).Handle;
+            Native.RoundCorners(handle, !Theme.IsGraphite);
+            Native.DarkTitleBar(handle, Theme.CurrentMode == AppThemeMode.Dark);
+        };
     }
 }

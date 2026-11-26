@@ -214,14 +214,29 @@ public sealed class SnippingOverlayWindow : Window
         Width = SystemParameters.VirtualScreenWidth;
         Height = SystemParameters.VirtualScreenHeight;
 
+        // The captured frame stays on screen, so the desktop behind the overlay is frozen exactly as
+        // it looked when the shortcut was pressed (the system snipping tool works the same way).
+        var frozen = new Image
+        {
+            Source = _snapshot,
+            Stretch = Stretch.Fill,
+            Width = Width,
+            Height = Height,
+            IsHitTestVisible = false,
+        };
+        RenderOptions.SetBitmapScalingMode(frozen, BitmapScalingMode.HighQuality);
+        _canvas.Children.Add(frozen);
+
         // Dim overlay background with exclusion for selection
         _dimMask.Fill = new SolidColorBrush(Color.FromArgb(0x50, 0, 0, 0));
         _canvas.Children.Add(_dimMask);
 
-        // Selection highlight rectangle
+        // Selection highlight rectangle: a transparent interior so the live screen shows through,
+        // with only the accent outline marking the region.
         _selectionBorder.BorderBrush = Theme.Accent;
         _selectionBorder.BorderThickness = new Thickness(1.5);
-        _selectionBorder.Background = new SolidColorBrush(Color.FromArgb(0x10, 0x5B, 0x47, 0xE6));
+        _selectionBorder.Background = Brushes.Transparent;
+        _selectionBorder.IsHitTestVisible = false;
         _selectionBorder.Visibility = Visibility.Collapsed;
         _canvas.Children.Add(_selectionBorder);
 
@@ -234,6 +249,8 @@ public sealed class SnippingOverlayWindow : Window
         Loaded += (_, _) => UpdateMask();
         SizeChanged += (_, _) =>
         {
+            frozen.Width = ActualWidth;
+            frozen.Height = ActualHeight;
             Canvas.SetLeft(toolbar, (ActualWidth - toolbar.DesiredSize.Width) / 2);
             Canvas.SetTop(toolbar, 24);
             UpdateMask();
@@ -281,9 +298,8 @@ public sealed class SnippingOverlayWindow : Window
         var pill = new Border
         {
             Child = panel,
-            Background = new SolidColorBrush(Color.FromArgb(0xF4, 0xFF, 0xFF, 0xFF)),
-            CornerRadius = new CornerRadius(16),
-            BorderBrush = new SolidColorBrush(Color.FromArgb(0x40, 0, 0, 0)),
+            Background = Theme.Surface,
+            BorderBrush = Theme.LineStrong,
             BorderThickness = new Thickness(1),
             Padding = new Thickness(6, 4, 6, 4),
             Effect = new DropShadowEffect
@@ -292,9 +308,9 @@ public sealed class SnippingOverlayWindow : Window
                 ShadowDepth = 4,
                 Direction = 270,
                 Opacity = 0.22,
-                Color = Color.FromRgb(0x20, 0x20, 0x24)
+                Color = Theme.ShadowColor
             }
-        };
+        }.Radius("Theme.RadiusXl");
 
         pill.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         return pill;

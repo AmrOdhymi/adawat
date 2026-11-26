@@ -110,7 +110,7 @@ internal static partial class Native
     [LibraryImport("dwmapi.dll")]
     public static partial int DwmSetWindowAttribute(IntPtr window, int attribute, ref int value, int size);
 
-    public const int DWMWA_WINDOW_CORNER_PREFERENCE = 33, DWMWCP_ROUND = 2, DWMWA_USE_IMMERSIVE_DARK_MODE = 20, DWMWA_SYSTEMBACKDROP_TYPE = 38;
+    public const int DWMWA_WINDOW_CORNER_PREFERENCE = 33, DWMWCP_DEFAULT = 0, DWMWCP_DONOTROUND = 1, DWMWCP_ROUND = 2, DWMWCP_ROUNDSMALL = 3, DWMWA_USE_IMMERSIVE_DARK_MODE = 20, DWMWA_SYSTEMBACKDROP_TYPE = 38;
 
     [LibraryImport("winmm.dll", EntryPoint = "PlaySoundW")]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -156,9 +156,21 @@ internal static partial class Native
         SetWindowLongPtr(window, GWL_EXSTYLE, new IntPtr(style));
     }
 
-    public static void RoundCorners(IntPtr window)
+    /// <summary>
+    /// Asks DWM for the closest native frame rounding: <c>ROUNDSMALL</c> (about 4px) for Paper's
+    /// tight corners and <c>ROUND</c> (about 8px) for Graphite Pro's softer ones. Windows cannot
+    /// draw an exact 4/18px frame, so this is the closest native approximation.
+    /// </summary>
+    public static void RoundCorners(IntPtr window, bool small = false)
     {
-        var preference = DWMWCP_ROUND;
+        var preference = small ? DWMWCP_ROUNDSMALL : DWMWCP_ROUND;
         DwmSetWindowAttribute(window, DWMWA_WINDOW_CORNER_PREFERENCE, ref preference, sizeof(int));
+    }
+
+    /// <summary>Asks DWM to draw the native frame in dark mode, matching the app surface.</summary>
+    public static void DarkTitleBar(IntPtr window, bool dark)
+    {
+        var value = dark ? 1 : 0;
+        DwmSetWindowAttribute(window, DWMWA_USE_IMMERSIVE_DARK_MODE, ref value, sizeof(int));
     }
 }

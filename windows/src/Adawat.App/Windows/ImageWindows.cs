@@ -78,7 +78,7 @@ public static class FrameWindow
         var (preview, width, _) = Pictures.LoadPreview(files[0], 900);
         var scale = (double)preview.Width / width;
         var window = new ToolWindow("Add Background", 600);
-        var stage = new PictureStage(340) { Background = new SolidColorBrush(Color.FromArgb(0x10, 0, 0, 0)) };
+        var stage = new PictureStage(340) { Background = Theme.Card };
         var stack = new StackPanel();
         stack.Children.Add(stage);
         var pending = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(120) };
@@ -156,7 +156,7 @@ public static class CollageWindow
         var options = new CollageOptions { Columns = files.Count <= 4 ? 2 : 3 };
         var thumbs = order.ToDictionary(f => f, f => ImageEngine.Load(f, 900));
         var window = new ToolWindow("Create Collage", 640);
-        var stage = new PictureStage(340) { Background = new SolidColorBrush(Color.FromArgb(0x10, 0, 0, 0)) };
+        var stage = new PictureStage(340) { Background = Theme.Card };
         var stack = new StackPanel();
         stack.Children.Add(stage);
         var pending = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(120) };
@@ -186,8 +186,8 @@ public static class CollageWindow
                 var cell = new StackPanel { Margin = new Thickness(0, 0, 6, 0) };
                 cell.Children.Add(new Image { Source = Pictures.ToBitmap(Thumb(thumbs[order[i]])), Width = 44, Height = 44, Stretch = Stretch.UniformToFill });
                 var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
-                buttons.Children.Add(UI.IconButton("", () => { if (index > 0) { (order[index - 1], order[index]) = (order[index], order[index - 1]); DrawOrder(); Refresh(); } }, "Move", 20));
-                buttons.Children.Add(UI.IconButton("", () => { if (index < order.Count - 1) { (order[index + 1], order[index]) = (order[index], order[index + 1]); DrawOrder(); Refresh(); } }, "Move", 20));
+                buttons.Children.Add(UI.IconButton("", () => { if (index > 0) { (order[index - 1], order[index]) = (order[index], order[index - 1]); DrawOrder(); Refresh(); } }, "Move", 20).Pad(3, 0));
+                buttons.Children.Add(UI.IconButton("", () => { if (index < order.Count - 1) { (order[index + 1], order[index]) = (order[index], order[index + 1]); DrawOrder(); Refresh(); } }, "Move", 20).Pad(3, 0));
                 cell.Children.Add(buttons);
                 orderList.Children.Add(cell);
             }

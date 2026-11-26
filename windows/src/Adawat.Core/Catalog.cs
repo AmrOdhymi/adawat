@@ -27,7 +27,7 @@ public static class Catalog
         {
             WheelMode.Convert => Conversions(files),
             WheelMode.Tools => Tools(files),
-            _ => Actions(),
+            _ => Actions(files),
         };
     }
 
@@ -221,14 +221,20 @@ public static class Catalog
 
     // MARK: Actions
 
-    /// <summary>The same six actions for any file or folder, clockwise from the top. The app performs them.</summary>
-    private static List<AdawatOperation> Actions() =>
-    [
-        Tool("action.share", "Share", null, Icons.Share, FileActions.Share, producesFiles: false),
-        Tool("action.float", "Float", null, Icons.Float, FileActions.NewFloat, producesFiles: false),
-        Tool("action.copy", "Copy", null, Icons.Copy, FileActions.CopyFiles, producesFiles: false),
-        Tool("action.move", "Move", null, Icons.Move, FileActions.Move, producesFiles: false),
-        Tool("action.paths", "Copy Path", null, Icons.Path, FileActions.CopyPaths, producesFiles: false),
-        Tool("action.terminal", "Terminal", null, Icons.Terminal, FileActions.OpenTerminal, producesFiles: false),
-    ];
+    /// <summary>The actions for any file or folder, clockwise from the top. The app performs them; documents
+    /// gain an Open choice that shows them in the read-only tabbed viewer.</summary>
+    private static List<AdawatOperation> Actions(IReadOnlyList<string> files)
+    {
+        var actions = new List<AdawatOperation>();
+        if (files.Count > 0 && files.All(FileKinds.CanPreview))
+            actions.Add(Tool("action.open", "Open", null, Icons.Document, NeedsWindow, "documents", producesFiles: false));
+
+        actions.Add(Tool("action.share", "Share", null, Icons.Share, FileActions.Share, producesFiles: false));
+        actions.Add(Tool("action.float", "Float", null, Icons.Float, FileActions.NewFloat, producesFiles: false));
+        actions.Add(Tool("action.copy", "Copy", null, Icons.Copy, FileActions.CopyFiles, producesFiles: false));
+        actions.Add(Tool("action.move", "Move", null, Icons.Move, FileActions.Move, producesFiles: false));
+        actions.Add(Tool("action.paths", "Copy Path", null, Icons.Path, FileActions.CopyPaths, producesFiles: false));
+        actions.Add(Tool("action.terminal", "Terminal", null, Icons.Terminal, FileActions.OpenTerminal, producesFiles: false));
+        return actions;
+    }
 }

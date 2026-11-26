@@ -14,6 +14,9 @@ public static class FileKinds
         { "txt", "rtf", "doc", "docx", "odt", "html", "htm", "md", "markdown", "epub" };
     public static readonly HashSet<string> Spreadsheets = new(StringComparer.OrdinalIgnoreCase) { "xlsx", "xls", "csv", "tsv", "ods" };
     public static readonly HashSet<string> Presentations = new(StringComparer.OrdinalIgnoreCase) { "pptx", "ppt", "odp" };
+    /// <summary>Everything the read-only document viewer can open: documents, PDF pages and LaTeX source.</summary>
+    public static readonly HashSet<string> Viewable = new(Documents, StringComparer.OrdinalIgnoreCase) { "pdf", "tex", "latex" };
+
     public static readonly HashSet<string> Subtitles = new(StringComparer.OrdinalIgnoreCase) { "srt", "vtt" };
     public static readonly HashSet<string> Archives = new(StringComparer.OrdinalIgnoreCase)
         { "zip", "tar", "gz", "tgz", "bz2", "xz", "rar", "7z", "tbz", "txz", "iso", "cab" };
@@ -33,6 +36,9 @@ public static class FileKinds
         if (Archives.Contains(ext)) return FileKind.Archive;
         return FileKind.Other;
     }
+
+    /// <summary>True when the document viewer can display the file.</summary>
+    public static bool CanPreview(string path) => Viewable.Contains(Ext(path));
 
     /// <summary>The lower-case extension without the dot ("tar.gz" counts as "tgz").</summary>
     public static string Ext(string path)

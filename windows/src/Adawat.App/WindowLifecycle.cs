@@ -34,11 +34,31 @@ internal static class WindowLifecycle
     /// <summary>A live, visible window that can still be shown or activated.</summary>
     public static bool IsOpen(Window window) => !IsClosingOrClosed(window) && window.IsVisible;
 
-    /// <summary>Brings a live window to the front; does nothing once it started closing.</summary>
+    /// <summary>
+    /// Brings a live window to the front. A window minimized to the taskbar is restored first, so the
+    /// tray, the wheel and the tool windows always reveal it instead of flashing a minimized button.
+    /// </summary>
     public static void ActivateIfOpen(Window window)
     {
         if (!IsOpen(window)) return;
-        try { window.Activate(); }
+        try
+        {
+            if (window.WindowState == WindowState.Minimized) window.WindowState = WindowState.Normal;
+            window.Activate();
+        }
+        catch (InvalidOperationException) { }
+    }
+
+    /// <summary>Shows a hidden window, restores a minimized one and gives it focus.</summary>
+    public static void BringToFront(Window window)
+    {
+        if (IsClosingOrClosed(window)) return;
+        try
+        {
+            if (!window.IsVisible) window.Show();
+            if (window.WindowState == WindowState.Minimized) window.WindowState = WindowState.Normal;
+            window.Activate();
+        }
         catch (InvalidOperationException) { }
     }
 

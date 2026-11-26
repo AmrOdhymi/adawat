@@ -6,8 +6,10 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
 using System.Windows.Shapes;
+using Adawat.App.Documents;
 using Adawat.Core;
 using Adawat.App;
+using DocumentViewer = Adawat.App.Documents.DocumentViewer;
 
 namespace Adawat.App.Wheel;
 
@@ -47,7 +49,7 @@ public sealed class QuickWheelWindow : Window
 {
     private readonly Grid _root = new() { Width = WheelGeometry.Size, Height = WheelGeometry.Size, Background = Brushes.Transparent };
     private readonly Canvas _petals = new() { Width = WheelGeometry.Size, Height = WheelGeometry.Size, IsHitTestVisible = false };
-    private readonly TextBlock _center = new() { TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap, Foreground = Brushes.Black, MaxWidth = 72 };
+    private readonly TextBlock _center = new() { TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap, Foreground = Theme.Ink, MaxWidth = 72 };
     private readonly Border _centerPill;
     private readonly ScaleTransform _scale = new(0.9, 0.9, WheelGeometry.Size / 2, WheelGeometry.Size / 2);
     private List<QuickToolItem> _items = [];
@@ -73,9 +75,9 @@ public sealed class QuickWheelWindow : Window
         var disc = new Ellipse
         {
             Width = (WheelGeometry.OuterRadius + 6.5) * 2, Height = (WheelGeometry.OuterRadius + 6.5) * 2,
-            Stroke = new SolidColorBrush(Color.FromArgb(0x55, 0xFF, 0xFF, 0xFF)), StrokeThickness = 1,
+            Stroke = Theme.LineStrong, StrokeThickness = 1,
             Fill = Theme.Disc, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, IsHitTestVisible = false,
-            Effect = new DropShadowEffect { BlurRadius = 18, ShadowDepth = 5, Direction = 270, Opacity = 0.18, Color = Color.FromRgb(0x26, 0x34, 0x38) },
+            Effect = new DropShadowEffect { BlurRadius = 18, ShadowDepth = 5, Direction = 270, Opacity = 0.18, Color = Theme.ShadowColor },
         };
         var hole = new EllipseGeometry(new Point(WheelGeometry.Size / 2, WheelGeometry.Size / 2), WheelGeometry.InnerRadius - 6, WheelGeometry.InnerRadius - 6);
         disc.OpacityMask = new DrawingBrush(new GeometryDrawing(Brushes.Black, null,
@@ -84,8 +86,8 @@ public sealed class QuickWheelWindow : Window
 
         _centerPill = new Border
         {
-            Child = _center, Background = new SolidColorBrush(Color.FromArgb(0xEE, 0xFF, 0xFF, 0xFF)), CornerRadius = new CornerRadius(24),
-            BorderBrush = new SolidColorBrush(Color.FromArgb(0xB3, 0xFF, 0xFF, 0xFF)), BorderThickness = new Thickness(1),
+            Child = _center, Background = Theme.Hub, CornerRadius = new CornerRadius(24),
+            BorderBrush = Theme.Line, BorderThickness = new Thickness(1),
             Padding = new Thickness(8, 6, 8, 6), MinHeight = 32, MinWidth = 70, IsHitTestVisible = false,
             HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
             Effect = new DropShadowEffect { BlurRadius = 6, ShadowDepth = 2, Direction = 270, Opacity = 0.1 },
@@ -259,7 +261,7 @@ public sealed class QuickWheelWindow : Window
             {
                 Data = WheelGeometry.Petal(index, count),
                 Fill = hovered ? Theme.Accent : Theme.PetalFill,
-                Stroke = hovered ? new SolidColorBrush(Color.FromArgb(0x70, 0x3E, 0x2E, 0xAA)) : Theme.PetalStroke,
+                Stroke = hovered ? Theme.Accent2 : Theme.PetalStroke,
                 StrokeThickness = 0.75,
             };
             var group = new Canvas();
@@ -279,7 +281,7 @@ public sealed class QuickWheelWindow : Window
             }
             else
             {
-                group.Effect = new DropShadowEffect { BlurRadius = 10, ShadowDepth = 3, Direction = 270, Opacity = 0.12, Color = Color.FromRgb(0x26, 0x34, 0x38) };
+                group.Effect = new DropShadowEffect { BlurRadius = 10, ShadowDepth = 3, Direction = 270, Opacity = 0.12, Color = Theme.ShadowColor };
             }
             _petals.Children.Add(group);
         }
@@ -287,10 +289,10 @@ public sealed class QuickWheelWindow : Window
         if (_isOverCenter)
         {
             _center.Text = L10n.Upper(L10n.T("CANCEL"));
-            _center.Foreground = new SolidColorBrush(Color.FromRgb(0xC6, 0x28, 0x28));
-            _centerPill.Background = new SolidColorBrush(Color.FromArgb(0xF6, 0xFF, 0xEB, 0xEE));
-            _centerPill.BorderBrush = new SolidColorBrush(Color.FromArgb(0xD0, 0xEF, 0x53, 0x50));
-            _center.FontFamily = Theme.Font;
+            _center.Foreground = Theme.Danger;
+            _centerPill.Background = Theme.DangerSoft;
+            _centerPill.BorderBrush = Theme.Danger;
+            _center.FontFamily = Theme.LabelFont;
             _center.FontSize = 11;
             _center.FontWeight = FontWeights.Bold;
         }
@@ -298,10 +300,10 @@ public sealed class QuickWheelWindow : Window
         {
             var current = _hovered is { } h && h < count ? _items[h] : null;
             _center.Text = current != null ? current.Title : (count == 0 ? L10n.Upper(L10n.T("NO OPTIONS")) : L10n.Upper(L10n.T("Tools")));
-            _center.Foreground = Brushes.Black;
-            _centerPill.Background = new SolidColorBrush(Color.FromArgb(0xEE, 0xFF, 0xFF, 0xFF));
-            _centerPill.BorderBrush = new SolidColorBrush(Color.FromArgb(0xB3, 0xFF, 0xFF, 0xFF));
-            _center.FontFamily = Theme.Font;
+            _center.Foreground = Theme.Ink;
+            _centerPill.Background = Theme.Hub;
+            _centerPill.BorderBrush = Theme.Line;
+            _center.FontFamily = Theme.LabelFont;
             _center.FontSize = current == null ? 11 : 10;
             _center.FontWeight = FontWeights.SemiBold;
         }
@@ -309,30 +311,33 @@ public sealed class QuickWheelWindow : Window
 
     private static FrameworkElement RenderLabel(QuickToolItem item, bool hovered, int count)
     {
-        var color = hovered ? Brushes.White : Brushes.Black;
+        var color = hovered ? Theme.OnAccent : Theme.Ink;
+        var width = WheelGeometry.LabelWidth(count);
         var stack = new StackPanel { IsHitTestVisible = false, HorizontalAlignment = HorizontalAlignment.Center };
         stack.Children.Add(new TextBlock
         {
             Text = item.Icon,
             FontFamily = Theme.Icons,
-            FontSize = 16,
+            FontSize = 15.5,
             Foreground = color,
             HorizontalAlignment = HorizontalAlignment.Center
         });
         stack.Children.Add(new TextBlock
         {
             Text = item.Title,
-            FontFamily = Theme.Font,
+            FontFamily = Theme.LabelFont,
             FontWeight = FontWeights.SemiBold,
-            FontSize = 9.5,
+            FontSize = WheelGeometry.LabelFontSize(item.Title, count),
             Foreground = color,
             HorizontalAlignment = HorizontalAlignment.Center,
+            TextAlignment = TextAlignment.Center,
             Margin = new Thickness(0, 3, 0, 0),
-            MaxWidth = 66,
+            MaxWidth = width,
+            TextWrapping = TextWrapping.Wrap,
             TextTrimming = TextTrimming.CharacterEllipsis,
             FlowDirection = Theme.Direction,
         });
-        return stack;
+        return new Border { Padding = new Thickness(2, 1, 2, 1), IsHitTestVisible = false, Child = stack };
     }
 
     private static List<QuickToolItem> LoadActiveItems()
@@ -348,6 +353,7 @@ public sealed class QuickWheelWindow : Window
             new("launcher", L10n.T("Launcher"), "\uE71D", () => QuickLauncherWindow.Present()),
             new("notepad", L10n.T("Notepad"), Catalog.Icons.Edit, () => NotepadWindow.Present()),
             new("clipboard", L10n.T("Clipboard"), "\uE77F", () => ClipboardWindow.Present()),
+            new("documents", L10n.T("Documents"), Catalog.Icons.Document, () => DocumentViewer.PickOrPresent()),
             new("screen_text", L10n.T("Extract Text"), Catalog.Icons.Text, () => TextOverlayWindow.Launch()),
         };
 

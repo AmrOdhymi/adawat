@@ -16,6 +16,19 @@ public static class WheelGeometry
     public const double Size = 300, OuterRadius = 119.5, InnerRadius = 48.6;
     public static double LabelRadius => (InnerRadius + OuterRadius) / 2;
 
+    /// <summary>Text width that fits inside one petal at the label radius, with a gap at both edges.</summary>
+    public static double LabelWidth(int count) =>
+        Math.Clamp(2 * Math.PI * LabelRadius / Math.Max(count, 1) - 12, 30, 76);
+
+    /// <summary>Shrinks a label just enough that long titles stay inside the petal instead of touching its edges.</summary>
+    public static double LabelFontSize(string text, int count, double max = 9.5)
+    {
+        var width = LabelWidth(count);
+        var characters = Math.Max(text.Length, 1);
+        var estimated = characters * max * 0.56;
+        return estimated <= width ? max : Math.Max(8.2, width / (characters * 0.56));
+    }
+
     /// <summary>Centre of petal <paramref name="index"/> of <paramref name="count"/>, starting at the top and going clockwise.</summary>
     public static Point Position(int index, int count)
     {
@@ -95,7 +108,7 @@ public sealed class WheelWindow : Window
     // Petals are redrawn as the hover moves; were they hit-testable, the element under the pointer would vanish mid-drag and
     // Windows would show "no drop". The steady background takes the drag, and the angle decides the petal.
     private readonly Canvas _petals = new() { Width = WheelGeometry.Size, Height = WheelGeometry.Size, IsHitTestVisible = false };
-    private readonly TextBlock _center = new() { TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap, Foreground = Brushes.Black, MaxWidth = 64 };
+    private readonly TextBlock _center = new() { TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap, Foreground = Theme.Ink, MaxWidth = 64 };
     private readonly Border _centerPill;
     private readonly ScaleTransform _scale = new(0.9, 0.9, WheelGeometry.Size / 2, WheelGeometry.Size / 2);
     private IReadOnlyList<AdawatOperation> _operations = [];
@@ -123,9 +136,9 @@ public sealed class WheelWindow : Window
         var disc = new Ellipse
         {
             Width = (WheelGeometry.OuterRadius + 6.5) * 2, Height = (WheelGeometry.OuterRadius + 6.5) * 2,
-            Stroke = new SolidColorBrush(Color.FromArgb(0x55, 0xFF, 0xFF, 0xFF)), StrokeThickness = 1,
+            Stroke = Theme.LineStrong, StrokeThickness = 1,
             Fill = Theme.Disc, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, IsHitTestVisible = false,
-            Effect = new DropShadowEffect { BlurRadius = 18, ShadowDepth = 5, Direction = 270, Opacity = 0.18, Color = Color.FromRgb(0x26, 0x34, 0x38) },
+            Effect = new DropShadowEffect { BlurRadius = 18, ShadowDepth = 5, Direction = 270, Opacity = 0.18, Color = Theme.ShadowColor },
         };
         var hole = new EllipseGeometry(new Point(WheelGeometry.Size / 2, WheelGeometry.Size / 2), WheelGeometry.InnerRadius - 6, WheelGeometry.InnerRadius - 6);
         disc.OpacityMask = new DrawingBrush(new GeometryDrawing(Brushes.Black, null,
@@ -133,8 +146,8 @@ public sealed class WheelWindow : Window
         { Stretch = Stretch.None, ViewboxUnits = BrushMappingMode.Absolute, Viewbox = new Rect(WheelGeometry.Size / 2 - WheelGeometry.OuterRadius - 6.5, WheelGeometry.Size / 2 - WheelGeometry.OuterRadius - 6.5, (WheelGeometry.OuterRadius + 6.5) * 2, (WheelGeometry.OuterRadius + 6.5) * 2) };
         _centerPill = new Border
         {
-            Child = _center, Background = new SolidColorBrush(Color.FromArgb(0xEE, 0xFF, 0xFF, 0xFF)), CornerRadius = new CornerRadius(24),
-            BorderBrush = new SolidColorBrush(Color.FromArgb(0xB3, 0xFF, 0xFF, 0xFF)), BorderThickness = new Thickness(1),
+            Child = _center, Background = Theme.Hub, CornerRadius = new CornerRadius(24),
+            BorderBrush = Theme.Line, BorderThickness = new Thickness(1),
             Padding = new Thickness(8, 6, 8, 6), MinHeight = 32, MinWidth = 70, IsHitTestVisible = false,
             HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
             Effect = new DropShadowEffect { BlurRadius = 6, ShadowDepth = 2, Direction = 270, Opacity = 0.1 },
@@ -287,7 +300,7 @@ public sealed class WheelWindow : Window
             var petal = new System.Windows.Shapes.Path
             {
                 Data = WheelGeometry.Petal(index, count), Fill = hovered ? Theme.Accent : Theme.PetalFill,
-                Stroke = hovered ? new SolidColorBrush(Color.FromArgb(0x70, 0x3E, 0x2E, 0xAA)) : Theme.PetalStroke, StrokeThickness = 0.75,
+                Stroke = hovered ? Theme.Accent2 : Theme.PetalStroke, StrokeThickness = 0.75,
             };
             var group = new Canvas();
             group.Children.Add(petal);
@@ -306,7 +319,7 @@ public sealed class WheelWindow : Window
             }
             else
             {
-                group.Effect = new DropShadowEffect { BlurRadius = 10, ShadowDepth = 3, Direction = 270, Opacity = 0.12, Color = Color.FromRgb(0x26, 0x34, 0x38) };
+                group.Effect = new DropShadowEffect { BlurRadius = 10, ShadowDepth = 3, Direction = 270, Opacity = 0.12, Color = Theme.ShadowColor };
             }
             _petals.Children.Add(group);
         }
@@ -314,10 +327,10 @@ public sealed class WheelWindow : Window
         if (_isOverCenter)
         {
             _center.Text = L10n.Upper(L10n.T("CANCEL"));
-            _center.Foreground = new SolidColorBrush(Color.FromRgb(0xC6, 0x28, 0x28));
-            _centerPill.Background = new SolidColorBrush(Color.FromArgb(0xF6, 0xFF, 0xEB, 0xEE));
-            _centerPill.BorderBrush = new SolidColorBrush(Color.FromArgb(0xD0, 0xEF, 0x53, 0x50));
-            _center.FontFamily = Theme.Font;
+            _center.Foreground = Theme.Danger;
+            _centerPill.Background = Theme.DangerSoft;
+            _centerPill.BorderBrush = Theme.Danger;
+            _center.FontFamily = Theme.LabelFont;
             _center.FontSize = 11;
             _center.FontWeight = FontWeights.Bold;
         }
@@ -326,10 +339,10 @@ public sealed class WheelWindow : Window
             var current = _hovered is { } h && h < count ? _operations[h] : null;
             var isTool = current is { Badge: null };
             _center.Text = current?.WheelLabel ?? (_files.Count > 0 && count == 0 ? L10n.Upper(L10n.T("NO OPTIONS")) : L10n.Upper(L10n.T(ModeTitle(Mode))));
-            _center.Foreground = Brushes.Black;
-            _centerPill.Background = new SolidColorBrush(Color.FromArgb(0xEE, 0xFF, 0xFF, 0xFF));
-            _centerPill.BorderBrush = new SolidColorBrush(Color.FromArgb(0xB3, 0xFF, 0xFF, 0xFF));
-            _center.FontFamily = Theme.Font;
+            _center.Foreground = Theme.Ink;
+            _centerPill.Background = Theme.Hub;
+            _centerPill.BorderBrush = Theme.Line;
+            _center.FontFamily = Theme.LabelFont;
             _center.FontSize = isTool || current == null ? 10 : 13;
             _center.FontWeight = isTool || current == null ? FontWeights.SemiBold : FontWeights.Medium;
         }
@@ -352,24 +365,33 @@ public sealed class WheelWindow : Window
 
     private static FrameworkElement Label(AdawatOperation operation, bool hovered, int count)
     {
-        var color = hovered ? Brushes.White : Brushes.Black;
+        var color = hovered ? Theme.OnAccent : Theme.Ink;
+        var width = WheelGeometry.LabelWidth(count);
         if (operation.Badge is { } badge)
         {
-            return new TextBlock
+            var text = badge.ToUpperInvariant();
+            return new Border
             {
-                Text = badge.ToUpperInvariant(), FontFamily = Theme.Font, FontWeight = FontWeights.SemiBold,
-                FontSize = count > 8 ? 12.5 : 14.5, Foreground = color, IsHitTestVisible = false,
+                Padding = new Thickness(2, 1, 2, 1), IsHitTestVisible = false,
+                Child = new TextBlock
+                {
+                    Text = text, FontFamily = Theme.LabelFont, FontWeight = FontWeights.SemiBold,
+                    FontSize = WheelGeometry.LabelFontSize(text, count, count > 8 ? 12.5 : 14.5), Foreground = color,
+                    HorizontalAlignment = HorizontalAlignment.Center, TextAlignment = TextAlignment.Center,
+                    MaxWidth = width, TextTrimming = TextTrimming.CharacterEllipsis, FlowDirection = Theme.Direction,
+                },
             };
         }
         var stack = new StackPanel { IsHitTestVisible = false, HorizontalAlignment = HorizontalAlignment.Center };
         stack.Children.Add(new TextBlock { Text = operation.Icon, FontFamily = Theme.Icons, FontSize = 15, Foreground = color, HorizontalAlignment = HorizontalAlignment.Center });
         stack.Children.Add(new TextBlock
         {
-            Text = operation.WheelLabel, FontFamily = Theme.Font, FontWeight = FontWeights.SemiBold, FontSize = 9.5, Foreground = color,
-            HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 3, 0, 0), MaxWidth = 66, TextTrimming = TextTrimming.CharacterEllipsis,
-            FlowDirection = Theme.Direction,
+            Text = operation.WheelLabel, FontFamily = Theme.LabelFont, FontWeight = FontWeights.SemiBold,
+            FontSize = WheelGeometry.LabelFontSize(operation.WheelLabel, count), Foreground = color,
+            HorizontalAlignment = HorizontalAlignment.Center, TextAlignment = TextAlignment.Center, Margin = new Thickness(0, 3, 0, 0),
+            MaxWidth = width, TextWrapping = TextWrapping.Wrap, TextTrimming = TextTrimming.CharacterEllipsis, FlowDirection = Theme.Direction,
         });
-        return stack;
+        return new Border { Padding = new Thickness(2, 1, 2, 1), IsHitTestVisible = false, Child = stack };
     }
 }
 

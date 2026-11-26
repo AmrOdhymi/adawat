@@ -81,13 +81,12 @@ public sealed class TextOverlayWindow : Window
         // Manual selection rectangle (hidden until drag)
         _manualSelection = new Border
         {
-            BorderBrush = new SolidColorBrush(Color.FromRgb(0xFF, 0xA5, 0x00)),
+            BorderBrush = Theme.Accent,
             BorderThickness = new Thickness(2),
-            Background = new SolidColorBrush(Color.FromArgb(0x18, 0xFF, 0xA5, 0x00)),
+            Background = new SolidColorBrush(Color.FromArgb(0x24, Theme.AccentColor.R, Theme.AccentColor.G, Theme.AccentColor.B)),
             Visibility = Visibility.Collapsed,
             IsHitTestVisible = false,
-            CornerRadius = new CornerRadius(3),
-        };
+        }.Radius("Theme.RadiusSmall");
         _canvas.Children.Add(_manualSelection);
 
         // Build toolbar pill
@@ -141,18 +140,17 @@ public sealed class TextOverlayWindow : Window
         var toolbar = new Border
         {
             Child = toolbarPanel,
-            Background = new SolidColorBrush(Color.FromArgb(0xF4, 0xFF, 0xFF, 0xFF)),
-            CornerRadius = new CornerRadius(16),
-            BorderBrush = new SolidColorBrush(Color.FromArgb(0x40, 0, 0, 0)),
+            Background = Theme.Surface,
+            BorderBrush = Theme.LineStrong,
             BorderThickness = new Thickness(1),
             Padding = new Thickness(6, 4, 6, 4),
             Effect = new DropShadowEffect
             {
                 BlurRadius = 16, ShadowDepth = 4, Direction = 270, Opacity = 0.22,
-                Color = Color.FromRgb(0x20, 0x20, 0x24),
+                Color = Theme.ShadowColor,
             },
             Tag = "toolbar",
-        };
+        }.Radius("Theme.RadiusXl");
         _canvas.Children.Add(toolbar);
 
         Content = _canvas;
@@ -235,9 +233,10 @@ public sealed class TextOverlayWindow : Window
             region.Bounds.Width * _scaleX,
             region.Bounds.Height * _scaleY);
 
-        var accentFill = new SolidColorBrush(Color.FromArgb(0x30, 0x5B, 0x47, 0xE6));
-        var hoverFill = new SolidColorBrush(Color.FromArgb(0x55, 0x5B, 0x47, 0xE6));
-        var borderBrush = new SolidColorBrush(Color.FromArgb(0x90, 0x5B, 0x47, 0xE6));
+        var accent = Theme.AccentColor;
+        var accentFill = new SolidColorBrush(Color.FromArgb(0x30, accent.R, accent.G, accent.B));
+        var hoverFill = new SolidColorBrush(Color.FromArgb(0x55, accent.R, accent.G, accent.B));
+        var borderBrush = new SolidColorBrush(Color.FromArgb(0x90, accent.R, accent.G, accent.B));
 
         var box = new Border
         {
@@ -246,7 +245,6 @@ public sealed class TextOverlayWindow : Window
             Background = accentFill,
             BorderBrush = borderBrush,
             BorderThickness = new Thickness(1.5),
-            CornerRadius = new CornerRadius(3),
             Cursor = Cursors.Hand,
             ToolTip = new ToolTip
             {
@@ -260,7 +258,7 @@ public sealed class TextOverlayWindow : Window
                 Placement = System.Windows.Controls.Primitives.PlacementMode.Mouse,
             },
             Tag = region.Text,
-        };
+        }.Radius("Theme.RadiusSmall");
 
         box.MouseEnter += (_, _) =>
         {
@@ -295,19 +293,18 @@ public sealed class TextOverlayWindow : Window
     private void ShowCopiedFeedback(Border box)
     {
         var feedbackPanel = new StackPanel { Orientation = Orientation.Horizontal };
-        feedbackPanel.Children.Add(UI.Icon("\uE73E", 12, Brushes.White));
+        feedbackPanel.Children.Add(UI.Icon("\uE73E", 12, Theme.OnAccent));
         feedbackPanel.Children.Add(new Border { Width = 4 });
-        feedbackPanel.Children.Add(UI.Text("Copied!", 11, FontWeights.SemiBold, Brushes.White));
+        feedbackPanel.Children.Add(UI.Text("Copied!", 11, FontWeights.SemiBold, Theme.OnAccent));
 
         var feedback = new Border
         {
             Child = feedbackPanel,
-            Background = new SolidColorBrush(Color.FromArgb(0xE0, 0x34, 0xA8, 0x53)),
-            CornerRadius = new CornerRadius(8),
+            Background = Theme.Ok,
             Padding = new Thickness(10, 5, 10, 5),
             IsHitTestVisible = false,
-            Effect = new DropShadowEffect { BlurRadius = 8, ShadowDepth = 2, Direction = 270, Opacity = 0.2 },
-        };
+            Effect = new DropShadowEffect { BlurRadius = 8, ShadowDepth = 2, Direction = 270, Opacity = 0.2, Color = Theme.ShadowColor },
+        }.Radius("Theme.RadiusSmall");
 
         Canvas.SetLeft(feedback, Canvas.GetLeft(box));
         Canvas.SetTop(feedback, Canvas.GetTop(box) - 32);

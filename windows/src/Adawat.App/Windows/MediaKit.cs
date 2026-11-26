@@ -218,7 +218,7 @@ public class Timeline : FrameworkElement
     {
         var w = ActualWidth;
         var h = ActualHeight;
-        var clip = new RectangleGeometry(new Rect(0, 0, w, h), 8, 8);
+        var clip = new RectangleGeometry(new Rect(0, 0, w, h), Theme.SmallRadiusValue, Theme.SmallRadiusValue);
         dc.PushClip(clip);
         var levels = Levels ?? Media.Waveform;
         if (Media.Thumbnails.Count > 0)
@@ -241,13 +241,13 @@ public class Timeline : FrameworkElement
             dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(0x14, Theme.AccentColor.R, Theme.AccentColor.G, Theme.AccentColor.B)), null, new Rect(0, 0, w, h));
             DrawWave(dc, levels, new Rect(0, 0, w, h), WaveBrush);
         }
-        else dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(0x14, 0, 0, 0)), null, new Rect(0, 0, w, h));
+        else dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(0x14, Theme.Ink.Color.R, Theme.Ink.Color.G, Theme.Ink.Color.B)), null, new Rect(0, 0, w, h));
         dc.Pop();
         Overlay?.Invoke(dc, w, h);
         if (ShowPlayhead)
         {
             var x = XAt(Media.Current);
-            dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(0xD9, 0x28, 0x2B, 0x29)), null, new Rect(x - 0.75, 0, 1.5, h));
+            dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(0xD9, Theme.Ink.Color.R, Theme.Ink.Color.G, Theme.Ink.Color.B)), null, new Rect(x - 0.75, 0, 1.5, h));
         }
     }
 
@@ -298,7 +298,7 @@ public static class MediaUI
         var grid = new Grid { Background = Brushes.Black };
         if (media.Player != null) grid.Children.Add(media.Player);
         grid.Children.Add(media.Still);
-        return new Border { Height = height, CornerRadius = new CornerRadius(12), Background = Brushes.Black, Child = grid, ClipToBounds = true };
+        return new Border { Height = height, Background = Brushes.Black, Child = grid, ClipToBounds = true }.Radius("Theme.RadiusMedium");
     }
 
     /// <summary>Audio has no picture, but the player still has to be in the window to open the file.</summary>
@@ -343,7 +343,7 @@ public static class MediaUI
     /// <summary>A text field holding a time such as 0:12.50; typing a time and leaving the field sets it.</summary>
     public static TextBox TimeField(double value, Action<double> set)
     {
-        var box = new TextBox { Width = 78, Height = 24, VerticalContentAlignment = VerticalAlignment.Center, FontFamily = new FontFamily("Cascadia Mono, Consolas"), FontSize = 12, Text = Format.Time(value), FlowDirection = FlowDirection.LeftToRight };
+        var box = new TextBox { Width = 78, Height = 24, MinHeight = 24, VerticalContentAlignment = VerticalAlignment.Center, FontFamily = new FontFamily("Cascadia Mono, Consolas"), FontSize = 12, Text = Format.Time(value), FlowDirection = FlowDirection.LeftToRight };
         void Commit() { if (Format.ParseTime(box.Text) is { } seconds) set(seconds); }
         box.LostFocus += (_, _) => Commit();
         box.KeyDown += (_, e) => { if (e.Key == Key.Enter) Commit(); };

@@ -145,10 +145,10 @@ header.Children.Add(closeBtn);
 
         Content = new Border
         {
-            Margin = new Thickness(12), CornerRadius = new CornerRadius(16), Child = layout,
-            Background = new SolidColorBrush(Color.FromArgb(0xF2, 0xFA, 0xFA, 0xFB)), BorderBrush = Theme.Hairline, BorderThickness = new Thickness(1),
-            Effect = new DropShadowEffect { BlurRadius = 24, ShadowDepth = 6, Direction = 270, Opacity = 0.2 },
-        };
+            Margin = new Thickness(12), Child = layout,
+            Background = Theme.Surface, BorderBrush = Theme.LineStrong, BorderThickness = new Thickness(1),
+            Effect = new DropShadowEffect { BlurRadius = 24, ShadowDepth = 6, Direction = 270, Opacity = 0.22, Color = Theme.ShadowColor },
+        }.Radius("Theme.RadiusXl");
 
         // Left-click on empty space deselects all files (scrollbar interaction is preserved)
         scroll.PreviewMouseLeftButtonDown += (_, e) =>
@@ -220,7 +220,7 @@ header.Children.Add(closeBtn);
         SourceInitialized += (_, _) =>
         {
             var handle = new WindowInteropHelper(this).Handle;
-            Native.RoundCorners(handle);
+            Native.RoundCorners(handle, !Theme.IsGraphite);
 
             var source = HwndSource.FromHwnd(handle);
             source?.AddHook(WndProc);
@@ -571,8 +571,8 @@ header.Children.Add(closeBtn);
 
     private ContextMenu MakeEmptySpaceMenu()
     {
-        var menu = new ContextMenu { FlowDirection = Theme.Direction };
-        void Item(string title, Action action) { var item = new MenuItem { Header = L10n.T(title) }; item.Click += (_, _) => action(); menu.Items.Add(item); }
+        var menu = UI.Menu();
+        void Item(string title, Action action) { menu.Items.Add(UI.MenuEntry(title, action)); }
 
         Item("Copy All", () => CopyTargets([.. _files]));
         Item("Move All to Folder...", () => MoveTargets([.. _files]));
@@ -605,8 +605,8 @@ header.Children.Add(closeBtn);
             else
             {
                 checkBorder.Visibility = anySelected ? Visibility.Visible : (tile.IsMouseOver ? Visibility.Visible : Visibility.Collapsed);
-                checkBorder.Background = new SolidColorBrush(Color.FromArgb(0xEE, 0xFF, 0xFF, 0xFF));
-                checkBorder.BorderBrush = Theme.Hairline;
+                checkBorder.Background = Theme.Hub;
+                checkBorder.BorderBrush = Theme.LineStrong;
                 checkIcon.Visibility = Visibility.Collapsed;
             }
         }
@@ -653,7 +653,7 @@ header.Children.Add(closeBtn);
             Text = "✓",
             FontSize = 10,
             FontWeight = FontWeights.Bold,
-            Foreground = Brushes.White,
+            Foreground = Theme.OnAccent,
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
             Visibility = selected ? Visibility.Visible : Visibility.Collapsed,
@@ -663,9 +663,8 @@ header.Children.Add(closeBtn);
         {
             Width = 18,
             Height = 18,
-            CornerRadius = new CornerRadius(4),
-            Background = selected ? Theme.Accent : new SolidColorBrush(Color.FromArgb(0xEE, 0xFF, 0xFF, 0xFF)),
-            BorderBrush = selected ? Theme.Accent : Theme.Hairline,
+            Background = selected ? Theme.Accent : Theme.Hub,
+            BorderBrush = selected ? Theme.Accent : Theme.LineStrong,
             BorderThickness = new Thickness(1.2),
             HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Top,
@@ -674,7 +673,7 @@ header.Children.Add(closeBtn);
             ToolTip = L10n.T("Select item"),
             Child = checkIcon,
             Visibility = selected ? Visibility.Visible : Visibility.Collapsed,
-        };
+        }.Radius("Theme.RadiusSmall");
 
         checkBorder.MouseLeftButtonDown += (_, e) =>
         {
@@ -693,7 +692,7 @@ header.Children.Add(closeBtn);
             Width = 16,
             Height = 16,
             Cursor = Cursors.Hand,
-            Background = new SolidColorBrush(Color.FromArgb(0x40, 0x00, 0x00, 0x00)),
+            Background = Theme.Card,
             BorderThickness = new Thickness(0),
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Top,
@@ -715,9 +714,9 @@ header.Children.Add(closeBtn);
         var tile = new Border
         {
             Tag = "Tile",
-            Child = tileGrid, Padding = new Thickness(6), Margin = new Thickness(3), CornerRadius = new CornerRadius(9), Width = 88,
+            Child = tileGrid, Padding = new Thickness(6), Margin = new Thickness(3), Width = 88,
             Background = selected ? Theme.AccentSoft : Brushes.Transparent, ToolTip = L10n.T($"{fileName}. Double-click to open; drag to carry the file."),
-        };
+        }.Radius("Theme.RadiusCard");
 
         _tileElements[file] = (tile, checkBorder, checkIcon);
 
@@ -808,8 +807,8 @@ header.Children.Add(closeBtn);
             }
         };
 
-        var menu = new ContextMenu { FlowDirection = Theme.Direction };
-        void Item(string title, Action action) { var item = new MenuItem { Header = L10n.T(title) }; item.Click += (_, _) => action(); menu.Items.Add(item); }
+        var menu = UI.Menu();
+        void Item(string title, Action action) { menu.Items.Add(UI.MenuEntry(title, action)); }
 
         Item("Open", () =>
         {

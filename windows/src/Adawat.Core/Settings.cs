@@ -11,6 +11,11 @@ public enum VideoQuality { High, Balanced, Small }
 
 public enum ModifierKey { Shift, Ctrl, Alt, None }
 
+public enum AppTheme { PaperInk, GraphitePro }
+
+/// <summary>Light or dark palette. Named to avoid colliding with <c>System.Windows.ThemeMode</c>.</summary>
+public enum AppThemeMode { Light, Dark }
+
 /// <summary>Everything the user can change, saved as JSON in %APPDATA%\Adawat\settings.json.</summary>
 public sealed class Settings
 {
@@ -20,12 +25,19 @@ public sealed class Settings
 
     public static Settings Current { get; } = Load();
 
+    public AppTheme Theme { get; set; } = AppTheme.PaperInk;
+    public AppThemeMode ThemeMode { get; set; } = AppThemeMode.Light;
+
     public ModifierKey ConvertKey { get; set; } = ModifierKey.Shift;
     public ModifierKey ToolsKey { get; set; } = ModifierKey.Ctrl;
     public ModifierKey ActionsKey { get; set; } = ModifierKey.Alt;
     public string FloatHotkey { get; set; } = "Ctrl+Shift+F";
     public string QuickWheelHotkey { get; set; } = "Ctrl+Space";
-    public List<string> EnabledQuickTools { get; set; } = ["screenshot", "bluetooth", "make_qr", "read_qr", "keyboard_swap", "launcher", "notepad", "clipboard", "screen_text"];
+    public List<string> EnabledQuickTools { get; set; } = ["screenshot", "bluetooth", "make_qr", "read_qr", "keyboard_swap", "launcher", "notepad", "clipboard", "documents", "screen_text"];
+
+    /// <summary>Bumped when a new quick-wheel tool must appear for existing settings files. Zero means
+    /// the file predates the field, so the migration adds the tools introduced since.</summary>
+    public int QuickToolsVersion { get; set; }
     public string OcrLanguage { get; set; } = "auto";
 
     public bool IsQuickToolEnabled(string id) => EnabledQuickTools == null || EnabledQuickTools.Contains(id);
@@ -62,9 +74,24 @@ public sealed class Settings
     {
         try
         {
-            if (File.Exists(FilePath)) return JsonSerializer.Deserialize<Settings>(File.ReadAllText(FilePath), Json) ?? new();
+            if (File.Exists(FilePath))
+            {
+                var settings = JsonSerializer.Deserialize<Settings>(File.ReadAllText(FilePath), Json) ?? new();
+                settings.Migrate();
+                return settings;
+            }
         }
         catch (Exception e) when (e is IOException or JsonException) { }
         return new();
+    }
+
+    /// <summary>Adds tools introduced after the settings file was written, without re-enabling ones the user turned off.</summary>
+    private void Migrate()
+    {
+        if (QuickToolsVersion >= 1) return;
+        EnabledQuickTools ??= [];
+        if (!EnabledQuickTools.Contains("documents")) EnabledQuickTools.Add("documents");
+        QuickToolsVersion = 1;
+        Save();
     }
 }

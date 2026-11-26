@@ -39,6 +39,25 @@ public static class PdfOps
         return new MagickImage(data.ToArray());
     }
 
+    /// <summary>The page size in PDF points (1/72 inch), for laying out the read-only viewer.</summary>
+    public static IReadOnlyList<(double Width, double Height)> PageSizes(string path)
+    {
+        using var stream = File.OpenRead(path);
+        return PDFtoImage.Conversion.GetPageSizes(stream, leaveOpen: false)
+            .Select(size => ((double)size.Width, (double)size.Height))
+            .ToList();
+    }
+
+    /// <summary>One page as PNG bytes at <paramref name="dpi"/>, with the file closed before returning.</summary>
+    public static byte[] RenderPagePng(string path, int page, int dpi = 150)
+    {
+        using var stream = File.OpenRead(path);
+        using var bitmap = PDFtoImage.Conversion.ToImage(stream, page: page, leaveOpen: false,
+            options: new PDFtoImage.RenderOptions(Dpi: dpi, WithAnnotations: true, WithFormFill: true, BackgroundColor: SkiaSharp.SKColors.White));
+        using var data = bitmap.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);
+        return data.ToArray();
+    }
+
     public static async Task<IReadOnlyList<string>> RenderPages(IReadOnlyList<string> files, ImageFormat format, OperationContext context)
     {
         var outputs = new List<string>();
