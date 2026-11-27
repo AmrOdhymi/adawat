@@ -121,14 +121,18 @@ public static class NotepadWindow
             }
 
             var info = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-            var isArabic = (note.Title + " " + note.Content).Any(c => c >= 0x0600 && c <= 0x06FF);
+            var contentHead = note.Content.Length > 400 ? note.Content[..400] : note.Content;
+            var isArabic = (note.Title + " " + contentHead).Any(c => c >= 0x0600 && c <= 0x06FF);
             var displayTitle = string.IsNullOrWhiteSpace(note.Title) ? L10n.T("Untitled Note") : note.Title;
             var titleBlock = UI.Text(displayTitle, 13, FontWeights.SemiBold, Theme.Ink);
             titleBlock.MaxWidth = 340;
             titleBlock.TextTrimming = TextTrimming.CharacterEllipsis;
             titleBlock.FlowDirection = isArabic ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
 
-            var snippet = note.Content.Replace("\r\n", " ").Replace('\n', ' ').Trim();
+            // Only the visible part of the snippet is measured: a TextBlock with the whole note
+            // forces WPF to lay out megabytes of text for a card that shows two lines.
+            var snippet = contentHead.Replace("\r\n", " ").Replace('\n', ' ').Trim();
+            if (note.Content.Length > contentHead.Length) snippet += "…";
             var snippetBlock = UI.Text(string.IsNullOrEmpty(snippet) ? "..." : snippet, 11, color: Theme.Muted);
             snippetBlock.MaxWidth = 340;
             snippetBlock.TextTrimming = TextTrimming.CharacterEllipsis;
@@ -380,7 +384,8 @@ public static class NotepadWindow
         var editor = new ToolWindow(isNew ? "New Note" : "Edit Note", 620) { Owner = owner };
         var stack = new StackPanel();
 
-        var isInitialArabic = (current.Title + " " + current.Content).Any(c => c >= 0x0600 && c <= 0x06FF);
+        var contentHead = current.Content.Length > 400 ? current.Content[..400] : current.Content;
+        var isInitialArabic = (current.Title + " " + contentHead).Any(c => c >= 0x0600 && c <= 0x06FF);
         var initialDir = isInitialArabic ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
 
         var titleBox = new TextBox
@@ -411,32 +416,111 @@ public static class NotepadWindow
             FlowDirection = initialDir,
             Margin = new Thickness(0, 4, 0, 8)
         };
-        var contentLoading = new ProgressBar { IsIndeterminate = true, Height = 3, Margin = new Thickness(0, 0, 0, 8), Visibility = string.IsNullOrEmpty(current.Content) ? Visibility.Collapsed : Visibility.Visible };
+        var contentLoading = new ProgressBar { IsIndeterminate = true, Height = 3, Margin = new Thickness(0, 0, 0, 8), Visibility = Visibility.Collapsed };
         stack.Children.Add(contentLoading);
         stack.Children.Add(contentBox);
-        if (!string.IsNullOrEmpty(current.Content))
+
+        // A long note is loaded 5,000 characters at a time: the first slice appears at once and
+        // each scroll to the bottom appends the next one. Measured on a 69k-character note with
+        // AppendText: ~30 ms per slice, versus ~330 ms for assigning the whole text in one pass.
+        const int chunkSize = 5000;
+        var fullContent = current.Content;
+        var loadedLength = 0;
+        var appending = false;
+        var loadComplete = fullContent.Length == 0;
+        var moreTimer = new System.Windows.Threading.DispatcherTimer(
+            System.Windows.Threading.DispatcherPriority.Background, editor.Dispatcher)
         {
-            var textToLoad = current.Content;
-            var chunkSize = 12000;
-            var index = 0;
-            void LoadChunk()
-            {
-                if (index >= textToLoad.Length)
+            Interval = TimeSpan.FromMilliseconds(120),
+        };
+
+        void MarkLoaded()
+        {
+            loadedLength = fullContent.Length;
+            loadComplete = true;
+            contentLoading.Visibility = Visibility.Collapsed;
+            moreTimer.Stop();
+            // Re-enabling undo clears the undo units created by the appends. Defer it so the
+            // toggle never runs from inside a TextChanged handler.
+            if (!contentBox.IsUndoEnabled)
+                contentBox.Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    contentLoading.Visibility = Visibility.Collapsed;
-                    return;
-                }
-                var len = Math.Min(chunkSize, textToLoad.Length - index);
-                contentBox.AppendText(textToLoad.Substring(index, len));
-                index += len;
-                editor.Dispatcher.BeginInvoke(new Action(LoadChunk), System.Windows.Threading.DispatcherPriority.Background);
-            }
-            editor.Dispatcher.BeginInvoke(new Action(LoadChunk), System.Windows.Threading.DispatcherPriority.Loaded);
+                    if (!WindowLifecycle.IsClosingOrClosed(editor)) contentBox.IsUndoEnabled = true;
+                }), System.Windows.Threading.DispatcherPriority.Background);
+        }
+
+        // Appends everything still hidden. Called when the reader edits before reaching the end,
+        // so the pending tail can never be lost on save.
+        void FlushPending()
+        {
+            if (loadComplete) return;
+            var rest = fullContent[loadedLength..];
+            loadedLength = fullContent.Length;
+            var caret = contentBox.CaretIndex;
+            var offset = contentBox.VerticalOffset;
+            appending = true;
+            contentBox.AppendText(rest);
+            appending = false;
+            MarkLoaded();
+            // AppendText moves the caret and scrolls to the end; put the reader back.
+            if (caret <= contentBox.Text.Length) contentBox.CaretIndex = caret;
+            contentBox.ScrollToVerticalOffset(offset);
+        }
+
+        void AppendNextChunk()
+        {
+            if (loadComplete || WindowLifecycle.IsClosingOrClosed(editor)) return;
+
+            var offset = contentBox.VerticalOffset;
+            var caret = contentBox.CaretIndex;
+            var length = Math.Min(chunkSize, fullContent.Length - loadedLength);
+            appending = true;
+            contentBox.AppendText(fullContent.Substring(loadedLength, length));
+            loadedLength += length;
+            appending = false;
+            // Keep the reader where they were; AppendText would otherwise scroll to the new end.
+            if (caret <= contentBox.Text.Length) contentBox.CaretIndex = caret;
+            contentBox.ScrollToVerticalOffset(offset);
+            contentLoading.Visibility = Visibility.Collapsed;
+            if (loadedLength >= fullContent.Length) MarkLoaded();
+        }
+
+        void QueueMore()
+        {
+            if (loadComplete) return;
+            if (contentBox.VerticalOffset + contentBox.ViewportHeight < contentBox.ExtentHeight - 24) return;
+            if (!moreTimer.IsEnabled) moreTimer.Start();
+        }
+
+        // Save, Copy, Export and Preview always see the whole note, even when only the first
+        // slices have been shown. Search in the list already runs on the full stored text.
+        string CurrentContent() =>
+            loadComplete ? contentBox.Text : contentBox.Text + fullContent[loadedLength..];
+
+        moreTimer.Tick += (_, _) => { moreTimer.Stop(); AppendNextChunk(); };
+        contentBox.AddHandler(System.Windows.Controls.ScrollViewer.ScrollChangedEvent,
+            new System.Windows.Controls.ScrollChangedEventHandler((_, _) => QueueMore()));
+
+        if (!loadComplete)
+        {
+            // Chunk appends must not pile up undo units while the note is still loading.
+            contentBox.IsUndoEnabled = false;
+            if (fullContent.Length > chunkSize) contentLoading.Visibility = Visibility.Visible;
+            editor.Loaded += (_, _) => editor.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (WindowLifecycle.IsClosingOrClosed(editor)) return;
+                AppendNextChunk();
+            }), System.Windows.Threading.DispatcherPriority.Background);
         }
 
         void AutoDetectDirection(TextBox box)
         {
-            var first = box.Text.FirstOrDefault(char.IsLetter);
+            if (appending) return;
+            // A user edit before the whole note is loaded appends the hidden tail immediately, so
+            // the unread part can never be dropped by a later save.
+            if (!loadComplete && ReferenceEquals(box, contentBox)) FlushPending();
+            // GetLineText(0) avoids copying the whole (possibly huge) text on every keystroke.
+            var first = box.GetLineText(0).FirstOrDefault(char.IsLetter);
             if (first != default)
             {
                 box.FlowDirection = (first >= 0x0600 && first <= 0x06FF) ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
@@ -467,7 +551,12 @@ public static class NotepadWindow
             if (picked != true) return;
             try
             {
-                contentBox.Text = File.ReadAllText(dlg.FileName);
+                var imported = File.ReadAllText(dlg.FileName);
+                // The imported text replaces everything, so drop any half-loaded state before
+                // assigning it; otherwise a later save would append the previous note's tail.
+                fullContent = imported;
+                MarkLoaded();
+                contentBox.Text = imported;
                 if (string.IsNullOrWhiteSpace(titleBox.Text))
                     titleBox.Text = Path.GetFileNameWithoutExtension(dlg.FileName);
                 Sounds.Tick();
@@ -481,7 +570,7 @@ public static class NotepadWindow
         }
 
         void PreviewNote() =>
-            MarkdownViewer.OpenPreview(string.IsNullOrWhiteSpace(titleBox.Text) ? "Note Preview" : titleBox.Text, contentBox.Text, editor);
+            MarkdownViewer.OpenPreview(string.IsNullOrWhiteSpace(titleBox.Text) ? "Note Preview" : titleBox.Text, CurrentContent(), editor);
 
         // New notes expose only what the add flow needs; Copy and Export stay on the edit dialog.
         if (isNew)
@@ -500,7 +589,8 @@ public static class NotepadWindow
                 dirBtn,
                 UI.Button("Copy", () =>
                 {
-                    var text = string.IsNullOrWhiteSpace(titleBox.Text) ? contentBox.Text : $"{titleBox.Text}\n\n{contentBox.Text}";
+                    var body = CurrentContent();
+                    var text = string.IsNullOrWhiteSpace(titleBox.Text) ? body : $"{titleBox.Text}\n\n{body}";
                     Adawat.Core.Clipboard.CopyText(text);
                     Sounds.Tick();
                     Hud.Shared.ShowMessage(L10n.T("Note copied to clipboard"), Hud.Style.Success);
@@ -508,7 +598,7 @@ public static class NotepadWindow
                 UI.Button("Preview...", PreviewNote, primary: false, icon: "\uE946"),
                 UI.Button("Export...", () =>
                 {
-                    var temp = new NoteEntry { Title = titleBox.Text, Content = contentBox.Text };
+                    var temp = new NoteEntry { Title = titleBox.Text, Content = CurrentContent() };
                     ExportNote(temp, editor);
                 }, primary: false, icon: "\uE8A5")
             );
@@ -517,7 +607,7 @@ public static class NotepadWindow
         editor.Trailing(UI.Button(isNew ? "Add" : "Save", () =>
         {
             current.Title = titleBox.Text.Trim();
-            current.Content = contentBox.Text;
+            current.Content = CurrentContent();
             current.UpdatedAt = DateTime.Now;
 
             var all = LoadNotes();

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -88,6 +89,7 @@ public static class MarkdownViewer
     private sealed class PreviewWindow : ToolWindow
     {
         private readonly FlowDocumentScrollViewer _viewer;
+        private readonly ProgressBar _loading;
         private readonly TextBlock _zoom;
         private readonly Border _findBar;
         private readonly TextBox _findBox;
@@ -219,6 +221,16 @@ public static class MarkdownViewer
             content.Children.Add(_findBar);
             content.Children.Add(_viewer);
 
+            _loading = new ProgressBar
+            {
+                IsIndeterminate = true,
+                Height = 3,
+                VerticalAlignment = VerticalAlignment.Top,
+                Visibility = Visibility.Visible,
+            };
+            Grid.SetRow(_loading, 1);
+            content.Children.Add(_loading);
+
             Body = content;
             BuildLeading();
             Trailing(
@@ -227,8 +239,15 @@ public static class MarkdownViewer
                 UI.Button("Export...", () => Export(_heading, _source, this), primary: false),
                 UI.Button("Close", CloseOnce, primary: true));
 
-            Loaded += (_, _) => ScrollToTop();
-            ShowText(text);
+            // Build the document after the window is visible: doing it in the constructor blocked
+            // the caller and the pointer until a long note was fully measured and laid out.
+            _source = text;
+            Loaded += async (_, _) =>
+            {
+                if (_viewer.Document != null) return;
+                ScrollToTop();
+                await ShowTextAsync(text);
+            };
         }
 
         private void BuildLeading()
@@ -259,30 +278,43 @@ public static class MarkdownViewer
             BuildLeading();
         }
 
-        private void ShowText(string text)
+        private async Task ShowTextAsync(string text)
         {
             _source = text;
             ClearFind();
+            _loading.Visibility = Visibility.Visible;
             try
             {
-                _viewer.Document = TexFlow.LooksLikeLatex(text)
-                    ? TexFlow.FromLatex(text, null, OpenTarget)
-                    : LooksLikeHtml(text)
-                        ? DocFlow.FromDoc(Adawat.Core.Documents.HtmlReader.Read(text, _heading), null, OpenTarget)
-                        : MarkdownFlow.LooksLikeMarkdown(text)
-                            ? MarkdownFlow.FromMarkdown(text, null, OpenTarget)
-                            : MarkdownFlow.FromPlain(text);
+                var flow = await BuildFlowAsync(text);
+                if (WindowLifecycle.IsClosingOrClosed(this)) return;
+                _viewer.Document = flow;
             }
             catch (Exception ex)
             {
                 Log.Write($"Preview render error: {ex}");
+                if (WindowLifecycle.IsClosingOrClosed(this)) return;
                 _viewer.Document = MarkdownFlow.FromPlain(text);
             }
             _viewer.Zoom = 100;
             _zoom.Text = "100%";
             _findStatus.Text = "";
+            _loading.Visibility = Visibility.Collapsed;
             ScrollToTop();
             BuildLeading();
+        }
+
+        private async Task<FlowDocument> BuildFlowAsync(string text)
+        {
+            if (TexFlow.LooksLikeLatex(text))
+                return TexFlow.FromLatex(text, null, OpenTarget);
+            if (LooksLikeHtml(text))
+            {
+                var doc = await Task.Run(() => Adawat.Core.Documents.HtmlReader.Read(text, _heading)).ConfigureAwait(true);
+                return await DocFlow.FromDocAsync(doc, null, OpenTarget, 13, yieldForUi: true).ConfigureAwait(true);
+            }
+            return MarkdownFlow.LooksLikeMarkdown(text)
+                ? await MarkdownFlow.FromMarkdownAsync(text, null, OpenTarget, 13, yieldForUi: true).ConfigureAwait(true)
+                : await MarkdownFlow.FromPlainAsync(text, null, 13, yieldForUi: true).ConfigureAwait(true);
         }
 
         /// <summary>FlowDocumentScrollViewer has no ScrollToHome, so the template's scroller is used.</summary>

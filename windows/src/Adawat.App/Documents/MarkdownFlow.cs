@@ -1,9 +1,11 @@
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Markdig;
 using Markdig.Extensions.Abbreviations;
 using Markdig.Extensions.Footnotes;
@@ -30,28 +32,41 @@ internal static class MarkdownFlow
     private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
 
     public static FlowDocument FromMarkdown(string markdown, string? baseDir = null, Action<string>? open = null, double size = 13)
+        => FromMarkdownAsync(markdown, baseDir, open, size).GetAwaiter().GetResult();
+
+    public static async Task<FlowDocument> FromMarkdownAsync(string markdown, string? baseDir = null, Action<string>? open = null, double size = 13, bool yieldForUi = false)
     {
         var rightToLeft = Adawat.Core.Documents.Bidi.IsRightToLeft(markdown);
         var math = new List<MathText.Piece>();
         var prepared = MathText.Protect(markdown, math);
+        var parsed = yieldForUi
+            ? await Task.Run(() => Markdown.Parse(prepared, Pipeline)).ConfigureAwait(true)
+            : Markdown.Parse(prepared, Pipeline);
         var document = FlowKit.NewDocument(rightToLeft, size);
         var context = new Context { Math = math, BaseDir = baseDir, Size = size, Open = open, RightToLeft = rightToLeft };
 
-        AddBlocks(document.Blocks, Markdown.Parse(prepared, Pipeline), context);
+        await AddBlocksAsync(document.Blocks, parsed, context, yieldForUi).ConfigureAwait(true);
         if (document.Blocks.Count == 0) document.Blocks.Add(FlowKit.Note("Nothing to show."));
         return document;
     }
 
     /// <summary>Text that is not Markdown keeps its line breaks, but math is still formatted.</summary>
     public static FlowDocument FromPlain(string text, string? baseDir = null, double size = 13)
+        => FromPlainAsync(text, baseDir, size).GetAwaiter().GetResult();
+
+    public static async Task<FlowDocument> FromPlainAsync(string text, string? baseDir = null, double size = 13, bool yieldForUi = false)
     {
         var rightToLeft = Adawat.Core.Documents.Bidi.IsRightToLeft(text);
         var math = new List<MathText.Piece>();
-        var prepared = MathText.Protect(text, math);
+        var prepared = yieldForUi
+            ? await Task.Run(() => MathText.Protect(text, math)).ConfigureAwait(true)
+            : MathText.Protect(text, math);
         var document = FlowKit.NewDocument(rightToLeft, size);
 
-        foreach (var chunk in prepared.Split("\n\n"))
+        var chunks = prepared.Split("\n\n");
+        for (var i = 0; i < chunks.Length; i++)
         {
+            var chunk = chunks[i];
             if (chunk.Trim().Length == 0) continue;
 
             var paragraph = new Paragraph { Margin = new Thickness(0, 0, 0, 9), LineHeight = size * 1.6 };
@@ -62,6 +77,8 @@ internal static class MarkdownFlow
                 MathText.AppendLiteral(paragraph.Inlines, lines[line].Replace("\t", "    "), size, math);
             }
             document.Blocks.Add(paragraph);
+            if (yieldForUi && i % 8 == 7)
+                await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background);
         }
 
         if (document.Blocks.Count == 0) document.Blocks.Add(FlowKit.Note("Nothing to show."));
@@ -102,6 +119,18 @@ internal static class MarkdownFlow
     private static void AddBlocks(BlockCollection target, ContainerBlock container, Context context)
     {
         foreach (var block in container) AddBlock(target, block, context);
+    }
+
+    private static async Task AddBlocksAsync(BlockCollection target, ContainerBlock container, Context context, bool yieldForUi)
+    {
+        var i = 0;
+        foreach (var block in container)
+        {
+            AddBlock(target, block, context);
+            i++;
+            if (yieldForUi && i % 6 == 0)
+                await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background);
+        }
     }
 
     private static void AddBlock(BlockCollection target, Markdig.Syntax.Block block, Context context)

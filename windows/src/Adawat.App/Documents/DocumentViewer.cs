@@ -88,7 +88,7 @@ public static class DocumentViewer
 
     private sealed class ViewerWindow : ToolWindow
     {
-        private const int KeepViews = 3;
+        private const int KeepViews = 6;
 
         private readonly StackPanel _tabStrip = new() { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
         private readonly ScrollViewer _tabScroll;
@@ -883,9 +883,8 @@ public static class DocumentViewer
             {
                 var text = await Task.Run(() => Adawat.Core.Documents.DocumentOps.ReadText(path)).ConfigureAwait(true);
                 var flow = MarkdownFlow.LooksLikeMarkdown(text)
-                    ? MarkdownFlow.FromMarkdown(text, folder, OpenTarget)
-                    : MarkdownFlow.FromPlain(text, folder);
-                await Task.Yield();
+                    ? await MarkdownFlow.FromMarkdownAsync(text, folder, OpenTarget, 13, yieldForUi: true).ConfigureAwait(true)
+                    : await MarkdownFlow.FromPlainAsync(text, folder, 13, yieldForUi: true).ConfigureAwait(true);
                 return (MakeFlowView(flow, zoom), text);
             }
 
@@ -894,13 +893,12 @@ public static class DocumentViewer
                 var source = await Task.Run(() => Adawat.Core.Documents.DocumentOps.ReadText(path)).ConfigureAwait(true);
                 var flow = TexFlow.FromLatex(source, folder, OpenTarget);
                 var plain = new TextRange(flow.ContentStart, flow.ContentEnd).Text;
-                await Task.Yield();
+                await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background);
                 return (MakeFlowView(flow, zoom), plain);
             }
 
             var document = await Adawat.Core.Documents.DocumentOps.Load(path).ConfigureAwait(true);
-            var flowDoc = DocFlow.FromDoc(document, folder, OpenTarget);
-            await Task.Yield();
+            var flowDoc = await DocFlow.FromDocAsync(document, folder, OpenTarget, 13, yieldForUi: true).ConfigureAwait(true);
             return (MakeFlowView(flowDoc, zoom), document.PlainText);
         }
 

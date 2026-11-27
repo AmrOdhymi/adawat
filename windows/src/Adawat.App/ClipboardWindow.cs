@@ -34,7 +34,6 @@ public static class ClipboardHistory
     private static readonly object Gate = new();
     private static List<ClipboardEntry>? _cache;
     private static int _suppressCount;
-    private static string? _lastTextFingerprint;
     private static CancellationTokenSource? _saveCts;
     public static int MaxImages => Math.Clamp(Settings.Current.ClipboardImageLimit, 10, 20);
     public static int MaxTextEntries => Settings.Current.ClipboardTextLimit;
@@ -115,7 +114,6 @@ public static class ClipboardHistory
         {
             var list = EnsureLoadedLocked();
             if (list.Count > 0 && list[0].Type == "Text" && list[0].Text == text) return;
-            if (string.Equals(_lastTextFingerprint, text, StringComparison.Ordinal)) return;
             var existing = list.FirstOrDefault(e => e.Type == "Text" && e.Text == text);
             if (existing != null && !existing.IsPinned) list.Remove(existing);
             if (existing == null) existing = new ClipboardEntry { Type = "Text", Text = text, CopiedAt = DateTime.Now };
@@ -382,8 +380,10 @@ public static class ClipboardWindow
             else
             {
                 var info = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-                var isArabic = item.Text.Any(c => c >= 0x0600 && c <= 0x06FF);
-                var textPreview = item.Text.Replace("\r\n", " ").Replace('\n', ' ').Trim();
+                var contentHead = item.Text.Length > 400 ? item.Text[..400] : item.Text;
+                var isArabic = contentHead.Any(c => c >= 0x0600 && c <= 0x06FF);
+                var textPreview = contentHead.Replace("\r\n", " ").Replace('\n', ' ').Trim();
+                if (item.Text.Length > contentHead.Length) textPreview += "…";
                 var textBlock = UI.Text(string.IsNullOrEmpty(textPreview) ? "..." : textPreview, 12.5, FontWeights.Medium, Theme.Ink);
                 textBlock.MaxWidth = 270;
                 textBlock.TextTrimming = TextTrimming.CharacterEllipsis;
@@ -972,7 +972,7 @@ public static class ClipboardWindow
         var dialog = new ToolWindow("Edit Clipboard Entry", 620) { Owner = owner };
         var stack = new StackPanel();
 
-        var isInitialArabic = entry.Text.Any(c => c >= 0x0600 && c <= 0x06FF);
+        var isInitialArabic = (entry.Text.Length > 400 ? entry.Text[..400] : entry.Text).Any(c => c >= 0x0600 && c <= 0x06FF);
         var initialDir = isInitialArabic ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
 
         var textBox = new TextBox
@@ -989,33 +989,106 @@ public static class ClipboardWindow
             FlowDirection = initialDir,
             Margin = new Thickness(0, 4, 0, 8)
         };
-        var loading = new ProgressBar { IsIndeterminate = true, Height = 3, Margin = new Thickness(0, 0, 0, 8), Visibility = string.IsNullOrEmpty(entry.Text) ? Visibility.Collapsed : Visibility.Visible };
+        var loading = new ProgressBar { IsIndeterminate = true, Height = 3, Margin = new Thickness(0, 0, 0, 8), Visibility = Visibility.Collapsed };
         stack.Children.Add(loading);
         stack.Children.Add(textBox);
-        if (!string.IsNullOrEmpty(entry.Text))
+
+        // Same 5,000-character slice loading as the note editor: a 69k-character entry paints at
+        // once and each scroll to the bottom appends the next slice (~30 ms) instead of blocking
+        // ~330 ms in one TextBox layout pass.
+        const int chunkSize = 5000;
+        var fullText = entry.Text;
+        var loadedLength = 0;
+        var appending = false;
+        var loadComplete = fullText.Length == 0;
+        var moreTimer = new System.Windows.Threading.DispatcherTimer(
+            System.Windows.Threading.DispatcherPriority.Background, dialog.Dispatcher)
         {
-            var textToLoad = entry.Text;
-            var chunkSize = 12000;
-            var index = 0;
-            void LoadChunk()
-            {
-                if (index >= textToLoad.Length)
+            Interval = TimeSpan.FromMilliseconds(120),
+        };
+
+        void MarkLoaded()
+        {
+            loadedLength = fullText.Length;
+            loadComplete = true;
+            loading.Visibility = Visibility.Collapsed;
+            moreTimer.Stop();
+            // Re-enabling undo clears the undo units created by the appends. Defer it so the
+            // toggle never runs from inside a TextChanged handler.
+            if (!textBox.IsUndoEnabled)
+                textBox.Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    loading.Visibility = Visibility.Collapsed;
-                    return;
-                }
-                var len = Math.Min(chunkSize, textToLoad.Length - index);
-                textBox.AppendText(textToLoad.Substring(index, len));
-                index += len;
-                dialog.Dispatcher.BeginInvoke(new Action(LoadChunk), System.Windows.Threading.DispatcherPriority.Background);
-            }
-            dialog.Dispatcher.BeginInvoke(new Action(LoadChunk), System.Windows.Threading.DispatcherPriority.Loaded);
+                    if (!WindowLifecycle.IsClosingOrClosed(dialog)) textBox.IsUndoEnabled = true;
+                }), System.Windows.Threading.DispatcherPriority.Background);
+        }
+
+        void FlushPending()
+        {
+            if (loadComplete) return;
+            var rest = fullText[loadedLength..];
+            loadedLength = fullText.Length;
+            var caret = textBox.CaretIndex;
+            var offset = textBox.VerticalOffset;
+            appending = true;
+            textBox.AppendText(rest);
+            appending = false;
+            MarkLoaded();
+            // AppendText moves the caret and scrolls to the end; put the reader back.
+            if (caret <= textBox.Text.Length) textBox.CaretIndex = caret;
+            textBox.ScrollToVerticalOffset(offset);
+        }
+
+        void AppendNextChunk()
+        {
+            if (loadComplete || WindowLifecycle.IsClosingOrClosed(dialog)) return;
+
+            var offset = textBox.VerticalOffset;
+            var caret = textBox.CaretIndex;
+            var length = Math.Min(chunkSize, fullText.Length - loadedLength);
+            appending = true;
+            textBox.AppendText(fullText.Substring(loadedLength, length));
+            loadedLength += length;
+            appending = false;
+            // Keep the reader where they were; AppendText would otherwise scroll to the new end.
+            if (caret <= textBox.Text.Length) textBox.CaretIndex = caret;
+            textBox.ScrollToVerticalOffset(offset);
+            loading.Visibility = Visibility.Collapsed;
+            if (loadedLength >= fullText.Length) MarkLoaded();
+        }
+
+        void QueueMore()
+        {
+            if (loadComplete) return;
+            if (textBox.VerticalOffset + textBox.ViewportHeight < textBox.ExtentHeight - 24) return;
+            if (!moreTimer.IsEnabled) moreTimer.Start();
+        }
+
+        // Copy, Export, Preview and Save always see the whole entry, not just the visible slices.
+        string CurrentText() =>
+            loadComplete ? textBox.Text : textBox.Text + fullText[loadedLength..];
+
+        moreTimer.Tick += (_, _) => { moreTimer.Stop(); AppendNextChunk(); };
+        textBox.AddHandler(System.Windows.Controls.ScrollViewer.ScrollChangedEvent,
+            new System.Windows.Controls.ScrollChangedEventHandler((_, _) => QueueMore()));
+
+        if (!loadComplete)
+        {
+            textBox.IsUndoEnabled = false;
+            if (fullText.Length > chunkSize) loading.Visibility = Visibility.Visible;
+            dialog.Loaded += (_, _) => dialog.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (WindowLifecycle.IsClosingOrClosed(dialog)) return;
+                AppendNextChunk();
+            }), System.Windows.Threading.DispatcherPriority.Background);
         }
 
         textBox.TextChanged += (_, _) =>
         {
-            if (loading.Visibility == Visibility.Visible) return;
-            var first = textBox.Text.FirstOrDefault(char.IsLetter);
+            if (appending) return;
+            // Editing before the end is reached appends the hidden tail so nothing is lost.
+            if (!loadComplete) FlushPending();
+            // GetLineText(0) avoids copying the whole (possibly huge) text on every keystroke.
+            var first = textBox.GetLineText(0).FirstOrDefault(char.IsLetter);
             if (first != default)
             {
                 textBox.FlowDirection = (first >= 0x0600 && first <= 0x06FF) ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
@@ -1031,17 +1104,17 @@ public static class ClipboardWindow
             }, primary: false, icon: ""),
             UI.Button("Copy", () =>
             {
-                Adawat.Core.Clipboard.CopyText(textBox.Text);
+                Adawat.Core.Clipboard.CopyText(CurrentText());
                 Sounds.Tick();
                 Hud.Shared.ShowMessage(L10n.T("Copied to clipboard"), Hud.Style.Success);
             }, primary: false, icon: "\uE8C8"),
-            UI.Button("Export...", () => ExportText(dialog, textBox.Text, $"Clipboard_{entry.CopiedAt:yyyyMMdd_HHmmss}"), primary: false, icon: "\uE8A5"),
-            UI.Button("Preview...", () => MarkdownViewer.OpenPreview("Edit Preview", textBox.Text, dialog), primary: false, icon: "")
+            UI.Button("Export...", () => ExportText(dialog, CurrentText(), $"Clipboard_{entry.CopiedAt:yyyyMMdd_HHmmss}"), primary: false, icon: "\uE8A5"),
+            UI.Button("Preview...", () => MarkdownViewer.OpenPreview("Edit Preview", CurrentText(), dialog), primary: false, icon: "")
         );
 
         dialog.Trailing(UI.Button("Save", () =>
         {
-            entry.Text = textBox.Text;
+            entry.Text = CurrentText();
             dialog.Close();
             onSaved();
             Sounds.Tick();

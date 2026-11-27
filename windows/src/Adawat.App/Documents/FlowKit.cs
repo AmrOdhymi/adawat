@@ -24,6 +24,9 @@ internal static class FlowKit
         Foreground = Theme.Ink,
         PagePadding = new Thickness(20, 16, 20, 20),
         FlowDirection = rightToLeft ? FlowDirection.RightToLeft : FlowDirection.LeftToRight,
+        // The default line-breaking optimizer can take seconds on documents with many
+        // paragraphs. Plain greedy breaking looks the same and lays out far faster.
+        IsOptimalParagraphEnabled = false,
     };
 
     public static Block CodeBlock(string code, string? language, double size = 13)

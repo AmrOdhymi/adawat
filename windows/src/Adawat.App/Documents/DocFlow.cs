@@ -1,9 +1,11 @@
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using D = Adawat.Core.Documents;
 
 namespace Adawat.App.Documents;
@@ -16,18 +18,23 @@ namespace Adawat.App.Documents;
 internal static class DocFlow
 {
     public static FlowDocument FromDoc(D.Doc doc, string? baseDir = null, Action<string>? open = null, double size = 13)
+        => FromDocAsync(doc, baseDir, open, size).GetAwaiter().GetResult();
+
+    public static async Task<FlowDocument> FromDocAsync(D.Doc doc, string? baseDir = null, Action<string>? open = null, double size = 13, bool yieldForUi = false)
     {
         var rightToLeft = D.Bidi.IsRightToLeft(doc.PlainText);
         var flow = FlowKit.NewDocument(rightToLeft, size);
         var context = new Context { BaseDir = baseDir, Size = size, Open = open, RightToLeft = rightToLeft };
 
         var index = 0;
+        var built = 0;
         while (index < doc.Blocks.Count)
         {
             var block = doc.Blocks[index];
-            if (block is D.ListItem) { AddList(flow.Blocks, doc, ref index, context); continue; }
-            AddBlock(flow.Blocks, block, context);
-            index++;
+            if (block is D.ListItem) { AddList(flow.Blocks, doc, ref index, context); built++; }
+            else { AddBlock(flow.Blocks, block, context); index++; built++; }
+            if (yieldForUi && built % 8 == 0)
+                await Dispatcher.Yield(DispatcherPriority.Background);
         }
 
         if (flow.Blocks.Count == 0) flow.Blocks.Add(FlowKit.Note("Nothing to show."));
