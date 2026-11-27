@@ -31,195 +31,179 @@ public static class ClipboardHistory
     public static readonly string ImagesFolder = Path.Combine(Settings.Folder, "clipboard_images");
     private static readonly string FilePath = Path.Combine(Settings.Folder, "clipboard.json");
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
-    private static bool _suppressUpdate;
+    private static readonly object Gate = new();
+    private static List<ClipboardEntry>? _cache;
+    private static int _suppressCount;
+    private static string? _lastTextFingerprint;
+    private static CancellationTokenSource? _saveCts;
     public const int MaxImages = 10;
 
     public static event Action? Changed;
 
-    public static void SuppressNext() => _suppressUpdate = true;
+    public static void SuppressNext() { lock (Gate) _suppressCount++; }
 
     public static void OnClipboardUpdated()
     {
-        if (_suppressUpdate)
-        {
-            _suppressUpdate = false;
-            return;
-        }
+        lock (Gate) { if (_suppressCount > 0) { _suppressCount--; return; } }
+        Task.Delay(80).ContinueWith(_ => CaptureAsync());
+    }
 
-        Task.Delay(80).ContinueWith(_ =>
+    private static void CaptureAsync()
+    {
+        var thread = new Thread(() =>
         {
-            Application.Current?.Dispatcher?.Invoke(() =>
+            try
             {
-                try
+                if (System.Windows.Clipboard.ContainsImage())
                 {
-                    if (System.Windows.Clipboard.ContainsImage())
-                    {
-                        var img = System.Windows.Clipboard.GetImage();
-                        if (img != null)
-                        {
-                            ProcessNewImage(img);
-                            return;
-                        }
-                    }
-
-                    if (System.Windows.Clipboard.ContainsText())
-                    {
-                        var text = System.Windows.Clipboard.GetText();
-                        if (!string.IsNullOrWhiteSpace(text))
-                        {
-                            ProcessNewText(text);
-                            return;
-                        }
-                    }
+                    var img = System.Windows.Clipboard.GetImage();
+                    if (img != null) { ProcessNewImage(img); return; }
                 }
-                catch (Exception ex)
+                if (System.Windows.Clipboard.ContainsText())
                 {
-                    Log.Write($"Clipboard history update error: {ex}");
+                    var text = System.Windows.Clipboard.GetText();
+                    if (!string.IsNullOrWhiteSpace(text)) ProcessNewText(text);
                 }
-            });
+            }
+            catch (Exception ex) { Log.Write($"Clipboard history update error: {ex}"); }
         });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.IsBackground = true;
+        thread.Start();
     }
 
     private static void ProcessNewImage(BitmapSource img)
     {
         try
         {
-            Directory.CreateDirectory(ImagesFolder);
-            var list = Load();
-
-            // Ignore identical dimensions captured within 3 seconds
-            var first = list.FirstOrDefault();
-            if (first != null && first.Type == "Image" &&
-                first.ImageWidth == img.PixelWidth &&
-                first.ImageHeight == img.PixelHeight &&
-                (DateTime.Now - first.CopiedAt).TotalSeconds < 3)
+            var frozen = img;
+            if (!frozen.IsFrozen && frozen.CanFreeze) frozen.Freeze();
+            var width = frozen.PixelWidth;
+            var height = frozen.PixelHeight;
+            bool changed;
+            lock (Gate)
             {
-                return;
+                var list = EnsureLoadedLocked();
+                var first = list.FirstOrDefault();
+                if (first != null && first.Type == "Image" && first.ImageWidth == width && first.ImageHeight == height &&
+                    (DateTime.Now - first.CopiedAt).TotalSeconds < 3) return;
+                Directory.CreateDirectory(ImagesFolder);
+                var entryId = Guid.NewGuid().ToString("N");
+                var filePath = Path.Combine(ImagesFolder, $"{entryId}.png");
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(frozen));
+                using (var fs = File.Create(filePath)) encoder.Save(fs);
+                list.Insert(0, new ClipboardEntry
+                {
+                    Id = entryId, Type = "Image", Text = $"Image ({width} x {height})",
+                    ImagePath = filePath, ImageWidth = width, ImageHeight = height, CopiedAt = DateTime.Now
+                });
+                EnforceImageLimit(list);
+                changed = true;
+                SaveLocked();
             }
-
-            var entryId = Guid.NewGuid().ToString("N");
-            var filePath = Path.Combine(ImagesFolder, $"{entryId}.png");
-
-            var encoder = new PngBitmapEncoder();
-            encoder.Frames.Add(BitmapFrame.Create(img));
-            using (var fs = File.Create(filePath))
-            {
-                encoder.Save(fs);
-            }
-
-            var entry = new ClipboardEntry
-            {
-                Id = entryId,
-                Type = "Image",
-                Text = $"Image ({img.PixelWidth} × {img.PixelHeight})",
-                ImagePath = filePath,
-                ImageWidth = img.PixelWidth,
-                ImageHeight = img.PixelHeight,
-                CopiedAt = DateTime.Now
-            };
-
-            list.Insert(0, entry);
-            EnforceImageLimit(list);
-
-            Save(list);
-            Changed?.Invoke();
+            if (changed) NotifyChanged();
         }
-        catch (Exception ex)
-        {
-            Log.Write($"Save clipboard image error: {ex}");
-        }
+        catch (Exception ex) { Log.Write($"Save clipboard image error: {ex}"); }
     }
 
     private static void ProcessNewText(string text)
     {
-        var list = Load();
-        if (list.Count > 0 && list[0].Type == "Text" && list[0].Text == text) return;
-
-        var existing = list.FirstOrDefault(e => e.Type == "Text" && e.Text == text);
-        if (existing != null && !existing.IsPinned)
+        bool changed;
+        lock (Gate)
         {
-            list.Remove(existing);
+            var list = EnsureLoadedLocked();
+            if (list.Count > 0 && list[0].Type == "Text" && list[0].Text == text) return;
+            if (string.Equals(_lastTextFingerprint, text, StringComparison.Ordinal)) return;
+            var existing = list.FirstOrDefault(e => e.Type == "Text" && e.Text == text);
+            if (existing != null && !existing.IsPinned) list.Remove(existing);
+            if (existing == null) existing = new ClipboardEntry { Type = "Text", Text = text, CopiedAt = DateTime.Now };
+            else existing.CopiedAt = DateTime.Now;
+            list.Insert(0, existing);
+            _lastTextFingerprint = text;
+            changed = true;
+            SaveLocked();
         }
-
-        if (existing == null)
-        {
-            existing = new ClipboardEntry { Type = "Text", Text = text, CopiedAt = DateTime.Now };
-        }
-        else
-        {
-            existing.CopiedAt = DateTime.Now;
-        }
-
-        list.Insert(0, existing);
-        Save(list);
-        Changed?.Invoke();
+        if (changed) NotifyChanged();
     }
 
-    /// <summary>
-    /// Caps images at 10 items (deleting older files from disk).
-    /// Texts are never removed by this cap (they remain infinite).
-    /// </summary>
     private static void EnforceImageLimit(List<ClipboardEntry> list)
     {
         var images = list.Where(e => e.Type == "Image").ToList();
-        if (images.Count > MaxImages)
+        if (images.Count <= MaxImages) return;
+        var excess = images.Count - MaxImages;
+        var toRemove = images.Where(e => !e.IsPinned).OrderBy(e => e.CopiedAt).Take(excess).ToList();
+        if (toRemove.Count < excess)
+            toRemove.AddRange(images.Except(toRemove).OrderBy(e => e.CopiedAt).Take(excess - toRemove.Count));
+        foreach (var old in toRemove)
         {
-            var excess = images.Count - MaxImages;
-            var toRemove = images
-                .Where(e => !e.IsPinned)
-                .OrderBy(e => e.CopiedAt)
-                .Take(excess)
-                .ToList();
-
-            if (toRemove.Count < excess)
-            {
-                var remaining = excess - toRemove.Count;
-                var olderPinned = images.Except(toRemove).OrderBy(e => e.CopiedAt).Take(remaining);
-                toRemove.AddRange(olderPinned);
-            }
-
-            foreach (var old in toRemove)
-            {
-                list.Remove(old);
-                try
-                {
-                    if (!string.IsNullOrEmpty(old.ImagePath) && File.Exists(old.ImagePath))
-                        File.Delete(old.ImagePath);
-                }
-                catch { }
-            }
+            list.Remove(old);
+            try { if (!string.IsNullOrEmpty(old.ImagePath) && File.Exists(old.ImagePath)) File.Delete(old.ImagePath); } catch { }
         }
     }
 
     public static List<ClipboardEntry> Load()
     {
+        lock (Gate) return EnsureLoadedLocked().Select(Clone).ToList();
+    }
+
+    public static void Save(List<ClipboardEntry> list)
+    {
+        lock (Gate) { _cache = list.Select(Clone).ToList(); SaveLocked(); }
+        NotifyChanged();
+    }
+
+    private static List<ClipboardEntry> EnsureLoadedLocked()
+    {
+        if (_cache != null) return _cache;
         try
         {
             if (File.Exists(FilePath))
             {
                 var list = JsonSerializer.Deserialize<List<ClipboardEntry>>(File.ReadAllText(FilePath), JsonOptions);
-                if (list != null) return list;
+                if (list != null) { _cache = list; return _cache; }
             }
         }
-        catch (Exception ex)
-        {
-            Log.Write($"Failed to load clipboard history: {ex}");
-        }
-        return [];
+        catch (Exception ex) { Log.Write($"Failed to load clipboard history: {ex}"); }
+        _cache = [];
+        return _cache;
     }
 
-    public static void Save(List<ClipboardEntry> list)
+    private static void SaveLocked()
     {
-        try
+        var snapshot = _cache?.Select(Clone).ToList() ?? [];
+        _saveCts?.Cancel();
+        var cts = new CancellationTokenSource();
+        _saveCts = cts;
+        var token = cts.Token;
+        Task.Run(async () =>
         {
-            Directory.CreateDirectory(Settings.Folder);
-            File.WriteAllText(FilePath, JsonSerializer.Serialize(list, JsonOptions));
-        }
-        catch (Exception ex)
-        {
-            Log.Write($"Failed to save clipboard history: {ex}");
-        }
+            try
+            {
+                await Task.Delay(150, token);
+                Directory.CreateDirectory(Settings.Folder);
+                var json = JsonSerializer.Serialize(snapshot, JsonOptions);
+                var tmp = FilePath + ".tmp";
+                File.WriteAllText(tmp, json);
+                File.Move(tmp, FilePath, overwrite: true);
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception ex) { Log.Write($"Failed to save clipboard history: {ex}"); }
+        });
     }
+
+    private static void NotifyChanged()
+    {
+        var app = Application.Current;
+        if (app?.Dispatcher == null || app.Dispatcher.CheckAccess()) Changed?.Invoke();
+        else app.Dispatcher.BeginInvoke(() => Changed?.Invoke());
+    }
+
+    private static ClipboardEntry Clone(ClipboardEntry e) => new()
+    {
+        Id = e.Id, Type = e.Type, Text = e.Text, ImagePath = e.ImagePath,
+        ImageWidth = e.ImageWidth, ImageHeight = e.ImageHeight, IsPinned = e.IsPinned, CopiedAt = e.CopiedAt,
+    };
 }
 
 /// <summary>
@@ -241,12 +225,17 @@ public static class ClipboardWindow
     public static ToolWindow Make()
     {
         var window = new ToolWindow("Clipboard History", 600);
-        var entries = ClipboardHistory.Load();
+        var entries = new List<ClipboardEntry>();
         var currentFilterType = "All"; // "All", "Text", "Image"
         var itemsPanel = new StackPanel();
         var visibleCards = new List<(string Id, Border Card, Action Open)>();
         var selectedIds = new HashSet<string>(StringComparer.Ordinal);
         string? primaryId = null;
+        const int pageSize = 20;
+        var unpinnedPage = 1;
+        var loadMoreBtn = UI.Button("Load more", () => { }, primary: false);
+        loadMoreBtn.Margin = new Thickness(0, 8, 0, 0);
+        loadMoreBtn.Visibility = Visibility.Collapsed;
 
         bool IsSelected(string id) => selectedIds.Contains(id);
 
@@ -428,22 +417,27 @@ public static class ClipboardWindow
                 matches = matches.Where(e => e.Type == "Image");
 
             if (!string.IsNullOrEmpty(query))
-            {
                 matches = matches.Where(e => e.Text.Contains(query, StringComparison.OrdinalIgnoreCase));
-            }
 
-            // Pinned first, then newest copied
             var sorted = matches.OrderByDescending(e => e.IsPinned).ThenByDescending(e => e.CopiedAt).ToList();
-
-            // Drop selections no longer visible, so actions never target hidden cards.
-            var visibleIds = sorted.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
-            selectedIds.RemoveWhere(id => !visibleIds.Contains(id));
+            var pinned = sorted.Where(e => e.IsPinned).ToList();
+            var unpinned = sorted.Where(e => !e.IsPinned).ToList();
+            var shownUnpinned = unpinned.Take(unpinnedPage * pageSize).ToList();
+            var shown = pinned.Concat(shownUnpinned).ToList();
+            var shownIds = shown.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
+            selectedIds.RemoveWhere(id => !shownIds.Contains(id));
             if (primaryId != null && !selectedIds.Contains(primaryId)) primaryId = selectedIds.FirstOrDefault();
+            var remaining = Math.Max(0, unpinned.Count - shownUnpinned.Count);
 
             var imgCount = entries.Count(e => e.Type == "Image");
-            countLabel.Text = $"{sorted.Count} item(s) • {imgCount}/10 images";
+            countLabel.Text = remaining > 0
+                ? $"{shown.Count}/{sorted.Count} shown • {imgCount}/10 images"
+                : $"{sorted.Count} item(s) • {imgCount}/10 images";
 
-            if (sorted.Count == 0)
+            loadMoreBtn.Content = remaining > 0 ? $"Load more ({remaining} remaining)" : "Load more";
+            loadMoreBtn.Visibility = remaining > 0 ? Visibility.Visible : Visibility.Collapsed;
+
+            if (shown.Count == 0)
             {
                 var emptyMsg = string.IsNullOrEmpty(query)
                     ? (currentFilterType == "Image" ? "No images copied yet. Copy any image to see it here." : "Clipboard history is empty. Copy text or images anywhere to see them here.")
@@ -452,10 +446,11 @@ public static class ClipboardWindow
                 empty.Margin = new Thickness(12, 28, 12, 28);
                 empty.HorizontalAlignment = HorizontalAlignment.Center;
                 itemsPanel.Children.Add(empty);
+                if (remaining > 0) itemsPanel.Children.Add(loadMoreBtn);
                 return;
             }
 
-            foreach (var item in sorted)
+            foreach (var item in shown)
             {
                 Action edit = () => OpenEditDialog(window, item, () =>
                 {
@@ -467,8 +462,12 @@ public static class ClipboardWindow
                     onCopy: () => CopyItem(item),
                     onTogglePin: () =>
                     {
-                        item.IsPinned = !item.IsPinned;
+                        entries = ClipboardHistory.Load();
+                        var target = entries.FirstOrDefault(e => e.Id == item.Id);
+                        if (target == null) return;
+                        target.IsPinned = !target.IsPinned;
                         ClipboardHistory.Save(entries);
+                        entries = ClipboardHistory.Load();
                         RefreshList(searchBox.Text);
                     },
                     onDelete: () =>
@@ -477,30 +476,25 @@ public static class ClipboardWindow
                             !ConfirmDialog.Ask(window, "Delete Clipboard Entry",
                                 "Delete this clipboard entry permanently? This cannot be undone."))
                             return;
-
-                        // The confirm dialog re-activates the list, and Activated reloads entries
-                        // from disk. Reload here too and remove by Id so the card's captured item
-                        // still matches; removing by reference would silently leave the entry.
                         entries = ClipboardHistory.Load();
-                        if (entries.RemoveAll(e => e.Id == item.Id) == 0)
-                        {
-                            RefreshList(searchBox.Text);
-                            return;
-                        }
-
+                        if (entries.RemoveAll(e => e.Id == item.Id) == 0) { RefreshList(searchBox.Text); return; }
                         if (item.Type == "Image" && !string.IsNullOrEmpty(item.ImagePath))
                         {
                             try { File.Delete(item.ImagePath); } catch { }
                         }
                         ClipboardHistory.Save(entries);
+                        entries = ClipboardHistory.Load();
+                        selectedIds.Remove(item.Id);
+                        if (primaryId == item.Id) primaryId = selectedIds.FirstOrDefault();
                         RefreshList(searchBox.Text);
                     },
                     onEdit: edit);
 
                 itemsPanel.Children.Add(card);
-                visibleCards.Add((item.Id, card,
-                    item.Type == "Image" ? () => OpenImagePreview(window, item) : edit));
+                visibleCards.Add((item.Id, card, item.Type == "Image" ? () => OpenImagePreview(window, item) : edit));
             }
+
+            if (remaining > 0) itemsPanel.Children.Add(loadMoreBtn);
         }
 
         void MoveSelection(int delta)
@@ -647,7 +641,8 @@ public static class ClipboardWindow
         };
         root.Children.Add(scroll);
 
-        searchBox.TextChanged += (_, _) => RefreshList(searchBox.Text);
+        loadMoreBtn.Click += (_, _) => { unpinnedPage++; RefreshList(searchBox.Text); };
+        searchBox.TextChanged += (_, _) => { unpinnedPage = 1; RefreshList(searchBox.Text); };
 
         void OnLiveUpdate()
         {
@@ -668,8 +663,19 @@ public static class ClipboardWindow
             ClipboardHistory.Changed -= OnLiveUpdate;
         };
 
-        RefreshList();
         window.Body = root;
+        var loading = UI.Caption("Loading clipboard history...");
+        loading.Margin = new Thickness(12, 28, 12, 28);
+        loading.HorizontalAlignment = HorizontalAlignment.Center;
+        itemsPanel.Children.Add(loading);
+        Task.Run(() => ClipboardHistory.Load()).ContinueWith(t =>
+        {
+            window.Dispatcher.BeginInvoke(() =>
+            {
+                entries = t.Status == TaskStatus.RanToCompletion ? t.Result : [];
+                RefreshList(searchBox.Text);
+            });
+        });
 
         window.Trailing(UI.Button("Close", window.CloseOnce, primary: false));
 

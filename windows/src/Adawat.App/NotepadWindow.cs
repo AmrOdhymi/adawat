@@ -59,6 +59,11 @@ public static class NotepadWindow
         var visibleCards = new List<(string Id, Border Card, Action Open)>();
         var selectedIds = new HashSet<string>(StringComparer.Ordinal);
         string? primaryId = null;
+        const int pageSize = 20;
+        var unpinnedPage = 1;
+        var loadMoreBtn = UI.Button("Load more", () => { }, primary: false);
+        loadMoreBtn.Margin = new Thickness(0, 8, 0, 0);
+        loadMoreBtn.Visibility = Visibility.Collapsed;
 
         bool IsSelected(string id) => selectedIds.Contains(id);
 
@@ -223,30 +228,38 @@ public static class NotepadWindow
                 : notes.Where(n => n.Title.Contains(query, StringComparison.OrdinalIgnoreCase)
                                 || n.Content.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();
 
-            // Order: Pinned first, then newest updated
             var sorted = matches.OrderByDescending(n => n.IsPinned).ThenByDescending(n => n.UpdatedAt).ToList();
-
-            // Drop selections no longer visible, so actions never target hidden cards.
-            var visibleIds = sorted.Select(n => n.Id).ToHashSet(StringComparer.Ordinal);
-            selectedIds.RemoveWhere(id => !visibleIds.Contains(id));
+            var pinned = sorted.Where(n => n.IsPinned).ToList();
+            var unpinned = sorted.Where(n => !n.IsPinned).ToList();
+            var shownUnpinned = unpinned.Take(unpinnedPage * pageSize).ToList();
+            var shown = pinned.Concat(shownUnpinned).ToList();
+            var shownIds = shown.Select(n => n.Id).ToHashSet(StringComparer.Ordinal);
+            selectedIds.RemoveWhere(id => !shownIds.Contains(id));
             if (primaryId != null && !selectedIds.Contains(primaryId)) primaryId = selectedIds.FirstOrDefault();
+            var remaining = Math.Max(0, unpinned.Count - shownUnpinned.Count);
 
-            if (sorted.Count == 0)
+            loadMoreBtn.Content = remaining > 0 ? $"Load more ({remaining} remaining)" : "Load more";
+            loadMoreBtn.Visibility = remaining > 0 ? Visibility.Visible : Visibility.Collapsed;
+
+            if (shown.Count == 0)
             {
                 var empty = UI.Caption(string.IsNullOrEmpty(query) ? "No notes yet. Click 'New Note' to create one." : "No matching notes found.");
                 empty.Margin = new Thickness(12, 28, 12, 28);
                 empty.HorizontalAlignment = HorizontalAlignment.Center;
                 itemsPanel.Children.Add(empty);
+                if (remaining > 0) itemsPanel.Children.Add(loadMoreBtn);
                 return;
             }
 
-            foreach (var note in sorted)
+            foreach (var note in shown)
             {
                 var card = CreateNoteCard(note);
                 itemsPanel.Children.Add(card);
                 visibleCards.Add((note.Id, card,
                     () => OpenEditor(window, note, () => { notes = LoadNotes(); RefreshList(searchBox.Text); })));
             }
+
+            if (remaining > 0) itemsPanel.Children.Add(loadMoreBtn);
         }
 
         // Keyboard navigation over the cards currently visible after search and sorting.
@@ -306,7 +319,8 @@ public static class NotepadWindow
         };
         root.Children.Add(scroll);
 
-        searchBox.TextChanged += (_, _) => RefreshList(searchBox.Text);
+        loadMoreBtn.Click += (_, _) => { unpinnedPage++; RefreshList(searchBox.Text); };
+        searchBox.TextChanged += (_, _) => { unpinnedPage = 1; RefreshList(searchBox.Text); };
 
         RefreshList();
         window.Body = root;
