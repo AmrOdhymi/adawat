@@ -737,14 +737,27 @@ public static class DocumentViewer
 
         private void ShowLoading()
         {
-            _host.Content = new TextBlock
+            var ring = new ProgressBar
             {
-                Text = L10n.T("Opening..."),
-                FontSize = 12.5,
-                Foreground = Theme.Muted,
+                IsIndeterminate = true,
+                Width = 180,
+                Height = 4,
+                Margin = new Thickness(0, 0, 0, 12),
+            };
+            var panel = new StackPanel
+            {
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
             };
+            panel.Children.Add(ring);
+            panel.Children.Add(new TextBlock
+            {
+                Text = L10n.T("Opening document..."),
+                FontSize = 12.5,
+                Foreground = Theme.Muted,
+                HorizontalAlignment = HorizontalAlignment.Center,
+            });
+            _host.Content = panel;
         }
 
         private async Task BuildAsync(Tab tab, int token)
@@ -866,23 +879,27 @@ public static class DocumentViewer
 
             if (extension is "md" or "markdown" or "txt")
             {
-                var text = Adawat.Core.Documents.DocumentOps.ReadText(path);
+                var text = await Task.Run(() => Adawat.Core.Documents.DocumentOps.ReadText(path)).ConfigureAwait(true);
                 var flow = MarkdownFlow.LooksLikeMarkdown(text)
                     ? MarkdownFlow.FromMarkdown(text, folder, OpenTarget)
                     : MarkdownFlow.FromPlain(text, folder);
+                await Task.Yield();
                 return (MakeFlowView(flow, zoom), text);
             }
 
             if (extension is "tex" or "latex")
             {
-                var source = Adawat.Core.Documents.DocumentOps.ReadText(path);
+                var source = await Task.Run(() => Adawat.Core.Documents.DocumentOps.ReadText(path)).ConfigureAwait(true);
                 var flow = TexFlow.FromLatex(source, folder, OpenTarget);
                 var plain = new TextRange(flow.ContentStart, flow.ContentEnd).Text;
+                await Task.Yield();
                 return (MakeFlowView(flow, zoom), plain);
             }
 
-            var document = await Adawat.Core.Documents.DocumentOps.Load(path);
-            return (MakeFlowView(DocFlow.FromDoc(document, folder, OpenTarget), zoom), document.PlainText);
+            var document = await Adawat.Core.Documents.DocumentOps.Load(path).ConfigureAwait(true);
+            var flowDoc = DocFlow.FromDoc(document, folder, OpenTarget);
+            await Task.Yield();
+            return (MakeFlowView(flowDoc, zoom), document.PlainText);
         }
 
         private static FlowDocument ErrorFlow(string message)

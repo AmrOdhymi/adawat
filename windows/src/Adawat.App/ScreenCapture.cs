@@ -61,41 +61,45 @@ public static class ScreenCapture
     }
 
     /// <summary>Saves the bitmap as PNG to Downloads folder, copies it to clipboard, and alerts the user.</summary>
-    public static string? SaveScreenshot(BitmapSource bitmap)
+    public static void SaveScreenshot(BitmapSource bitmap)
+    {
+        _ = SaveScreenshotAsync(bitmap);
+    }
+
+    public static async Task<string?> SaveScreenshotAsync(BitmapSource bitmap)
     {
         try
         {
+            var frozen = bitmap;
+            if (!frozen.IsFrozen && frozen.CanFreeze) frozen.Freeze();
             var folder = Output.Downloads;
-            Directory.CreateDirectory(folder);
             var target = Output.Unique(System.IO.Path.Combine(folder, $"Screenshot {DateTime.Now:yyyy-MM-dd HHmmss}.png"));
-
-            var encoder = new PngBitmapEncoder();
-            encoder.Frames.Add(BitmapFrame.Create(bitmap));
-            using (var stream = File.Create(target))
+            await Task.Run(() =>
             {
+                Directory.CreateDirectory(folder);
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(frozen));
+                using var stream = File.Create(target);
                 encoder.Save(stream);
-            }
+            }).ConfigureAwait(false);
 
-            try
+            void Finish()
             {
-                System.Windows.Clipboard.SetImage(bitmap);
-            }
-            catch { }
-
-            Sounds.Tick();
-            Hud.Shared.ShowMessage(L10n.T("Screenshot saved to Downloads"), Hud.Style.Success);
-
-            if (Settings.Current.ShowResultsInFloat)
-            {
-                Floats.ShowResults([target]);
+                try { System.Windows.Clipboard.SetImage(frozen); } catch { }
+                Sounds.Tick();
+                Hud.Shared.ShowMessage(L10n.T("Screenshot saved to Downloads"), Hud.Style.Success);
+                if (Settings.Current.ShowResultsInFloat) Floats.ShowResults([target]);
             }
 
+            var app = Application.Current;
+            if (app?.Dispatcher == null || app.Dispatcher.CheckAccess()) Finish();
+            else await app.Dispatcher.InvokeAsync(Finish);
             return target;
         }
         catch (Exception ex)
         {
             Log.Write($"Save screenshot error: {ex}");
-            Hud.Shared.ShowMessage(ex.Message, Hud.Style.Failure);
+            Application.Current?.Dispatcher?.InvokeAsync(() => Hud.Shared.ShowMessage(ex.Message, Hud.Style.Failure));
             return null;
         }
     }

@@ -44,22 +44,26 @@ public static class ScreenTextExtractor
     /// <summary>
     /// Runs OCR on <paramref name="bitmap"/>.
     /// If <paramref name="languageTag"/> is specified and not "auto", uses that language pack only.
-    /// Otherwise uses installed languages with Arabic prioritized first.
+    /// Otherwise uses a fast auto strategy: user-profile language first, then Arabic fallback only when needed.
     /// </summary>
     public static async Task<List<TextRegion>> ExtractAsync(BitmapSource bitmap, string? languageTag = null)
     {
         var regions = new List<TextRegion>();
 
-        // Convert WPF BitmapSource → WinRT SoftwareBitmap via PNG round-trip
-        using var ms = new MemoryStream();
-        var encoder = new PngBitmapEncoder();
-        encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
-        encoder.Save(ms);
-        ms.Position = 0;
+        var frozen = bitmap;
+        if (!frozen.IsFrozen && frozen.CanFreeze) frozen.Freeze();
+        var pngBytes = await Task.Run(() =>
+        {
+            using var ms = new MemoryStream();
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(frozen));
+            encoder.Save(ms);
+            return ms.ToArray();
+        }).ConfigureAwait(false);
 
         var ras = new InMemoryRandomAccessStream();
         var writer = new DataWriter(ras.GetOutputStreamAt(0));
-        writer.WriteBytes(ms.ToArray());
+        writer.WriteBytes(pngBytes);
         await writer.StoreAsync();
         await writer.FlushAsync();
         ras.Seek(0);
@@ -79,7 +83,6 @@ public static class ScreenTextExtractor
         }
         else if (!string.IsNullOrEmpty(languageTag) && !languageTag.Equals("auto", StringComparison.OrdinalIgnoreCase))
         {
-            // User requested a specific language
             var targetLang = available.FirstOrDefault(l =>
                 string.Equals(l.LanguageTag, languageTag, StringComparison.OrdinalIgnoreCase) ||
                 l.LanguageTag.StartsWith(languageTag, StringComparison.OrdinalIgnoreCase));
@@ -88,34 +91,43 @@ public static class ScreenTextExtractor
             {
                 var engine = WinRtOcr.OcrEngine.TryCreateFromLanguage(targetLang);
                 if (engine != null)
-                {
-                    var result = await engine.RecognizeAsync(softwareBitmap);
-                    AddRecognizedLines(regions, result);
-                }
+                    AddRecognizedLines(regions, await engine.RecognizeAsync(softwareBitmap));
             }
         }
         else
         {
-            // Auto mode: sort Arabic/RTL first so Arabic text isn't mangled by LTR engines
-            var sorted = available
-                .OrderByDescending(l => l.LanguageTag.StartsWith("ar", StringComparison.OrdinalIgnoreCase) ? 2
-                                      : l.Script.Equals("Arab", StringComparison.OrdinalIgnoreCase) ? 1
-                                      : 0)
-                .ToList();
-
-            foreach (var lang in sorted)
+            var tried = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var userProfile = WinRtOcr.OcrEngine.TryCreateFromUserProfileLanguages();
+            if (userProfile != null)
             {
-                var engine = WinRtOcr.OcrEngine.TryCreateFromLanguage(lang);
-                if (engine == null) continue;
+                if (userProfile.RecognizerLanguage != null) tried.Add(userProfile.RecognizerLanguage.LanguageTag);
+                try { AddRecognizedLines(regions, await userProfile.RecognizeAsync(softwareBitmap)); }
+                catch (Exception ex) { Log.Write($"OCR user-profile failed: {ex.Message}"); }
+            }
 
-                try
+            var hasMeaningfulText = regions.Sum(r => r.Text.Count(char.IsLetterOrDigit)) >= 12;
+            var arabic = available.FirstOrDefault(l => l.LanguageTag.StartsWith("ar", StringComparison.OrdinalIgnoreCase));
+            if (!hasMeaningfulText && arabic != null && !tried.Contains(arabic.LanguageTag))
+            {
+                var engine = WinRtOcr.OcrEngine.TryCreateFromLanguage(arabic);
+                if (engine != null)
                 {
-                    var result = await engine.RecognizeAsync(softwareBitmap);
-                    AddRecognizedLines(regions, result);
+                    try { AddRecognizedLines(regions, await engine.RecognizeAsync(softwareBitmap)); }
+                    catch (Exception ex) { Log.Write($"OCR Arabic fallback failed: {ex.Message}"); }
                 }
-                catch (Exception ex)
+            }
+
+            if (regions.Count == 0)
+            {
+                var next = available.FirstOrDefault(l => !tried.Contains(l.LanguageTag) && (arabic == null || !string.Equals(l.LanguageTag, arabic.LanguageTag, StringComparison.OrdinalIgnoreCase)));
+                if (next != null)
                 {
-                    Log.Write($"OCR failed for '{lang.LanguageTag}': {ex.Message}");
+                    var engine = WinRtOcr.OcrEngine.TryCreateFromLanguage(next);
+                    if (engine != null)
+                    {
+                        try { AddRecognizedLines(regions, await engine.RecognizeAsync(softwareBitmap)); }
+                        catch (Exception ex) { Log.Write($"OCR fallback failed for '{next.LanguageTag}': {ex.Message}"); }
+                    }
                 }
             }
         }
@@ -123,13 +135,11 @@ public static class ScreenTextExtractor
         softwareBitmap.Dispose();
         ras.Dispose();
 
-        // Sort lines top-to-bottom for reading order
         const double rowThreshold = 14;
         regions.Sort((a, b) =>
         {
             var dy = a.Bounds.Y - b.Bounds.Y;
             if (Math.Abs(dy) > rowThreshold) return dy < 0 ? -1 : 1;
-            // On same visual line: RTL ordering (rightmost box first if Arabic exists)
             bool isAr = ContainsArabic(a.Text) || ContainsArabic(b.Text);
             return isAr ? b.Bounds.X.CompareTo(a.Bounds.X) : a.Bounds.X.CompareTo(b.Bounds.X);
         });
