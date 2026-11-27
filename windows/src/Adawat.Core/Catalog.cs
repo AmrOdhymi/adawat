@@ -230,7 +230,6 @@ public static class Catalog
             actions.Add(Tool("action.open", "Open", null, Icons.Document, NeedsWindow, "documents", producesFiles: false));
 
         actions.Add(Tool("action.share", "Share", null, Icons.Share, FileActions.Share, producesFiles: false));
-        actions.Add(Tool("action.float", "Float", null, Icons.Float, FileActions.NewFloat, producesFiles: false));
         actions.Add(Tool("action.copy", "Copy", null, Icons.Copy, FileActions.CopyFiles, producesFiles: false));
         actions.Add(Tool("action.move", "Move", null, Icons.Move, FileActions.Move, producesFiles: false));
         actions.Add(Tool("action.paths", "Copy Path", null, Icons.Path, FileActions.CopyPaths, producesFiles: false));

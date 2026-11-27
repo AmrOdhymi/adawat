@@ -6,6 +6,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Adawat.Core;
+using Adawat.App.Documents;
 using Microsoft.Win32;
 
 namespace Adawat.App;
@@ -242,6 +243,51 @@ public static class ClipboardWindow
         var window = new ToolWindow("Clipboard History", 600);
         var entries = ClipboardHistory.Load();
         var currentFilterType = "All"; // "All", "Text", "Image"
+        var itemsPanel = new StackPanel();
+        var visibleCards = new List<(string Id, Border Card, Action Open)>();
+        var selectedIds = new HashSet<string>(StringComparer.Ordinal);
+        string? primaryId = null;
+
+        bool IsSelected(string id) => selectedIds.Contains(id);
+
+        void PaintCard(Border card, string id, bool pinned)
+        {
+            var selected = IsSelected(id);
+            card.Background = selected ? Theme.AccentSoft : (pinned ? Theme.AccentSoft : Theme.ButtonFill);
+            card.BorderBrush = selected ? Theme.LineStrong : Brushes.Transparent;
+        }
+
+        void RefreshCardStyles()
+        {
+            foreach (var child in itemsPanel.Children)
+            {
+                if (child is not Border c || c.Tag is not ValueTuple<string, bool> tag) continue;
+                PaintCard(c, tag.Item1, tag.Item2);
+            }
+        }
+
+        void SelectOnly(string id)
+        {
+            selectedIds.Clear();
+            selectedIds.Add(id);
+            primaryId = id;
+            RefreshCardStyles();
+        }
+
+        void ToggleSelect(string id)
+        {
+            if (!selectedIds.Add(id)) selectedIds.Remove(id);
+            primaryId = selectedIds.Contains(id) ? id : selectedIds.FirstOrDefault();
+            RefreshCardStyles();
+        }
+
+        List<ClipboardEntry> SelectedEntriesInView()
+        {
+            var order = visibleCards.Select((v, i) => (v.Id, i)).ToDictionary(x => x.Id, x => x.i);
+            return entries.Where(e => selectedIds.Contains(e.Id))
+                .OrderBy(e => order.TryGetValue(e.Id, out var i) ? i : int.MaxValue)
+                .ToList();
+        }
 
         var root = new StackPanel();
 
@@ -256,15 +302,123 @@ public static class ClipboardWindow
             FlowDirection = Theme.Direction,
         };
 
-        var itemsPanel = new StackPanel();
         var countLabel = UI.Caption("");
         countLabel.HorizontalAlignment = HorizontalAlignment.Right;
         countLabel.VerticalAlignment = VerticalAlignment.Center;
         countLabel.Margin = new Thickness(12, 0, 0, 0);
 
+        Border CreateEntryCard(ClipboardEntry item, Window owner, Action onCopy, Action onTogglePin, Action onDelete, Action onEdit)
+        {
+            var row = new DockPanel { LastChildFill = true };
+
+            // Pin badge
+            if (item.IsPinned)
+            {
+                var pinBadge = UI.Icon("", 13, Theme.Accent);
+                pinBadge.Margin = new Thickness(0, 0, 8, 0);
+                DockPanel.SetDock(pinBadge, Dock.Left);
+                row.Children.Add(pinBadge);
+            }
+
+            if (item.Type == "Image")
+            {
+                // Image Thumbnail on the left
+                var thumb = LoadBitmapImage(item.ImagePath ?? "", decodeHeight: 80);
+                FrameworkElement imageDisplay;
+                if (thumb != null)
+                {
+                    imageDisplay = new Border
+                    {
+                        ClipToBounds = true,
+                        Width = 56,
+                        Height = 44,
+                        Background = Theme.Card,
+                        Margin = new Thickness(0, 0, 10, 0),
+                        Child = new Image
+                        {
+                            Source = thumb,
+                            Stretch = Stretch.UniformToFill
+                        }
+                    }.Radius("Theme.RadiusSmall");
+                }
+                else
+                {
+                    imageDisplay = new Border
+                    {
+                        Width = 56,
+                        Height = 44,
+                        Background = Theme.ButtonFill,
+                        Margin = new Thickness(0, 0, 10, 0),
+                        Child = UI.Icon(Catalog.Icons.Photo, 18, Theme.Muted)
+                    }.Radius("Theme.RadiusSmall");
+                }
+                DockPanel.SetDock(imageDisplay, Dock.Left);
+                row.Children.Add(imageDisplay);
+
+                var info = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+                var titleText = !string.IsNullOrEmpty(item.Text) ? item.Text : $"Image ({item.ImageWidth} × {item.ImageHeight} px)";
+                var titleBlock = UI.Text(titleText, 12.5, FontWeights.SemiBold, Theme.Ink);
+                var meta = UI.Text($"{item.CopiedAt:g} • PNG image", 10.5, color: Theme.Muted);
+                info.Children.Add(titleBlock);
+                info.Children.Add(meta);
+                row.Children.Add(info);
+            }
+            else
+            {
+                var info = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+                var isArabic = item.Text.Any(c => c >= 0x0600 && c <= 0x06FF);
+                var textPreview = item.Text.Replace("\r\n", " ").Replace('\n', ' ').Trim();
+                var textBlock = UI.Text(string.IsNullOrEmpty(textPreview) ? "..." : textPreview, 12.5, FontWeights.Medium, Theme.Ink);
+                textBlock.MaxWidth = 270;
+                textBlock.TextTrimming = TextTrimming.CharacterEllipsis;
+                textBlock.FlowDirection = isArabic ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
+
+                var meta = UI.Text($"{item.CopiedAt:g} • {item.Text.Length} chars", 10.5, color: Theme.Muted);
+                info.Children.Add(textBlock);
+                info.Children.Add(meta);
+                row.Children.Add(info);
+            }
+
+            var card = new Border
+            {
+                Child = row,
+                Background = item.IsPinned ? Theme.AccentSoft : Theme.ButtonFill,
+                BorderBrush = Brushes.Transparent,
+                BorderThickness = new Thickness(1),
+                Padding = new Thickness(12, 8, 12, 8),
+                Margin = new Thickness(0, 4, 0, 4),
+                Cursor = Cursors.Hand,
+                Tag = (item.Id, item.IsPinned),
+            }.Radius("Theme.RadiusCard");
+            PaintCard(card, item.Id, item.IsPinned);
+
+            card.MouseEnter += (_, _) => { if (!IsSelected(item.Id)) card.Background = Theme.ButtonHover; };
+            card.MouseLeave += (_, _) => PaintCard(card, item.Id, item.IsPinned);
+            card.MouseLeftButtonUp += (_, e) =>
+            {
+                if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control) ToggleSelect(item.Id);
+                else SelectOnly(item.Id);
+            };
+            card.MouseLeftButtonDown += (_, e) => { if (e.ClickCount == 2) { if (item.Type == "Image") OpenImagePreview(owner, item); else onEdit(); e.Handled = true; } };
+            card.PreviewMouseRightButtonDown += (_, _) => { if (!IsSelected(item.Id)) SelectOnly(item.Id); };
+
+            card.ContextMenu = UI.Menu();
+            card.ContextMenuOpening += (_, _) =>
+            {
+                card.ContextMenu = BuildContextMenu(item, owner, onCopy, onTogglePin, onDelete, onEdit,
+                    targets: () => { var sel = SelectedEntriesInView(); return sel.Count > 0 && sel.Any(e => e.Id == item.Id) ? sel : [item]; },
+                    deleteMany: t => { DeleteEntries(t); },
+                    togglePinMany: t => { TogglePinEntries(t); },
+                    copyMany: t => { CopyEntries(t); });
+            };
+
+            return card;
+        }
+
         void RefreshList(string filter = "")
         {
             itemsPanel.Children.Clear();
+            visibleCards.Clear();
             var query = filter.Trim();
 
             var matches = entries.AsEnumerable();
@@ -280,6 +434,11 @@ public static class ClipboardWindow
 
             // Pinned first, then newest copied
             var sorted = matches.OrderByDescending(e => e.IsPinned).ThenByDescending(e => e.CopiedAt).ToList();
+
+            // Drop selections no longer visible, so actions never target hidden cards.
+            var visibleIds = sorted.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
+            selectedIds.RemoveWhere(id => !visibleIds.Contains(id));
+            if (primaryId != null && !selectedIds.Contains(primaryId)) primaryId = selectedIds.FirstOrDefault();
 
             var imgCount = entries.Count(e => e.Type == "Image");
             countLabel.Text = $"{sorted.Count} item(s) • {imgCount}/10 images";
@@ -298,7 +457,13 @@ public static class ClipboardWindow
 
             foreach (var item in sorted)
             {
-                itemsPanel.Children.Add(CreateEntryCard(item, window,
+                Action edit = () => OpenEditDialog(window, item, () =>
+                {
+                    ClipboardHistory.Save(entries);
+                    RefreshList(searchBox.Text);
+                });
+
+                var card = CreateEntryCard(item, window,
                     onCopy: () => CopyItem(item),
                     onTogglePin: () =>
                     {
@@ -308,19 +473,112 @@ public static class ClipboardWindow
                     },
                     onDelete: () =>
                     {
+                        if (Settings.Current.ConfirmClipboardDelete &&
+                            !ConfirmDialog.Ask(window, "Delete Clipboard Entry",
+                                "Delete this clipboard entry permanently? This cannot be undone."))
+                            return;
+
+                        // The confirm dialog re-activates the list, and Activated reloads entries
+                        // from disk. Reload here too and remove by Id so the card's captured item
+                        // still matches; removing by reference would silently leave the entry.
+                        entries = ClipboardHistory.Load();
+                        if (entries.RemoveAll(e => e.Id == item.Id) == 0)
+                        {
+                            RefreshList(searchBox.Text);
+                            return;
+                        }
+
                         if (item.Type == "Image" && !string.IsNullOrEmpty(item.ImagePath))
                         {
                             try { File.Delete(item.ImagePath); } catch { }
                         }
-                        entries.Remove(item);
                         ClipboardHistory.Save(entries);
                         RefreshList(searchBox.Text);
                     },
-                    onEdit: () => OpenEditDialog(window, item, () =>
-                    {
-                        ClipboardHistory.Save(entries);
-                        RefreshList(searchBox.Text);
-                    })));
+                    onEdit: edit);
+
+                itemsPanel.Children.Add(card);
+                visibleCards.Add((item.Id, card,
+                    item.Type == "Image" ? () => OpenImagePreview(window, item) : edit));
+            }
+        }
+
+        void MoveSelection(int delta)
+        {
+            if (visibleCards.Count == 0) return;
+            var index = primaryId == null ? -1 : visibleCards.FindIndex(v => v.Id == primaryId);
+            if (index < 0 && delta < 0) index = visibleCards.Count;
+            var next = index + delta;
+            if (next < 0 || next >= visibleCards.Count) return;
+            var target = visibleCards[next];
+            if ((Keyboard.Modifiers & ModifierKeys.Control) != ModifierKeys.Control) SelectOnly(target.Id);
+            else { primaryId = target.Id; if (!IsSelected(target.Id)) ToggleSelect(target.Id); RefreshCardStyles(); }
+            target.Card.BringIntoView();
+        }
+
+        void OpenSelected()
+        {
+            if (primaryId == null) return;
+            var index = visibleCards.FindIndex(v => v.Id == primaryId);
+            if (index >= 0) visibleCards[index].Open();
+        }
+
+        void DeleteEntries(List<ClipboardEntry> targets)
+        {
+            if (targets.Count == 0) return;
+            var msg = targets.Count == 1
+                ? "Delete this clipboard entry permanently? This cannot be undone."
+                : $"Delete {targets.Count} selected clipboard entries permanently? This cannot be undone.";
+            if (Settings.Current.ConfirmClipboardDelete &&
+                !ConfirmDialog.Ask(window, "Delete Clipboard Entry", msg))
+                return;
+            entries = ClipboardHistory.Load();
+            var ids = targets.Select(t => t.Id).ToHashSet(StringComparer.Ordinal);
+            var toDelete = entries.Where(e => ids.Contains(e.Id)).ToList();
+            if (toDelete.Count == 0) { RefreshList(searchBox.Text); return; }
+            foreach (var item in toDelete)
+            {
+                if (item.Type == "Image" && !string.IsNullOrEmpty(item.ImagePath))
+                {
+                    try { File.Delete(item.ImagePath); } catch { }
+                }
+            }
+            entries.RemoveAll(e => ids.Contains(e.Id));
+            foreach (var id in ids) selectedIds.Remove(id);
+            primaryId = selectedIds.FirstOrDefault();
+            ClipboardHistory.Save(entries);
+            RefreshList(searchBox.Text);
+        }
+
+        void DeleteSelected() => DeleteEntries(SelectedEntriesInView());
+
+        void TogglePinEntries(List<ClipboardEntry> targets)
+        {
+            if (targets.Count == 0) return;
+            var pin = targets.Any(x => !x.IsPinned);
+            entries = ClipboardHistory.Load();
+            var ids = targets.Select(t => t.Id).ToHashSet(StringComparer.Ordinal);
+            foreach (var e in entries) if (ids.Contains(e.Id)) e.IsPinned = pin;
+            ClipboardHistory.Save(entries);
+            RefreshList(searchBox.Text);
+        }
+
+        void CopyEntries(List<ClipboardEntry> targets)
+        {
+            if (targets.Count == 0) return;
+            var texts = targets.Where(x => x.Type != "Image").Select(x => x.Text).ToList();
+            if (texts.Count == targets.Count)
+            {
+                Adawat.Core.Clipboard.CopyText(string.Join("\n\n", texts));
+                Sounds.Tick();
+                Hud.Shared.ShowMessage(L10n.T(targets.Count == 1 ? "Copied to clipboard" : $"{targets.Count} items copied"), Hud.Style.Success);
+            }
+            else if (targets.Count == 1) CopyItem(targets[0]);
+            else
+            {
+                // Mixed selection: copy text parts only to avoid ambiguous image clipboard behavior.
+                if (texts.Count > 0) { Adawat.Core.Clipboard.CopyText(string.Join("\n\n", texts)); Sounds.Tick(); Hud.Shared.ShowMessage(L10n.T($"{texts.Count} text items copied"), Hud.Style.Success); }
+                else CopyItem(targets[0]);
             }
         }
 
@@ -333,6 +591,11 @@ public static class ClipboardWindow
 
         var clearBtn = UI.Button("Clear History", () =>
         {
+            if (Settings.Current.ConfirmClipboardDelete &&
+                !ConfirmDialog.Ask(window, "Clear Clipboard History",
+                    "Clear all non-pinned clipboard entries? This cannot be undone.", "Clear"))
+                return;
+
             var removed = entries.Where(e => !e.IsPinned).ToList();
             foreach (var r in removed)
             {
@@ -410,12 +673,27 @@ public static class ClipboardWindow
 
         window.Trailing(UI.Button("Close", window.CloseOnce, primary: false));
 
+        // Up/Down move the selection through the visible cards and Enter opens it.
+        // Buttons keep their own keyboard activation.
+        window.PreviewKeyDown += (_, e) =>
+        {
+            if (Keyboard.FocusedElement is TextBox) return;
+            if (e.Key == Key.Enter && Keyboard.FocusedElement is Button) return;
+            if (e.Key == Key.Down) { MoveSelection(1); e.Handled = true; }
+            else if (e.Key == Key.Up) { MoveSelection(-1); e.Handled = true; }
+            else if (e.Key == Key.Enter && primaryId != null) { OpenSelected(); e.Handled = true; }
+            else if (e.Key == Key.Delete && selectedIds.Count > 0) { DeleteSelected(); e.Handled = true; }
+        };
+
         // Auto-close when clicking outside, unless an open child dialog exists
         window.Deactivated += (_, _) =>
         {
             if (!WindowLifecycle.CanAutoClose(window)) return;
             window.CloseOnce();
         };
+
+        // Closing an edit dialog or its preview can make Windows minimize this list as a side effect.
+        WindowLifecycle.KeepRestored(window);
 
         window.Loaded += (_, _) => searchBox.Focus();
         return window;
@@ -449,141 +727,7 @@ public static class ClipboardWindow
         }
     }
 
-    private static Border CreateEntryCard(ClipboardEntry item, Window owner, Action onCopy, Action onTogglePin, Action onDelete, Action onEdit)
-    {
-        var row = new DockPanel { LastChildFill = true };
 
-        // Right Action Buttons
-        var pinIcon = item.IsPinned ? "" : "";
-        var pinBtn = UI.IconButton(pinIcon, onTogglePin, item.IsPinned ? "Unpin" : "Pin to top", 26);
-        DockPanel.SetDock(pinBtn, Dock.Right);
-        row.Children.Add(pinBtn);
-
-        var copyBtn = UI.IconButton("", onCopy, "Copy", 26);
-        copyBtn.Margin = new Thickness(0, 0, 6, 0);
-        DockPanel.SetDock(copyBtn, Dock.Right);
-        row.Children.Add(copyBtn);
-
-        if (item.Type == "Image")
-        {
-            // Preview full image
-            var previewBtn = UI.IconButton("", () => OpenImagePreview(owner, item), "Preview Image", 26);
-            previewBtn.Margin = new Thickness(0, 0, 6, 0);
-            DockPanel.SetDock(previewBtn, Dock.Right);
-            row.Children.Add(previewBtn);
-
-            // Save As...
-            var saveBtn = UI.IconButton("", () => SaveImageAs(item, owner), "Save Image As...", 26);
-            saveBtn.Margin = new Thickness(0, 0, 6, 0);
-            DockPanel.SetDock(saveBtn, Dock.Right);
-            row.Children.Add(saveBtn);
-        }
-        else
-        {
-            var previewBtn = UI.IconButton("", () => MarkdownViewer.OpenPreview("Clipboard Preview", item.Text, owner), "Preview Markdown", 26);
-            previewBtn.Margin = new Thickness(0, 0, 6, 0);
-            DockPanel.SetDock(previewBtn, Dock.Right);
-            row.Children.Add(previewBtn);
-
-            var exportBtn = UI.IconButton("", () => MarkdownViewer.Export("Clipboard Entry", item.Text, owner), "Export (.txt / .md)", 26);
-            exportBtn.Margin = new Thickness(0, 0, 6, 0);
-            DockPanel.SetDock(exportBtn, Dock.Right);
-            row.Children.Add(exportBtn);
-
-            var editBtn = UI.IconButton("", onEdit, "Edit", 26);
-            editBtn.Margin = new Thickness(0, 0, 6, 0);
-            DockPanel.SetDock(editBtn, Dock.Right);
-            row.Children.Add(editBtn);
-        }
-
-        var delBtn = UI.IconButton("", onDelete, "Delete", 26);
-        delBtn.Margin = new Thickness(0, 0, 6, 0);
-        DockPanel.SetDock(delBtn, Dock.Right);
-        row.Children.Add(delBtn);
-
-        // Pin badge
-        if (item.IsPinned)
-        {
-            var pinBadge = UI.Icon("", 13, Theme.Accent);
-            pinBadge.Margin = new Thickness(0, 0, 8, 0);
-            DockPanel.SetDock(pinBadge, Dock.Left);
-            row.Children.Add(pinBadge);
-        }
-
-        if (item.Type == "Image")
-        {
-            // Image Thumbnail on the left
-            var thumb = LoadBitmapImage(item.ImagePath ?? "", decodeHeight: 80);
-            FrameworkElement imageDisplay;
-            if (thumb != null)
-            {
-                imageDisplay = new Border
-                {
-                    ClipToBounds = true,
-                    Width = 56,
-                    Height = 44,
-                    Background = Theme.Card,
-                    Margin = new Thickness(0, 0, 10, 0),
-                    Child = new Image
-                    {
-                        Source = thumb,
-                        Stretch = Stretch.UniformToFill
-                    }
-                }.Radius("Theme.RadiusSmall");
-            }
-            else
-            {
-                imageDisplay = new Border
-                {
-                    Width = 56,
-                    Height = 44,
-                    Background = Theme.ButtonFill,
-                    Margin = new Thickness(0, 0, 10, 0),
-                    Child = UI.Icon(Catalog.Icons.Photo, 18, Theme.Muted)
-                }.Radius("Theme.RadiusSmall");
-            }
-            DockPanel.SetDock(imageDisplay, Dock.Left);
-            row.Children.Add(imageDisplay);
-
-            var info = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-            var titleText = !string.IsNullOrEmpty(item.Text) ? item.Text : $"Image ({item.ImageWidth} × {item.ImageHeight} px)";
-            var titleBlock = UI.Text(titleText, 12.5, FontWeights.SemiBold, Theme.Ink);
-            var meta = UI.Text($"{item.CopiedAt:g} • PNG image", 10.5, color: Theme.Muted);
-            info.Children.Add(titleBlock);
-            info.Children.Add(meta);
-            row.Children.Add(info);
-        }
-        else
-        {
-            var info = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-            var isArabic = item.Text.Any(c => c >= 0x0600 && c <= 0x06FF);
-            var textPreview = item.Text.Replace("\r\n", " ").Replace('\n', ' ').Trim();
-            var textBlock = UI.Text(string.IsNullOrEmpty(textPreview) ? "..." : textPreview, 12.5, FontWeights.Medium, Theme.Ink);
-            textBlock.MaxWidth = 270;
-            textBlock.TextTrimming = TextTrimming.CharacterEllipsis;
-            textBlock.FlowDirection = isArabic ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
-
-            var meta = UI.Text($"{item.CopiedAt:g} • {item.Text.Length} chars", 10.5, color: Theme.Muted);
-            info.Children.Add(textBlock);
-            info.Children.Add(meta);
-            row.Children.Add(info);
-        }
-
-        var card = new Border
-        {
-            Child = row,
-            Background = item.IsPinned ? Theme.AccentSoft : Theme.ButtonFill,
-            Padding = new Thickness(12, 8, 12, 8),
-            Margin = new Thickness(0, 4, 0, 4),
-            Cursor = Cursors.Hand,
-        }.Radius("Theme.RadiusCard");
-
-        card.MouseEnter += (_, _) => card.Background = Theme.ButtonPressed;
-        card.MouseLeave += (_, _) => card.Background = item.IsPinned ? Theme.AccentSoft : Theme.ButtonFill;
-        card.MouseLeftButtonUp += (_, _) => onCopy();
-
-        return card;
-    }
 
     public static BitmapImage? LoadBitmapImage(string path, int decodeHeight = 80)
     {
@@ -656,7 +800,9 @@ public static class ClipboardWindow
             Filter = "PNG Image (*.png)|*.png|All Files (*.*)|*.*",
             FileName = $"Clipboard_{item.CopiedAt:yyyyMMdd_HHmmss}.png"
         };
-        if (dlg.ShowDialog(owner) == true)
+        bool? picked;
+        using (WindowLifecycle.HoldAutoClose(owner)) picked = dlg.ShowDialog(owner);
+        if (picked == true)
         {
             try
             {
@@ -672,9 +818,37 @@ public static class ClipboardWindow
         }
     }
 
+    private static void ExportText(Window owner, string text, string name)
+    {
+        foreach (var c in Path.GetInvalidFileNameChars()) name = name.Replace(c, '_');
+        var dlg = new SaveFileDialog
+        {
+            Title = L10n.T("Export Text"),
+            FileName = string.IsNullOrWhiteSpace(name) ? "Clipboard" : name,
+            Filter = "Markdown Document (*.md)|*.md|Text Document (*.txt)|*.txt",
+            DefaultExt = ".md",
+        };
+
+        bool? picked;
+        using (WindowLifecycle.HoldAutoClose(owner)) picked = dlg.ShowDialog(owner);
+        if (picked != true) return;
+
+        try
+        {
+            File.WriteAllText(dlg.FileName, text, System.Text.Encoding.UTF8);
+            Sounds.Tick();
+            Hud.Shared.ShowMessage(L10n.T("Exported successfully"), Hud.Style.Success);
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"Export clipboard text error: {ex}");
+            Hud.Shared.ShowMessage(ex.Message, Hud.Style.Failure);
+        }
+    }
+
     private static void OpenAddDialog(Window owner, Action onAdded)
     {
-        var dialog = new ToolWindow("Add to Clipboard", 520) { Owner = owner };
+        var dialog = new ToolWindow("Add to Clipboard", 620) { Owner = owner };
         var stack = new StackPanel();
 
         var initialDir = FlowDirection.LeftToRight;
@@ -704,13 +878,41 @@ public static class ClipboardWindow
 
         stack.Children.Add(textBox);
 
+        void ImportText()
+        {
+            var dlg = new OpenFileDialog
+            {
+                Title = L10n.T("Import Text"),
+                Filter = "Text and Markdown (*.txt;*.md)|*.txt;*.md|All Files (*.*)|*.*",
+            };
+
+            // The list closes itself on deactivation and a native picker is not an owned window.
+            bool? picked;
+            using (WindowLifecycle.HoldAutoClose(dialog)) picked = dlg.ShowDialog(dialog);
+            if (picked != true) return;
+
+            try
+            {
+                textBox.Text = File.ReadAllText(dlg.FileName);
+                Sounds.Tick();
+                Hud.Shared.ShowMessage(L10n.T("Text imported"), Hud.Style.Success);
+            }
+            catch (Exception ex)
+            {
+                Log.Write($"Import clipboard text error: {ex}");
+                Hud.Shared.ShowMessage(ex.Message, Hud.Style.Failure);
+            }
+        }
+
         dialog.Body = stack;
         dialog.Leading(
             UI.Button("Cancel", dialog.Close),
             UI.Button("RTL / LTR", () =>
             {
                 textBox.FlowDirection = textBox.FlowDirection == FlowDirection.RightToLeft ? FlowDirection.LeftToRight : FlowDirection.RightToLeft;
-            }, primary: false, icon: "")
+            }, primary: false, icon: ""),
+            UI.Button("Import...", ImportText, primary: false, icon: Catalog.Icons.Folder),
+            UI.Button("Preview...", () => MarkdownViewer.OpenPreview("Clipboard Preview", textBox.Text, dialog), primary: false, icon: "\uE946")
         );
         dialog.Trailing(UI.Button("Add", () =>
         {
@@ -731,7 +933,9 @@ public static class ClipboardWindow
 
     private static void OpenEditDialog(Window owner, ClipboardEntry entry, Action onSaved)
     {
-        var dialog = new ToolWindow("Edit Clipboard Entry", 540) { Owner = owner };
+        // 620 wide like the note editor: both footers now carry the same six buttons, and 540
+        // pushed Copy/Export past the edge of the window.
+        var dialog = new ToolWindow("Edit Clipboard Entry", 620) { Owner = owner };
         var stack = new StackPanel();
 
         var isInitialArabic = entry.Text.Any(c => c >= 0x0600 && c <= 0x06FF);
@@ -770,6 +974,13 @@ public static class ClipboardWindow
             {
                 textBox.FlowDirection = textBox.FlowDirection == FlowDirection.RightToLeft ? FlowDirection.LeftToRight : FlowDirection.RightToLeft;
             }, primary: false, icon: ""),
+            UI.Button("Copy", () =>
+            {
+                Adawat.Core.Clipboard.CopyText(textBox.Text);
+                Sounds.Tick();
+                Hud.Shared.ShowMessage(L10n.T("Copied to clipboard"), Hud.Style.Success);
+            }, primary: false, icon: "\uE8C8"),
+            UI.Button("Export...", () => ExportText(dialog, textBox.Text, $"Clipboard_{entry.CopiedAt:yyyyMMdd_HHmmss}"), primary: false, icon: "\uE8A5"),
             UI.Button("Preview...", () => MarkdownViewer.OpenPreview("Edit Preview", textBox.Text, dialog), primary: false, icon: "")
         );
 
@@ -783,5 +994,44 @@ public static class ClipboardWindow
 
         dialog.Present();
         dialog.Loaded += (_, _) => textBox.Focus();
+    }
+
+    private static ContextMenu BuildContextMenu(ClipboardEntry item, Window owner, Action onCopy, Action onTogglePin, Action onDelete, Action onEdit,
+        Func<List<ClipboardEntry>> targets, Action<List<ClipboardEntry>> deleteMany, Action<List<ClipboardEntry>> togglePinMany, Action<List<ClipboardEntry>> copyMany)
+    {
+        var menu = UI.Menu();
+        var sel = targets();
+        var multi = sel.Count > 1;
+        menu.Items.Add(UI.MenuEntry(multi ? $"Copy ({sel.Count})" : "Copy", () =>
+        {
+            var t = targets();
+            if (t.Count <= 1) { onCopy(); return; }
+            copyMany(t);
+        }, ""));
+        menu.Items.Add(UI.MenuEntry(item.IsPinned ? "Unpin" : "Pin to top", () =>
+        {
+            var t = targets();
+            if (t.Count <= 1) { onTogglePin(); return; }
+            togglePinMany(t);
+        }, item.IsPinned ? "" : ""));
+        if (item.Type == "Image")
+        {
+            menu.Items.Add(UI.MenuEntry("Preview image", () => OpenImagePreview(owner, item), "", enabled: !multi));
+            menu.Items.Add(UI.MenuEntry("Save image as...", () => SaveImageAs(item, owner), "", enabled: !multi));
+        }
+        else
+        {
+            menu.Items.Add(UI.MenuEntry("Open in viewer", () => MarkdownViewer.OpenPreview("Clipboard Preview", item.Text, owner), "", enabled: !multi));
+            menu.Items.Add(UI.MenuEntry("Edit details", onEdit, "", enabled: !multi));
+            menu.Items.Add(UI.MenuEntry("Export...", () => ExportText(owner, item.Text, $"Clipboard_{item.CopiedAt:yyyyMMdd_HHmmss}"), "\uE8A5", enabled: !multi));
+        }
+        menu.Items.Add(UI.Separator());
+        menu.Items.Add(UI.MenuEntry(multi ? $"Delete ({sel.Count})" : "Delete", () =>
+        {
+            var t = targets();
+            if (t.Count <= 1) { onDelete(); return; }
+            deleteMany(t);
+        }, ""));
+        return menu;
     }
 }

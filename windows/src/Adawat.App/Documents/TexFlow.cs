@@ -170,6 +170,50 @@ internal static class TexFlow
         @"\\(?:label|tag)\{[^}]*\}|\\(?:nonumber|notag)",
         RegexOptions.Compiled);
 
+    private static readonly Regex LatexCommand = new(@"\\[a-zA-Z@]+\*?", RegexOptions.Compiled);
+    private static readonly Regex LatexEnvironment = new(@"\\(?:begin|end)\s*\{", RegexOptions.Compiled);
+
+    private static readonly HashSet<string> LatexSignals = new(StringComparer.Ordinal)
+    {
+        "documentclass", "usepackage", "RequirePackage", "section", "subsection", "subsubsection",
+        "chapter", "part", "paragraph", "subparagraph", "frac", "dfrac", "tfrac", "sqrt",
+        "textbf", "textit", "emph", "underline", "cite", "ref", "label", "item",
+        "includegraphics", "caption", "centering", "noindent", "tableofcontents", "maketitle",
+        "bibliography", "bibliographystyle", "newpage", "clearpage", "hspace", "vspace",
+    };
+
+    /// <summary>
+    /// True when text pasted without a file extension still reads as LaTeX: a document preamble,
+    /// an environment, or several known structural/math commands. A Windows path or a lone
+    /// backslash command is not enough.
+    /// </summary>
+    public static bool LooksLikeLatex(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return false;
+        var source = text.Replace("\r\n", "\n").Replace('\r', '\n');
+
+        // A real preamble is unambiguous even if the body also carries Markdown-looking text.
+        if (source.Contains("\\documentclass", StringComparison.Ordinal) ||
+            source.Contains("\\begin{document}", StringComparison.Ordinal) ||
+            source.Contains("\\usepackage", StringComparison.Ordinal))
+            return true;
+
+        // Markdown with inline TeX math should stay Markdown; only a document without Markdown
+        // structure is treated as a LaTeX fragment.
+        if (MarkdownFlow.LooksLikeMarkdown(source)) return false;
+
+        if (LatexEnvironment.IsMatch(source)) return true;
+
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (Match match in LatexCommand.Matches(source))
+        {
+            var name = match.Value.TrimStart('\\').TrimEnd('*');
+            if (LatexSignals.Contains(name)) seen.Add(name);
+        }
+
+        return seen.Count >= 2 || (seen.Count >= 1 && source.TrimStart().StartsWith('\\'));
+    }
+
     public static FlowDocument FromLatex(string source, string? baseDir = null, Action<string>? open = null, double size = 13)
     {
         var text = source.Replace("\r\n", "\n").Replace('\r', '\n');

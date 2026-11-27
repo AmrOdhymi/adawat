@@ -158,6 +158,188 @@ public static class PdfOps
         return text.Normalize(NormalizationForm.FormKC);
     }
 
+    // MARK: Text layer and search
+
+    /// <summary>A word on a page, in display coordinates: x from the left and y from the top, in points,
+    /// with the page's rotation already applied. <paramref name="Line"/> and <paramref name="Index"/> give
+    /// the reading order used for selecting and copying.</summary>
+    public sealed record PdfTextWord(string Text, double Left, double Top, double Width, double Height, int Line, int Index);
+
+    /// <summary>The words of one page and the displayed page size in points.</summary>
+    public sealed record PdfPageText(double Width, double Height, IReadOnlyList<PdfTextWord> Words);
+
+    /// <summary>Words <paramref name="FirstWord"/> to <paramref name="LastWord"/> (inclusive) match a search.</summary>
+    public sealed record PdfSearchHit(int FirstWord, int LastWord);
+
+    /// <summary>A page with matches, the matches, and the page's words so the viewer can highlight them without reading the page again.</summary>
+    public sealed record PdfSearchResult(int Page, IReadOnlyList<PdfSearchHit> Hits, PdfPageText Text);
+
+    /// <summary>The words of one page with their boxes, for the viewer's text layer, selection and search.</summary>
+    public static PdfPageText PageWords(string path, int pageIndex)
+    {
+        using var pdf = Pig.PdfDocument.Open(path);
+        return PageWords(pdf.GetPage(pageIndex + 1));
+    }
+
+    /// <summary>Finds the first page with a match, scanning from <paramref name="startPage"/> and wrapping around.
+    /// <paramref name="startPage"/> is zero based; progress reports one-based page numbers.</summary>
+    public static Task<PdfSearchResult?> FindPageAsync(string path, string query, int startPage, bool forward,
+                                                       IProgress<int>? progress, CancellationToken token)
+    {
+        return Task.Run<PdfSearchResult?>(() =>
+        {
+            query = query.Trim().Normalize(NormalizationForm.FormKC);
+            if (query.Length == 0) return null;
+
+            using var pdf = Pig.PdfDocument.Open(path);
+            var count = pdf.NumberOfPages;
+            if (count == 0) return null;
+
+            startPage = ((startPage % count) + count) % count;
+            for (var step = 0; step < count; step++)
+            {
+                token.ThrowIfCancellationRequested();
+                var index = forward
+                    ? (startPage + step) % count
+                    : ((startPage - step) % count + count) % count;
+
+                progress?.Report(index + 1);
+                var text = PageWords(pdf.GetPage(index + 1));
+                var hits = Hits(text.Words, query);
+                if (hits.Count > 0) return new PdfSearchResult(index, hits, text);
+            }
+            return null;
+        }, token);
+    }
+
+    private static PdfPageText PageWords(Page page)
+    {
+        var pageWidth = page.Width;
+        var pageHeight = page.Height;
+        var rotation = ((int)page.Rotation.Value % 360 + 360) % 360;
+        var displayWidth = rotation is 90 or 270 ? pageHeight : pageWidth;
+        var displayHeight = rotation is 90 or 270 ? pageWidth : pageHeight;
+
+        var items = page.GetWords(UglyToad.PdfPig.DocumentLayoutAnalysis.WordExtractor.NearestNeighbourWordExtractor.Instance)
+            .Where(word => word.Text.Trim().Length > 0)
+            .Select(word => (Word: word, Box: DisplayBox(word, pageWidth, pageHeight, rotation)))
+            .OrderBy(item => item.Box.Top)
+            .ThenBy(item => item.Box.Left)
+            .ToList();
+
+        // Group words into displayed lines, so rotated pages read correctly too.
+        var lines = new List<List<(Word Word, (double Left, double Top, double Width, double Height) Box)>>();
+        foreach (var item in items)
+        {
+            if (lines.Count > 0)
+            {
+                var line = lines[^1];
+                var top = line.Min(entry => entry.Box.Top);
+                var bottom = line.Max(entry => entry.Box.Top + entry.Box.Height);
+                var center = item.Box.Top + item.Box.Height / 2;
+                var tolerance = Math.Max(2, item.Box.Height * 0.35);
+                if (center >= top - tolerance && center <= bottom + tolerance)
+                {
+                    line.Add(item);
+                    continue;
+                }
+            }
+            lines.Add([item]);
+        }
+
+        var words = new List<PdfTextWord>();
+        for (var lineIndex = 0; lineIndex < lines.Count; lineIndex++)
+        {
+            var line = lines[lineIndex];
+            var rtl = line.Sum(entry => entry.Word.Text.Count(IsArabic)) > line.Sum(entry => entry.Word.Text.Count(char.IsLetter)) / 2;
+            var ordered = rtl
+                ? line.OrderByDescending(entry => entry.Box.Left + entry.Box.Width).ToList()
+                : line.OrderBy(entry => entry.Box.Left).ToList();
+            for (var index = 0; index < ordered.Count; index++)
+            {
+                var (word, box) = ordered[index];
+                words.Add(new PdfTextWord(Logical(word), box.Left, box.Top, box.Width, box.Height, lineIndex, index));
+            }
+        }
+
+        return new PdfPageText(displayWidth, displayHeight, words);
+    }
+
+    private static (double Left, double Top, double Width, double Height) DisplayBox(Word word, double pageWidth, double pageHeight, int rotation)
+    {
+        var box = word.BoundingBox;
+
+        double MapX(double x, double y) => rotation switch
+        {
+            90 => y,
+            180 => pageWidth - x,
+            270 => pageHeight - y,
+            _ => x,
+        };
+
+        double MapY(double x, double y) => rotation switch
+        {
+            90 => pageWidth - x,
+            180 => pageHeight - y,
+            270 => x,
+            _ => y,
+        };
+
+        var (u1, v1) = (MapX(box.Left, box.Bottom), MapY(box.Left, box.Bottom));
+        var (u2, v2) = (MapX(box.Right, box.Top), MapY(box.Right, box.Top));
+        var displayHeight = rotation is 90 or 270 ? pageWidth : pageHeight;
+        var left = Math.Min(u1, u2);
+        var right = Math.Max(u1, u2);
+        var top = displayHeight - Math.Max(v1, v2);
+        var bottom = displayHeight - Math.Min(v1, v2);
+        return (left, top, Math.Max(0.5, right - left), Math.Max(0.5, bottom - top));
+    }
+
+    private static List<PdfSearchHit> Hits(IReadOnlyList<PdfTextWord> words, string query)
+    {
+        var hits = new List<PdfSearchHit>();
+        if (words.Count == 0) return hits;
+
+        var text = new StringBuilder();
+        var map = new List<int>(words.Count * 6);
+        var line = -1;
+        for (var index = 0; index < words.Count; index++)
+        {
+            var word = words[index];
+            if (line >= 0)
+            {
+                text.Append(word.Line == line ? ' ' : '\n');
+                map.Add(-1);
+            }
+            line = word.Line;
+            var start = text.Length;
+            text.Append(word.Text);
+            for (var c = start; c < text.Length; c++) map.Add(index);
+        }
+
+        var haystack = text.ToString();
+        var from = 0;
+        while (from <= haystack.Length - query.Length)
+        {
+            var at = haystack.IndexOf(query, from, StringComparison.OrdinalIgnoreCase);
+            if (at < 0) break;
+
+            var first = -1;
+            var last = -1;
+            var end = Math.Min(map.Count, at + query.Length);
+            for (var c = at; c < end; c++)
+            {
+                if (map[c] < 0) continue;
+                if (first < 0) first = map[c];
+                last = map[c];
+            }
+            if (first >= 0) hits.Add(new PdfSearchHit(first, last));
+            from = at + Math.Max(1, query.Length);
+        }
+
+        return hits;
+    }
+
     // MARK: Documents
 
     /// <summary>A PDF as a document: paragraphs from the text layout, headings from larger type, pictures, and a page break between pages.

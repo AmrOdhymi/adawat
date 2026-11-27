@@ -52,6 +52,12 @@ public sealed class Settings
     public OutputLocation OutputLocation { get; set; } = OutputLocation.NextToOriginal;
     public bool ShowResultsInFloat { get; set; }
     public bool PlaySounds { get; set; } = true;
+
+    /// <summary>Ask before removing a clipboard entry (or clearing non-pinned history).</summary>
+    public bool ConfirmClipboardDelete { get; set; } = true;
+
+    /// <summary>Ask before removing a note.</summary>
+    public bool ConfirmNoteDelete { get; set; } = true;
     public double ImageQuality { get; set; } = 0.85;
     public int ResizeMaxPixels { get; set; } = 2048;
     public VideoQuality VideoQuality { get; set; } = VideoQuality.Balanced;

@@ -219,10 +219,10 @@ public static class QuickLauncherWindow
         var dialog = new ToolWindow("Add Shortcut", 460) { Owner = owner };
         var stack = new StackPanel();
 
-        var nameBox = new TextBox { Height = 32, Margin = new Thickness(0, 4, 0, 8), VerticalContentAlignment = VerticalAlignment.Center };
+        var nameBox = new TextBox { Height = 36, Margin = new Thickness(0, 4, 0, 8), Padding = new Thickness(8, 4, 8, 4), VerticalContentAlignment = VerticalAlignment.Center };
         stack.Children.Add(UI.FieldRow("Name", nameBox, 110));
 
-        var targetBox = new TextBox { Height = 32, VerticalContentAlignment = VerticalAlignment.Center };
+        var targetBox = new TextBox { Height = 36, Padding = new Thickness(8, 4, 8, 4), VerticalContentAlignment = VerticalAlignment.Center };
 
         var browseFile = UI.Button("Browse File...", () =>
         {

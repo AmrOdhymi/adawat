@@ -7,6 +7,7 @@ using System.Windows.Interop;
 using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Shell;
+using System.Windows.Threading;
 using Adawat.Core;
 
 namespace Adawat.App;
@@ -201,6 +202,13 @@ public static class UI
         }
         if (click is not null) item.Click += (_, _) => click();
         return item;
+    }
+
+    public static Separator Separator()
+    {
+        var sep = new Separator { Margin = new Thickness(4, 2, 4, 2) };
+        sep.SetResourceReference(Control.BackgroundProperty, "Theme.Line");
+        return sep;
     }
 
     /// <summary>Points a border at a live theme radius so it follows a theme switch.</summary>
@@ -427,6 +435,7 @@ public static class UI
         chevron.SetValue(TextBlock.FontSizeProperty, 10.0);
         chevron.SetResourceReference(TextBlock.ForegroundProperty, "Theme.Muted");
         chevron.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
+        chevron.SetValue(FrameworkElement.MarginProperty, new Thickness(8, 0, 0, 0));
         chevron.SetValue(DockPanel.DockProperty, Dock.Right);
         var selection = new FrameworkElementFactory(typeof(ContentPresenter));
         selection.SetValue(ContentPresenter.ContentProperty, new TemplateBindingExtension(ComboBox.SelectionBoxItemProperty));
@@ -708,6 +717,7 @@ public class ToolWindow : Window
     private readonly TextBlock _title;
     private readonly Border _line1;
     private readonly Border _line2;
+    private readonly List<(Window Owner, WindowState State)> _owners = new();
 
     public ToolWindow(string title, double width)
     {
@@ -725,6 +735,19 @@ public class ToolWindow : Window
         _title = new TextBlock { Text = Title, FontFamily = Theme.Display, FontSize = 15, FontWeight = FontWeights.SemiBold, Foreground = Theme.Ink, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
         header.Children.Add(_title);
         WindowLifecycle.Track(this);
+        // Closing an owned window can make Windows minimize the window that opened it — and, when
+        // the child had a child of its own, the owner's owner too. The usual workaround is to clear
+        // Owner, but WPF silently re-parents a ShowInTaskbar=false window to an internal hidden
+        // window instead of removing the owner, so the minimize survives. Detach at the Win32 level
+        // and keep the owner chain so a late minimize is put back.
+        Loaded += (_, _) => CaptureOwners();
+        Closing += (_, _) => DetachOwnerForClose();
+        Closed += (_, _) =>
+        {
+            RestoreOwners();
+            DeferRestore(DispatcherPriority.Background);
+            GuardOwners();
+        };
         var close = UI.IconButton("", CloseOnce, "Close", 24);
         close.HorizontalAlignment = HorizontalAlignment.Left;
         close.Margin = new Thickness(12, 0, 0, 0);
@@ -789,6 +812,77 @@ public class ToolWindow : Window
 
     /// <summary>Closes the window once; safe to call from a <c>Deactivated</c> handler or a second click.</summary>
     public void CloseOnce() => WindowLifecycle.CloseOnce(this);
+
+    /// <summary>
+    /// Removes this window's owner before it is destroyed, so the OS does not minimize the window
+    /// that opened it. <c>Owner = null</c> only works for a window shown in the taskbar; for
+    /// <c>ShowInTaskbar = false</c> WPF re-parents to an internal hidden window instead, which keeps
+    /// the minimize cascade alive. Hiding first avoids a taskbar button flash while the owner is gone.
+    /// </summary>
+    private void DetachOwnerForClose()
+    {
+        if (Owner == null) return;
+        var handle = new WindowInteropHelper(this).Handle;
+        if (handle == IntPtr.Zero) return;
+        if (!ShowInTaskbar) Native.ShowWindow(handle, Native.SW_HIDE);
+        Native.DetachOwner(handle);
+        if (!ShowInTaskbar) return;
+        try { Owner = null; }
+        catch (InvalidOperationException) { }
+    }
+
+    /// <summary>Remembers the visible owners and their state, so closing this window can undo a minimize.</summary>
+    private void CaptureOwners()
+    {
+        _owners.Clear();
+        var owner = Owner;
+        for (var depth = 0; owner != null && depth < 8; depth++)
+        {
+            _owners.Add((owner, owner.WindowState));
+            owner = owner.Owner;
+        }
+    }
+
+    /// <summary>Restores any owner that the OS minimized as this window closed.</summary>
+    private void RestoreOwners()
+    {
+        foreach (var (owner, state) in _owners)
+        {
+            if (state == WindowState.Minimized) continue;
+            if (!WindowLifecycle.IsOpen(owner)) continue;
+            if (owner.WindowState != WindowState.Minimized) continue;
+            try
+            {
+                owner.WindowState = state;
+                owner.Activate();
+                Log.Write($"Owner restored after close: '{Title}' put '{owner.Title}' back to {state}");
+            }
+            catch (InvalidOperationException) { }
+        }
+    }
+
+    private void DeferRestore(DispatcherPriority priority)
+    {
+        try
+        {
+            Dispatcher.BeginInvoke(priority, new Action(RestoreOwners));
+        }
+        catch (InvalidOperationException) { }
+    }
+
+    /// <summary>Re-checks for a short moment, in case the OS minimizes an owner after the close returns.</summary>
+    private void GuardOwners()
+    {
+        if (_owners.Count == 0) return;
+        var checks = 0;
+        var timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(150) };
+        timer.Tick += (_, _) =>
+        {
+            RestoreOwners();
+            if (++checks >= 3) timer.Stop();
+        };
+        timer.Start();
+    }
 
     /// <summary>Shows the window in front, as tool windows open from a drop while another app has focus.</summary>
     public void Present()

@@ -229,6 +229,11 @@ public static class SettingsWindow
             Section(stack, "Startup");
             stack.Children.Add(UI.Check("Start Adawat when Windows starts", Startup.IsEnabled, Startup.Set).Pad(0, 6));
 
+            Section(stack, "Deleting");
+            stack.Children.Add(UI.Check("Confirm before deleting clipboard entries", settings.ConfirmClipboardDelete, v => { settings.ConfirmClipboardDelete = v; Save(); }).Pad(0, 3));
+            stack.Children.Add(UI.Check("Confirm before deleting notes", settings.ConfirmNoteDelete, v => { settings.ConfirmNoteDelete = v; Save(); }).Pad(0, 3));
+            stack.Children.Add(UI.Caption("Uncheck for direct delete with no question."));
+
             Section(stack, "Tools");
             var ffmpeg = ProcessRunner.Find("ffmpeg");
             stack.Children.Add(UI.Caption(ffmpeg != null ? $"ffmpeg: {ffmpeg}" : "ffmpeg is not installed. Install it with: winget install ffmpeg"));
@@ -245,6 +250,7 @@ public static class SettingsWindow
                 settings.Theme = defaults.Theme; settings.ThemeMode = defaults.ThemeMode;
                 settings.ConvertKey = defaults.ConvertKey; settings.ToolsKey = defaults.ToolsKey; settings.ActionsKey = defaults.ActionsKey;
                 settings.OutputLocation = defaults.OutputLocation; settings.ShowResultsInFloat = defaults.ShowResultsInFloat; settings.PlaySounds = defaults.PlaySounds;
+                settings.ConfirmClipboardDelete = defaults.ConfirmClipboardDelete; settings.ConfirmNoteDelete = defaults.ConfirmNoteDelete;
                 settings.CompressPreset = defaults.CompressPreset; settings.VideoQuality = defaults.VideoQuality;
                 Theme.Apply(settings.Theme, settings.ThemeMode);
                 UI.InstallThemeResources();

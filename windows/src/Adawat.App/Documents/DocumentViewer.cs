@@ -102,9 +102,24 @@ public static class DocumentViewer
         private readonly TextBlock _pageCount;
         private readonly TextBox _pageBox;
         private readonly StackPanel _pageNav;
+        private readonly Border _findBar;
+        private readonly TextBox _findBox;
+        private readonly TextBlock _findStatus = new()
+        {
+            Text = "",
+            FontSize = 12,
+            MinWidth = 80,
+            MaxWidth = 180,
+            VerticalAlignment = VerticalAlignment.Center,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            Margin = new Thickness(0, 0, 6, 0),
+        };
+        private TextRange? _flowFindRange;
         private FrameworkElement _emptyView;
+        private readonly Button _tabOpenButton;
+        private readonly Button _findButton;
         private readonly Button _copyButton;
-        private readonly Button _exportButton;
+
         private readonly Button _openAppButton;
         private readonly List<Tab> _tabs = [];
         private readonly List<Tab> _recent = [];
@@ -193,11 +208,63 @@ public static class DocumentViewer
             _pageNav.Children.Add(_pageBox);
             _pageNav.Children.Add(_pageCount);
 
-            var openButton = UI.IconButton("\uE710", Pick, "Open document", 26);
-            openButton.Margin = new Thickness(6, 0, 0, 0);
+            var findIcon = UI.Icon("\uE721", 12);
+            findIcon.SetResourceReference(TextBlock.ForegroundProperty, "Theme.Muted");
+            findIcon.Margin = new Thickness(0, 0, 8, 0);
+
+            _findBox = new TextBox
+            {
+                Width = 220,
+                MinHeight = 26,
+                FontSize = 12.5,
+                FontFamily = Theme.Font,
+                VerticalContentAlignment = VerticalAlignment.Center,
+                Padding = new Thickness(8, 2, 8, 2),
+                Margin = new Thickness(0, 0, 8, 0),
+            };
+            _findBox.SetResourceReference(TextBox.BackgroundProperty, "Theme.Field");
+            _findBox.SetResourceReference(TextBox.ForegroundProperty, "Theme.Ink");
+            _findBox.SetResourceReference(TextBox.BorderBrushProperty, "Theme.LineStrong");
+            _findBox.TextChanged += (_, _) =>
+            {
+                _findStatus.Text = "";
+                _active?.Pdf?.ClearSearch();
+                ClearFlowFind();
+            };
+            _findBox.PreviewKeyDown += OnFindKeyDown;
+
+            _findStatus.SetResourceReference(TextBlock.ForegroundProperty, "Theme.Muted");
+
+            var previousMatch = UI.IconButton("\uE70E", () => FindNext(false), "Previous match", 24);
+            previousMatch.Margin = new Thickness(2, 0, 2, 0);
+            var nextMatch = UI.IconButton("\uE70D", () => FindNext(true), "Next match", 24);
+            nextMatch.Margin = new Thickness(2, 0, 2, 0);
+            var closeFind = UI.IconButton("\uE711", CloseFind, "Close find", 24);
+
+            var findPanel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+            findPanel.Children.Add(findIcon);
+            findPanel.Children.Add(_findBox);
+            findPanel.Children.Add(_findStatus);
+            findPanel.Children.Add(previousMatch);
+            findPanel.Children.Add(nextMatch);
+            findPanel.Children.Add(closeFind);
+
+            _findBar = new Border
+            {
+                Visibility = Visibility.Collapsed,
+                Padding = new Thickness(10, 6, 6, 6),
+                Margin = new Thickness(0, 0, 0, 10),
+                BorderThickness = new Thickness(1),
+                Child = findPanel,
+            }.Radius("Theme.RadiusSmall");
+            _findBar.SetResourceReference(Border.BackgroundProperty, "Theme.Surface2");
+            _findBar.SetResourceReference(Border.BorderBrushProperty, "Theme.Line");
+
+            _tabOpenButton = UI.IconButton("\uE710", Pick, "Open document", 26);
+            _tabOpenButton.Margin = new Thickness(6, 0, 0, 0);
             var tabBar = new DockPanel { LastChildFill = true, Margin = new Thickness(0, 0, 0, 10) };
-            DockPanel.SetDock(openButton, Dock.Right);
-            tabBar.Children.Add(openButton);
+            DockPanel.SetDock(_tabOpenButton, Dock.Right);
+            tabBar.Children.Add(_tabOpenButton);
             tabBar.Children.Add(_tabScroll);
 
             _emptyView = BuildEmpty();
@@ -227,22 +294,26 @@ public static class DocumentViewer
 
             var root = new Grid();
             root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
             Grid.SetRow(tabBar, 0);
-            Grid.SetRow(content, 1);
+            Grid.SetRow(_findBar, 1);
+            Grid.SetRow(content, 2);
             root.Children.Add(tabBar);
+            root.Children.Add(_findBar);
             root.Children.Add(content);
             Body = root;
 
             BuildLeading();
+            _findButton = UI.Button("Find", ToggleFind, primary: false);
+            _findButton.Visibility = Visibility.Collapsed;
             _copyButton = UI.Button("Copy", Copy, primary: false);
-            _exportButton = UI.Button("Export...", ExportActive, primary: false);
             _openAppButton = UI.Button("Open in app", OpenInDefaultApp, primary: false);
             _openAppButton.Visibility = Visibility.Collapsed;
             Trailing(
+                _findButton,
                 _openAppButton,
                 _copyButton,
-                _exportButton,
                 UI.Button("Close", CloseOnce, primary: true));
 
             DragOver += OnDragOver;
@@ -353,13 +424,14 @@ public static class DocumentViewer
         private void BuildLeading()
         {
             ClearLeading();
+            if (_active == null) return;
+
             Leading(
-                UI.Button("Open...", Pick, primary: false, icon: Catalog.Icons.Document),
                 UI.Button("-", () => ZoomBy(-10), primary: false),
                 _zoomLabel,
                 UI.Button("+", () => ZoomBy(10), primary: false));
 
-            if (_active?.Pdf is { } pdf)
+            if (_active.Pdf is { } pdf)
             {
                 Leading(
                     UI.Button("Fit", () => ApplyPdfZoom(pdf.FitWidthZoom), primary: false),
@@ -369,7 +441,7 @@ public static class DocumentViewer
                 return;
             }
 
-            if (_active == null || _active.View is FlowDocumentScrollViewer)
+            if (_active.View is FlowDocumentScrollViewer)
                 Leading(UI.Button(IsActiveRightToLeft ? "LTR" : "RTL", ToggleDirection, primary: false));
         }
 
@@ -440,6 +512,159 @@ public static class DocumentViewer
             }
         }
 
+        private void ToggleFind()
+        {
+            if (_active == null) return;
+
+            _findBar.Visibility = Visibility.Visible;
+            _findBox.Focus();
+            _findBox.SelectAll();
+        }
+
+        private void CloseFind()
+        {
+            _findBar.Visibility = Visibility.Collapsed;
+            _findStatus.Text = "";
+            _active?.Pdf?.ClearSearch();
+            ClearFlowFind();
+        }
+
+        private async void FindNext(bool forward)
+        {
+            if (_active == null) return;
+            var query = _findBox.Text;
+            if (query.Trim().Length == 0)
+            {
+                _active.Pdf?.ClearSearch();
+                ClearFlowFind();
+                _findStatus.Text = "";
+                return;
+            }
+
+            ClearFlowFind();
+
+            if (_active.Pdf is { } pdf)
+            {
+                _findStatus.Text = L10n.T("Searching...");
+                var status = await pdf.FindAsync(query, forward);
+                if (_active?.Pdf != pdf || WindowLifecycle.IsClosingOrClosed(this)) return;
+                if (status.Length > 0) _findStatus.Text = status;
+                return;
+            }
+
+            FindInFlow(query, forward);
+        }
+
+        private void FindInFlow(string query, bool forward)
+        {
+            if (_active?.View is not FlowDocumentScrollViewer viewer) return;
+            if (viewer.Document is not { } document) return;
+
+            var content = new TextRange(document.ContentStart, document.ContentEnd).Text;
+            if (string.IsNullOrEmpty(content))
+            {
+                _findStatus.Text = L10n.T("No matches");
+                return;
+            }
+
+            var compare = StringComparison.OrdinalIgnoreCase;
+            var start = CurrentFlowOffset(viewer, document, forward);
+            int at = -1;
+            if (forward)
+            {
+                at = content.IndexOf(query, Math.Clamp(start, 0, content.Length), compare);
+                if (at < 0 && start > 0) at = content.IndexOf(query, 0, compare);
+            }
+            else
+            {
+                var from = Math.Clamp(start - 1, 0, Math.Max(0, content.Length - 1));
+                if (content.Length > 0) at = content.LastIndexOf(query, from, compare);
+                if (at < 0 && start < content.Length) at = content.LastIndexOf(query, content.Length - 1, compare);
+            }
+
+            if (at < 0)
+            {
+                _findStatus.Text = L10n.T("No matches");
+                return;
+            }
+
+            var pointer = GetTextPointerAtOffset(document.ContentStart, at);
+            var end = GetTextPointerAtOffset(pointer ?? document.ContentStart, query.Length);
+            if (pointer == null || end == null)
+            {
+                _findStatus.Text = L10n.T("No matches");
+                return;
+            }
+
+            var range = new TextRange(pointer, end);
+            range.ApplyPropertyValue(TextElement.BackgroundProperty, Theme.AccentSoft);
+            viewer.Focus();
+            range.Select(pointer, end);
+            pointer.Paragraph?.BringIntoView();
+            _flowFindRange = range;
+            _findStatus.Text = L10n.T("Match");
+        }
+
+        private void ClearFlowFind()
+        {
+            if (_flowFindRange == null) return;
+            try
+            {
+                _flowFindRange.ApplyPropertyValue(TextElement.BackgroundProperty, Brushes.Transparent);
+            }
+            catch { }
+            _flowFindRange = null;
+        }
+
+        private static int CurrentFlowOffset(FlowDocumentScrollViewer viewer, FlowDocument document, bool forward)
+        {
+            var selection = viewer.Selection;
+            if (selection != null && !selection.IsEmpty)
+            {
+                var p = forward ? selection.End : selection.Start;
+                return Math.Max(0, new TextRange(document.ContentStart, p).Text.Length);
+            }
+            return 0;
+        }
+
+        private static TextPointer? GetTextPointerAtOffset(TextPointer start, int offset)
+        {
+            var navigator = start;
+            var remaining = Math.Max(0, offset);
+            while (navigator != null)
+            {
+                if (navigator.GetPointerContext(LogicalDirection.Forward) == TextPointerContext.Text)
+                {
+                    var text = navigator.GetTextInRun(LogicalDirection.Forward);
+                    if (remaining <= text.Length)
+                        return navigator.GetPositionAtOffset(remaining, LogicalDirection.Forward);
+                    remaining -= text.Length;
+                    navigator = navigator.GetPositionAtOffset(text.Length, LogicalDirection.Forward);
+                }
+                else
+                {
+                    var next = navigator.GetNextContextPosition(LogicalDirection.Forward);
+                    if (next == null) break;
+                    navigator = next;
+                }
+            }
+            return navigator;
+        }
+
+        private void OnFindKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                FindNext((Keyboard.Modifiers & ModifierKeys.Shift) == 0);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Escape)
+            {
+                CloseFind();
+                e.Handled = true;
+            }
+        }
+
         private void OpenInDefaultApp()
         {
             if (_active == null) return;
@@ -474,6 +699,8 @@ public static class DocumentViewer
                 return;
             }
 
+            if (_findBar.Visibility == Visibility.Visible) CloseFind();
+            else ClearFlowFind();
             CaptureActive();
             _active = tab;
             _recent.Remove(tab);
@@ -553,6 +780,11 @@ public static class DocumentViewer
                 {
                     if (_active == tab) SyncPageBox(pdf);
                 };
+                pdf.SearchProgress += page =>
+                {
+                    if (_active == tab && _findBar.Visibility == Visibility.Visible)
+                        _findStatus.Text = L10n.T("Searching page") + " " + page + "…";
+                };
                 pdf.Scroller.ScrollChanged += (_, _) =>
                 {
                     if (_active != tab) return;
@@ -587,20 +819,32 @@ public static class DocumentViewer
             }
         }
 
-        private static FlowDocumentScrollViewer MakeFlowView(FlowDocument flow, double zoom) => new()
+        private static FlowDocumentScrollViewer MakeFlowView(FlowDocument flow, double zoom)
         {
-            Document = flow,
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-            IsToolBarVisible = false,
-            Background = Brushes.Transparent,
-            BorderThickness = new Thickness(0),
-            Padding = new Thickness(0),
-            MinZoom = 60,
-            MaxZoom = 250,
-            ZoomIncrement = 10,
-            Zoom = Math.Clamp(zoom, 60, 250),
-        };
+            var viewer = new FlowDocumentScrollViewer
+            {
+                Document = flow,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                IsToolBarVisible = false,
+                Background = Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                Padding = new Thickness(0),
+                MinZoom = 60,
+                MaxZoom = 250,
+                ZoomIncrement = 10,
+                Zoom = Math.Clamp(zoom, 60, 250),
+                IsSelectionEnabled = true,
+            };
+            TextOptions.SetTextFormattingMode(viewer, TextFormattingMode.Display);
+            viewer.PreviewMouseWheel += (_, e) =>
+            {
+                if (Scroller(viewer) is not { } scroller) return;
+                scroller.ScrollToVerticalOffset(scroller.VerticalOffset - e.Delta * 0.8);
+                e.Handled = true;
+            };
+            return viewer;
+        }
 
         private async Task<(FrameworkElement View, string Text)> RenderAsync(string path, double zoom)
         {
@@ -794,6 +1038,7 @@ public static class DocumentViewer
             var index = _tabs.IndexOf(tab);
             if (index < 0) return;
 
+            if (_active == tab && _findBar.Visibility == Visibility.Visible) CloseFind();
             CaptureScroll(tab);
             _tabs.RemoveAt(index);
             _recent.Remove(tab);
@@ -826,8 +1071,22 @@ public static class DocumentViewer
 
         private void OnPreviewKeyDown(object sender, KeyEventArgs e)
         {
+            if (e.Key == Key.Escape && _findBar.Visibility == Visibility.Visible && !_pageBox.IsKeyboardFocusWithin)
+            {
+                CloseFind();
+                e.Handled = true;
+                return;
+            }
+
             if ((Keyboard.Modifiers & ModifierKeys.Control) == 0)
             {
+                if (e.Key == Key.F3 && _active != null)
+                {
+                    FindNext((Keyboard.Modifiers & ModifierKeys.Shift) == 0);
+                    e.Handled = true;
+                    return;
+                }
+
                 // A PDF page has no focusable content, so the viewer moves its scroller itself.
                 if (_active?.Pdf is { } pdf && !_pageBox.IsKeyboardFocusWithin)
                 {
@@ -869,6 +1128,21 @@ public static class DocumentViewer
                     Pick();
                     e.Handled = true;
                     break;
+                case Key.F:
+                    if (_active != null)
+                    {
+                        ToggleFind();
+                        e.Handled = true;
+                    }
+                    break;
+                case Key.C:
+                    if (!_findBox.IsKeyboardFocusWithin && !_pageBox.IsKeyboardFocusWithin &&
+                        _active?.Pdf is { HasSelection: true } selected)
+                    {
+                        selected.CopySelection();
+                        e.Handled = true;
+                    }
+                    break;
                 case Key.G:
                     if (_active?.Pdf != null)
                     {
@@ -902,11 +1176,7 @@ public static class DocumentViewer
             Hud.Shared.ShowMessage(L10n.T("Copied to clipboard"), Hud.Style.Success);
         }
 
-        private void ExportActive()
-        {
-            if (_active == null || _active.Pdf != null) return;
-            MarkdownViewer.Export(Path.GetFileNameWithoutExtension(_active.Path), _active.Text, this);
-        }
+
 
         private void OpenTarget(string url)
         {
@@ -980,10 +1250,11 @@ public static class DocumentViewer
             var isPdf = _active != null && FileKinds.Ext(_active.Path) == "pdf";
             var textTab = _active != null && !isPdf;
             _copyButton.IsEnabled = textTab;
-            _exportButton.IsEnabled = textTab;
             _copyButton.Visibility = isPdf ? Visibility.Collapsed : Visibility.Visible;
-            _exportButton.Visibility = isPdf ? Visibility.Collapsed : Visibility.Visible;
             _openAppButton.Visibility = isPdf ? Visibility.Visible : Visibility.Collapsed;
+            _findButton.Visibility = _active == null ? Visibility.Collapsed : Visibility.Visible;
+            _tabOpenButton.Visibility = _tabs.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+
             if (_active?.Pdf is { } pdf) SyncPageBox(pdf);
             BuildLeading();
         }
