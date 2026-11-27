@@ -977,7 +977,7 @@ public static class ClipboardWindow
 
         var textBox = new TextBox
         {
-            Text = entry.Text,
+            Text = "",
             Height = 240,
             FontSize = 13,
             Padding = new Thickness(8),
@@ -989,17 +989,28 @@ public static class ClipboardWindow
             FlowDirection = initialDir,
             Margin = new Thickness(0, 4, 0, 8)
         };
+        var loading = new ProgressBar { IsIndeterminate = true, Height = 3, Margin = new Thickness(0, 0, 0, 8), Visibility = string.IsNullOrEmpty(entry.Text) ? Visibility.Collapsed : Visibility.Visible };
+        stack.Children.Add(loading);
+        stack.Children.Add(textBox);
+        if (!string.IsNullOrEmpty(entry.Text))
+        {
+            var textToLoad = entry.Text;
+            dialog.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                textBox.Text = textToLoad;
+                loading.Visibility = Visibility.Collapsed;
+            }), System.Windows.Threading.DispatcherPriority.Background);
+        }
 
         textBox.TextChanged += (_, _) =>
         {
+            if (loading.Visibility == Visibility.Visible) return;
             var first = textBox.Text.FirstOrDefault(char.IsLetter);
             if (first != default)
             {
                 textBox.FlowDirection = (first >= 0x0600 && first <= 0x06FF) ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
             }
         };
-
-        stack.Children.Add(textBox);
 
         dialog.Body = stack;
         dialog.Leading(

@@ -766,6 +766,7 @@ public static class DocumentViewer
             string text;
             try
             {
+                await Task.Yield();
                 (view, text) = await RenderAsync(tab.Path, tab.Zoom);
             }
             catch (Exception ex)

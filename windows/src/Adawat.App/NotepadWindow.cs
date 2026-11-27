@@ -399,7 +399,7 @@ public static class NotepadWindow
 
         var contentBox = new TextBox
         {
-            Text = current.Content,
+            Text = "",
             Height = 280,
             FontSize = 12.5,
             Padding = new Thickness(8),
@@ -411,7 +411,18 @@ public static class NotepadWindow
             FlowDirection = initialDir,
             Margin = new Thickness(0, 4, 0, 8)
         };
+        var contentLoading = new ProgressBar { IsIndeterminate = true, Height = 3, Margin = new Thickness(0, 0, 0, 8), Visibility = string.IsNullOrEmpty(current.Content) ? Visibility.Collapsed : Visibility.Visible };
+        stack.Children.Add(contentLoading);
         stack.Children.Add(contentBox);
+        if (!string.IsNullOrEmpty(current.Content))
+        {
+            var textToLoad = current.Content;
+            editor.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                contentBox.Text = textToLoad;
+                contentLoading.Visibility = Visibility.Collapsed;
+            }), System.Windows.Threading.DispatcherPriority.Background);
+        }
 
         void AutoDetectDirection(TextBox box)
         {
