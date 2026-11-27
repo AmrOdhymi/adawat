@@ -36,7 +36,8 @@ public static class ClipboardHistory
     private static int _suppressCount;
     private static string? _lastTextFingerprint;
     private static CancellationTokenSource? _saveCts;
-    public const int MaxImages = 10;
+    public static int MaxImages => Math.Clamp(Settings.Current.ClipboardImageLimit, 10, 20);
+    public static int MaxTextEntries => Settings.Current.ClipboardTextLimit;
 
     public static event Action? Changed;
 
@@ -120,7 +121,7 @@ public static class ClipboardHistory
             if (existing == null) existing = new ClipboardEntry { Type = "Text", Text = text, CopiedAt = DateTime.Now };
             else existing.CopiedAt = DateTime.Now;
             list.Insert(0, existing);
-            _lastTextFingerprint = text;
+            EnforceTextLimit(list);
             changed = true;
             SaveLocked();
         }
@@ -129,9 +130,10 @@ public static class ClipboardHistory
 
     private static void EnforceImageLimit(List<ClipboardEntry> list)
     {
+        var max = MaxImages;
         var images = list.Where(e => e.Type == "Image").ToList();
-        if (images.Count <= MaxImages) return;
-        var excess = images.Count - MaxImages;
+        if (images.Count <= max) return;
+        var excess = images.Count - max;
         var toRemove = images.Where(e => !e.IsPinned).OrderBy(e => e.CopiedAt).Take(excess).ToList();
         if (toRemove.Count < excess)
             toRemove.AddRange(images.Except(toRemove).OrderBy(e => e.CopiedAt).Take(excess - toRemove.Count));
@@ -142,6 +144,19 @@ public static class ClipboardHistory
         }
     }
 
+    private static void EnforceTextLimit(List<ClipboardEntry> list)
+    {
+        var max = MaxTextEntries;
+        if (max <= 0) return;
+        var texts = list.Where(e => e.Type != "Image").ToList();
+        if (texts.Count <= max) return;
+        var excess = texts.Count - max;
+        var toRemove = texts.Where(e => !e.IsPinned).OrderBy(e => e.CopiedAt).Take(excess).ToList();
+        if (toRemove.Count < excess)
+            toRemove.AddRange(texts.Except(toRemove).OrderBy(e => e.CopiedAt).Take(excess - toRemove.Count));
+        foreach (var old in toRemove) list.Remove(old);
+    }
+
     public static List<ClipboardEntry> Load()
     {
         lock (Gate) return EnsureLoadedLocked().Select(Clone).ToList();
@@ -149,7 +164,13 @@ public static class ClipboardHistory
 
     public static void Save(List<ClipboardEntry> list)
     {
-        lock (Gate) { _cache = list.Select(Clone).ToList(); SaveLocked(); }
+        lock (Gate)
+        {
+            _cache = list.Select(Clone).ToList();
+            EnforceImageLimit(_cache);
+            EnforceTextLimit(_cache);
+            SaveLocked();
+        }
         NotifyChanged();
     }
 
@@ -161,7 +182,13 @@ public static class ClipboardHistory
             if (File.Exists(FilePath))
             {
                 var list = JsonSerializer.Deserialize<List<ClipboardEntry>>(File.ReadAllText(FilePath), JsonOptions);
-                if (list != null) { _cache = list; return _cache; }
+                if (list != null)
+                {
+                    _cache = list;
+                    EnforceImageLimit(_cache);
+                    EnforceTextLimit(_cache);
+                    return _cache;
+                }
             }
         }
         catch (Exception ex) { Log.Write($"Failed to load clipboard history: {ex}"); }
@@ -431,8 +458,8 @@ public static class ClipboardWindow
 
             var imgCount = entries.Count(e => e.Type == "Image");
             countLabel.Text = remaining > 0
-                ? $"{shown.Count}/{sorted.Count} shown • {imgCount}/10 images"
-                : $"{sorted.Count} item(s) • {imgCount}/10 images";
+                ? $"{shown.Count}/{sorted.Count} shown • {imgCount}/{ClipboardHistory.MaxImages} images"
+                : $"{sorted.Count} item(s) • {imgCount}/{ClipboardHistory.MaxImages} images";
 
             loadMoreBtn.Content = remaining > 0 ? $"Load more ({remaining} remaining)" : "Load more";
             loadMoreBtn.Visibility = remaining > 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -622,10 +649,11 @@ public static class ClipboardWindow
         var filterTab = UI.Segmented([
             ("All", "All"),
             ("Text", "Texts"),
-            ("Image", "Images (10 max)")
+            ("Image", $"Images ({ClipboardHistory.MaxImages} max)")
         ], currentFilterType, selected =>
         {
             currentFilterType = selected;
+            unpinnedPage = 1;
             RefreshList(searchBox.Text);
         });
         DockPanel.SetDock(filterTab, Dock.Left);

@@ -229,6 +229,11 @@ public static class SettingsWindow
             Section(stack, "Startup");
             stack.Children.Add(UI.Check("Start Adawat when Windows starts", Startup.IsEnabled, Startup.Set).Pad(0, 6));
 
+            Section(stack, "Clipboard");
+            stack.Children.Add(UI.Row("Text history limit", UI.Picker([(100, "100 items"), (500, "500 items"), (1000, "1000 items"), (0, "Unlimited")], settings.ClipboardTextLimit, v => { settings.ClipboardTextLimit = v; Save(); ClipboardHistory.Save(ClipboardHistory.Load()); })));
+            stack.Children.Add(UI.Row("Image history limit", UI.Picker([(10, "10 images"), (20, "20 images")], settings.ClipboardImageLimit, v => { settings.ClipboardImageLimit = v; Save(); ClipboardHistory.Save(ClipboardHistory.Load()); })));
+            stack.Children.Add(UI.Caption("Pinned items are kept. Lower limits remove the oldest non-pinned entries.").Pad(0, 4));
+
             Section(stack, "Deleting");
             stack.Children.Add(UI.Check("Confirm before deleting clipboard entries", settings.ConfirmClipboardDelete, v => { settings.ConfirmClipboardDelete = v; Save(); }).Pad(0, 3));
             stack.Children.Add(UI.Check("Confirm before deleting notes", settings.ConfirmNoteDelete, v => { settings.ConfirmNoteDelete = v; Save(); }).Pad(0, 3));
@@ -251,6 +256,7 @@ public static class SettingsWindow
                 settings.ConvertKey = defaults.ConvertKey; settings.ToolsKey = defaults.ToolsKey; settings.ActionsKey = defaults.ActionsKey;
                 settings.OutputLocation = defaults.OutputLocation; settings.ShowResultsInFloat = defaults.ShowResultsInFloat; settings.PlaySounds = defaults.PlaySounds;
                 settings.ConfirmClipboardDelete = defaults.ConfirmClipboardDelete; settings.ConfirmNoteDelete = defaults.ConfirmNoteDelete;
+                settings.ClipboardTextLimit = defaults.ClipboardTextLimit; settings.ClipboardImageLimit = defaults.ClipboardImageLimit;
                 settings.CompressPreset = defaults.CompressPreset; settings.VideoQuality = defaults.VideoQuality;
                 Theme.Apply(settings.Theme, settings.ThemeMode);
                 UI.InstallThemeResources();

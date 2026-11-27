@@ -28,6 +28,8 @@ public static class NotepadWindow
     private static ToolWindow? _open;
     private static readonly string FilePath = Path.Combine(Settings.Folder, "notes.json");
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+    private static readonly object Gate = new();
+    private static List<NoteEntry>? _cache;
 
     public static void Present()
     {
@@ -322,8 +324,19 @@ public static class NotepadWindow
         loadMoreBtn.Click += (_, _) => { unpinnedPage++; RefreshList(searchBox.Text); };
         searchBox.TextChanged += (_, _) => { unpinnedPage = 1; RefreshList(searchBox.Text); };
 
-        RefreshList();
         window.Body = root;
+        var loading = UI.Caption("Loading notes...");
+        loading.Margin = new Thickness(12, 28, 12, 28);
+        loading.HorizontalAlignment = HorizontalAlignment.Center;
+        itemsPanel.Children.Add(loading);
+        Task.Run(LoadNotes).ContinueWith(t =>
+        {
+            window.Dispatcher.BeginInvoke(() =>
+            {
+                notes = t.Status == TaskStatus.RanToCompletion ? t.Result : [];
+                RefreshList(searchBox.Text);
+            });
+        });
 
         window.Trailing(UI.Button("Close", window.CloseOnce, primary: false));
 
@@ -553,32 +566,47 @@ public static class NotepadWindow
 
     private static List<NoteEntry> LoadNotes()
     {
-        try
+        lock (Gate)
         {
-            if (File.Exists(FilePath))
+            if (_cache != null) return _cache.Select(Clone).ToList();
+            try
             {
-                var list = JsonSerializer.Deserialize<List<NoteEntry>>(File.ReadAllText(FilePath), JsonOptions);
-                if (list != null) return list;
+                if (File.Exists(FilePath))
+                {
+                    var list = JsonSerializer.Deserialize<List<NoteEntry>>(File.ReadAllText(FilePath), JsonOptions);
+                    if (list != null) { _cache = list; return _cache.Select(Clone).ToList(); }
+                }
             }
+            catch (Exception ex) { Log.Write($"Failed to load notes: {ex}"); }
+            _cache = [];
+            return [];
         }
-        catch (Exception ex)
-        {
-            Log.Write($"Failed to load notes: {ex}");
-        }
-
-        return [];
     }
 
     private static void SaveNotes(List<NoteEntry> list)
     {
-        try
+        List<NoteEntry> snapshot;
+        lock (Gate)
         {
-            Directory.CreateDirectory(Settings.Folder);
-            File.WriteAllText(FilePath, JsonSerializer.Serialize(list, JsonOptions));
+            _cache = list.Select(Clone).ToList();
+            snapshot = _cache.Select(Clone).ToList();
         }
-        catch (Exception ex)
+        Task.Run(() =>
         {
-            Log.Write($"Failed to save notes: {ex}");
-        }
+            try
+            {
+                Directory.CreateDirectory(Settings.Folder);
+                var json = JsonSerializer.Serialize(snapshot, JsonOptions);
+                var tmp = FilePath + ".tmp";
+                File.WriteAllText(tmp, json);
+                File.Move(tmp, FilePath, overwrite: true);
+            }
+            catch (Exception ex) { Log.Write($"Failed to save notes: {ex}"); }
+        });
     }
+
+    private static NoteEntry Clone(NoteEntry n) => new()
+    {
+        Id = n.Id, Title = n.Title, Content = n.Content, IsPinned = n.IsPinned, CreatedAt = n.CreatedAt, UpdatedAt = n.UpdatedAt
+    };
 }

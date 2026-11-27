@@ -58,6 +58,12 @@ public sealed class Settings
 
     /// <summary>Ask before removing a note.</summary>
     public bool ConfirmNoteDelete { get; set; } = true;
+    /// <summary>Maximum non-pinned text clipboard entries to keep. 0 means unlimited.</summary>
+    public int ClipboardTextLimit { get; set; } = 0;
+
+    /// <summary>Maximum image clipboard entries to keep.</summary>
+    public int ClipboardImageLimit { get; set; } = 10;
+
     public double ImageQuality { get; set; } = 0.85;
     public int ResizeMaxPixels { get; set; } = 2048;
     public VideoQuality VideoQuality { get; set; } = VideoQuality.Balanced;
@@ -92,12 +98,20 @@ public sealed class Settings
     }
 
     /// <summary>Adds tools introduced after the settings file was written, without re-enabling ones the user turned off.</summary>
-    private void Migrate()
+        private void Migrate()
     {
-        if (QuickToolsVersion >= 1) return;
-        EnabledQuickTools ??= [];
-        if (!EnabledQuickTools.Contains("documents")) EnabledQuickTools.Add("documents");
-        QuickToolsVersion = 1;
-        Save();
+        var changed = false;
+        if (QuickToolsVersion < 1)
+        {
+            EnabledQuickTools ??= [];
+            if (!EnabledQuickTools.Contains("documents")) { EnabledQuickTools.Add("documents"); changed = true; }
+            QuickToolsVersion = 1;
+            changed = true;
+        }
+
+        if (ClipboardTextLimit is not (0 or 100 or 500 or 1000)) { ClipboardTextLimit = 0; changed = true; }
+        if (ClipboardImageLimit is not (10 or 20)) { ClipboardImageLimit = 10; changed = true; }
+
+        if (changed) Save();
     }
 }
