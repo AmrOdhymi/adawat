@@ -766,7 +766,8 @@ public static class DocumentViewer
             string text;
             try
             {
-                await Task.Yield();
+                // Give the loading UI a frame, then yield periodically during heavy FlowDocument build.
+                await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.Loaded);
                 (view, text) = await RenderAsync(tab.Path, tab.Zoom);
             }
             catch (Exception ex)

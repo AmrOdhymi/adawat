@@ -995,11 +995,21 @@ public static class ClipboardWindow
         if (!string.IsNullOrEmpty(entry.Text))
         {
             var textToLoad = entry.Text;
-            dialog.Dispatcher.BeginInvoke(new Action(() =>
+            var chunkSize = 12000;
+            var index = 0;
+            void LoadChunk()
             {
-                textBox.Text = textToLoad;
-                loading.Visibility = Visibility.Collapsed;
-            }), System.Windows.Threading.DispatcherPriority.Background);
+                if (index >= textToLoad.Length)
+                {
+                    loading.Visibility = Visibility.Collapsed;
+                    return;
+                }
+                var len = Math.Min(chunkSize, textToLoad.Length - index);
+                textBox.AppendText(textToLoad.Substring(index, len));
+                index += len;
+                dialog.Dispatcher.BeginInvoke(new Action(LoadChunk), System.Windows.Threading.DispatcherPriority.Background);
+            }
+            dialog.Dispatcher.BeginInvoke(new Action(LoadChunk), System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
         textBox.TextChanged += (_, _) =>

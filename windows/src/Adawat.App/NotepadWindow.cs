@@ -417,11 +417,21 @@ public static class NotepadWindow
         if (!string.IsNullOrEmpty(current.Content))
         {
             var textToLoad = current.Content;
-            editor.Dispatcher.BeginInvoke(new Action(() =>
+            var chunkSize = 12000;
+            var index = 0;
+            void LoadChunk()
             {
-                contentBox.Text = textToLoad;
-                contentLoading.Visibility = Visibility.Collapsed;
-            }), System.Windows.Threading.DispatcherPriority.Background);
+                if (index >= textToLoad.Length)
+                {
+                    contentLoading.Visibility = Visibility.Collapsed;
+                    return;
+                }
+                var len = Math.Min(chunkSize, textToLoad.Length - index);
+                contentBox.AppendText(textToLoad.Substring(index, len));
+                index += len;
+                editor.Dispatcher.BeginInvoke(new Action(LoadChunk), System.Windows.Threading.DispatcherPriority.Background);
+            }
+            editor.Dispatcher.BeginInvoke(new Action(LoadChunk), System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
         void AutoDetectDirection(TextBox box)
