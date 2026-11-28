@@ -35,7 +35,7 @@ public static class ClipboardHistory
     private static List<ClipboardEntry>? _cache;
     private static int _suppressCount;
     private static CancellationTokenSource? _saveCts;
-    public static int MaxImages => Math.Clamp(Settings.Current.ClipboardImageLimit, 10, 20);
+    public static int MaxImages => Math.Clamp(Settings.Current.ClipboardImageLimit, 10, 50);
     public static int MaxTextEntries => Settings.Current.ClipboardTextLimit;
 
     public static event Action? Changed;

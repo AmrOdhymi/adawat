@@ -34,7 +34,7 @@ internal static class MarkdownFlow
     public static FlowDocument FromMarkdown(string markdown, string? baseDir = null, Action<string>? open = null, double size = 13)
         => FromMarkdownAsync(markdown, baseDir, open, size).GetAwaiter().GetResult();
 
-    public static async Task<FlowDocument> FromMarkdownAsync(string markdown, string? baseDir = null, Action<string>? open = null, double size = 13, bool yieldForUi = false)
+    public static async Task<FlowDocument> FromMarkdownAsync(string markdown, string? baseDir = null, Action<string>? open = null, double size = 13, bool yieldForUi = false, int initialBlocks = 0, Action<FlowDocument>? onFirstBatch = null)
     {
         var rightToLeft = Adawat.Core.Documents.Bidi.IsRightToLeft(markdown);
         var math = new List<MathText.Piece>();
@@ -43,10 +43,11 @@ internal static class MarkdownFlow
             ? await Task.Run(() => Markdown.Parse(prepared, Pipeline)).ConfigureAwait(true)
             : Markdown.Parse(prepared, Pipeline);
         var document = FlowKit.NewDocument(rightToLeft, size);
-        var context = new Context { Math = math, BaseDir = baseDir, Size = size, Open = open, RightToLeft = rightToLeft };
+        var context = new Context { Document = document, Math = math, BaseDir = baseDir, Size = size, Open = open, RightToLeft = rightToLeft };
 
-        await AddBlocksAsync(document.Blocks, parsed, context, yieldForUi).ConfigureAwait(true);
+        await AddBlocksAsync(document.Blocks, parsed, context, yieldForUi, initialBlocks, onFirstBatch).ConfigureAwait(true);
         if (document.Blocks.Count == 0) document.Blocks.Add(FlowKit.Note("Nothing to show."));
+        if (initialBlocks > 0 && onFirstBatch != null && document.Blocks.Count <= initialBlocks) onFirstBatch(document);
         return document;
     }
 
@@ -54,7 +55,7 @@ internal static class MarkdownFlow
     public static FlowDocument FromPlain(string text, string? baseDir = null, double size = 13)
         => FromPlainAsync(text, baseDir, size).GetAwaiter().GetResult();
 
-    public static async Task<FlowDocument> FromPlainAsync(string text, string? baseDir = null, double size = 13, bool yieldForUi = false)
+    public static async Task<FlowDocument> FromPlainAsync(string text, string? baseDir = null, double size = 13, bool yieldForUi = false, int initialBlocks = 0, Action<FlowDocument>? onFirstBatch = null)
     {
         var rightToLeft = Adawat.Core.Documents.Bidi.IsRightToLeft(text);
         var math = new List<MathText.Piece>();
@@ -64,6 +65,8 @@ internal static class MarkdownFlow
         var document = FlowKit.NewDocument(rightToLeft, size);
 
         var chunks = prepared.Split("\n\n");
+        var shown = false;
+        var added = 0;
         for (var i = 0; i < chunks.Length; i++)
         {
             var chunk = chunks[i];
@@ -77,11 +80,20 @@ internal static class MarkdownFlow
                 MathText.AppendLiteral(paragraph.Inlines, lines[line].Replace("\t", "    "), size, math);
             }
             document.Blocks.Add(paragraph);
+            added++;
+            if (!shown && initialBlocks > 0 && added >= initialBlocks)
+            {
+                shown = true;
+                onFirstBatch?.Invoke(document);
+                await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background);
+                continue;
+            }
             if (yieldForUi && i % 8 == 7)
                 await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background);
         }
 
         if (document.Blocks.Count == 0) document.Blocks.Add(FlowKit.Note("Nothing to show."));
+        if (!shown) onFirstBatch?.Invoke(document);
         return document;
     }
 
@@ -109,6 +121,7 @@ internal static class MarkdownFlow
 
     private sealed class Context
     {
+        public required FlowDocument Document { get; init; }
         public required List<MathText.Piece> Math { get; init; }
         public string? BaseDir { get; init; }
         public double Size { get; init; } = 13;
@@ -121,16 +134,25 @@ internal static class MarkdownFlow
         foreach (var block in container) AddBlock(target, block, context);
     }
 
-    private static async Task AddBlocksAsync(BlockCollection target, ContainerBlock container, Context context, bool yieldForUi)
+    private static async Task AddBlocksAsync(BlockCollection target, ContainerBlock container, Context context, bool yieldForUi, int initialBlocks = 0, Action<FlowDocument>? onFirstBatch = null)
     {
         var i = 0;
+        var shown = false;
         foreach (var block in container)
         {
             AddBlock(target, block, context);
             i++;
+            if (!shown && initialBlocks > 0 && i >= initialBlocks)
+            {
+                shown = true;
+                onFirstBatch?.Invoke(context.Document);
+                await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background);
+                continue;
+            }
             if (yieldForUi && i % 6 == 0)
                 await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background);
         }
+        if (!shown) onFirstBatch?.Invoke(context.Document);
     }
 
     private static void AddBlock(BlockCollection target, Markdig.Syntax.Block block, Context context)

@@ -61,7 +61,7 @@ public sealed class Settings
     /// <summary>Maximum non-pinned text clipboard entries to keep. 0 means unlimited.</summary>
     public int ClipboardTextLimit { get; set; } = 0;
 
-    /// <summary>Maximum image clipboard entries to keep.</summary>
+    /// <summary>Maximum image clipboard entries to keep. 10, 30, or 50.</summary>
     public int ClipboardImageLimit { get; set; } = 10;
 
     public double ImageQuality { get; set; } = 0.85;
@@ -110,7 +110,7 @@ public sealed class Settings
         }
 
         if (ClipboardTextLimit is not (0 or 100 or 500 or 1000)) { ClipboardTextLimit = 0; changed = true; }
-        if (ClipboardImageLimit is not (10 or 20)) { ClipboardImageLimit = 10; changed = true; }
+        if (ClipboardImageLimit is not (10 or 30 or 50)) { ClipboardImageLimit = 10; changed = true; }
 
         if (changed) Save();
     }

@@ -231,7 +231,7 @@ public static class SettingsWindow
 
             Section(stack, "Clipboard");
             stack.Children.Add(UI.Row("Text history limit", UI.Picker([(100, "100 items"), (500, "500 items"), (1000, "1000 items"), (0, "Unlimited")], settings.ClipboardTextLimit, v => { settings.ClipboardTextLimit = v; Save(); ClipboardHistory.Save(ClipboardHistory.Load()); })));
-            stack.Children.Add(UI.Row("Image history limit", UI.Picker([(10, "10 images"), (20, "20 images")], settings.ClipboardImageLimit, v => { settings.ClipboardImageLimit = v; Save(); ClipboardHistory.Save(ClipboardHistory.Load()); })));
+            stack.Children.Add(UI.Row("Image history limit", UI.Picker([(10, "10 images"), (30, "30 images"), (50, "50 images")], settings.ClipboardImageLimit, v => { settings.ClipboardImageLimit = v; Save(); ClipboardHistory.Save(ClipboardHistory.Load()); })));
             stack.Children.Add(UI.Caption("Pinned items are kept. Lower limits remove the oldest non-pinned entries.").Pad(0, 4));
 
             Section(stack, "Deleting");

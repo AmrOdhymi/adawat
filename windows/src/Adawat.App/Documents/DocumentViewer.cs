@@ -84,6 +84,8 @@ public static class DocumentViewer
         public PdfView? Pdf { get; set; }
         public Func<ScrollViewer?>? FindScroller { get; set; }
         public int BuildToken { get; set; }
+        public bool FullyLoaded { get; set; }
+        public TaskCompletionSource<bool>? LoadCompletion { get; set; }
     }
 
     private sealed class ViewerWindow : ToolWindow
@@ -552,6 +554,16 @@ public static class DocumentViewer
                 return;
             }
 
+            var tab = _active;
+            if (!tab.FullyLoaded)
+            {
+                _findStatus.Text = L10n.T("Loading document...");
+                if (tab.LoadCompletion != null)
+                    await tab.LoadCompletion.Task;
+                if (WindowLifecycle.IsClosingOrClosed(this) || _active != tab) return;
+                if (_findBox.Text != query) return;
+            }
+
             FindInFlow(query, forward);
         }
 
@@ -718,6 +730,7 @@ public static class DocumentViewer
             ShowLoading();
             var token = ++_token;
             tab.BuildToken = token;
+            tab.LoadCompletion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             _ = BuildAsync(tab, token);
         }
 
@@ -727,6 +740,8 @@ public static class DocumentViewer
             RestoreScroll(tab);
             UpdateChrome();
             TrimViews();
+            if (!tab.FullyLoaded && tab.Pdf == null && _findBar.Visibility != Visibility.Visible)
+                _findStatus.Text = L10n.T("Loading document...");
 
             if (tab.Pdf is { } pdf)
                 Dispatcher.BeginInvoke(new Action(() =>
@@ -768,7 +783,7 @@ public static class DocumentViewer
             {
                 // Give the loading UI a frame, then yield periodically during heavy FlowDocument build.
                 await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.Loaded);
-                (view, text) = await RenderAsync(tab.Path, tab.Zoom);
+                (view, text) = await RenderAsync(tab, token, tab.Zoom);
             }
             catch (Exception ex)
             {
@@ -776,6 +791,8 @@ public static class DocumentViewer
                 if (token != _token || token != tab.BuildToken || WindowLifecycle.IsClosingOrClosed(this)) return;
                 view = MakeFlowView(ErrorFlow(ex.Message), tab.Zoom);
                 text = "";
+                tab.FullyLoaded = true;
+                tab.LoadCompletion?.TrySetResult(true);
             }
 
             if (token != _token || token != tab.BuildToken || WindowLifecycle.IsClosingOrClosed(this))
@@ -785,7 +802,10 @@ public static class DocumentViewer
             }
 
             tab.Text = text;
-            tab.View = view;
+            // If the first batch was already shown, keep that view instance to avoid a visual jump.
+            if (tab.View == null) tab.View = view;
+            tab.FullyLoaded = true;
+            tab.LoadCompletion?.TrySetResult(true);
 
             if (view is PdfView pdf)
             {
@@ -827,6 +847,8 @@ public static class DocumentViewer
             if (_active == tab)
             {
                 ShowView(tab);
+                if (_findBar.Visibility == Visibility.Visible && _findBox.Text.Trim().Length > 0)
+                    _findStatus.Text = L10n.T("Match");
             }
             else
             {
@@ -861,10 +883,25 @@ public static class DocumentViewer
             return viewer;
         }
 
-        private async Task<(FrameworkElement View, string Text)> RenderAsync(string path, double zoom)
+        private async Task<(FrameworkElement View, string Text)> RenderAsync(Tab tab, int token, double zoom)
         {
+            var path = tab.Path;
             var extension = FileKinds.Ext(path);
             var folder = Path.GetDirectoryName(path);
+            const int initialBlocks = 40;
+
+            void ShowFirst(FlowDocument flow)
+            {
+                Dispatcher.InvokeAsync(() =>
+                {
+                    if (token != _token || token != tab.BuildToken || WindowLifecycle.IsClosingOrClosed(this)) return;
+                    if (_active != tab || tab.View != null) return;
+                    var view = MakeFlowView(flow, zoom);
+                    tab.View = view;
+                    tab.FindScroller = () => Scroller(view);
+                    ShowView(tab);
+                }, DispatcherPriority.Loaded);
+            }
 
             if (extension == "pdf")
             {
@@ -883,8 +920,8 @@ public static class DocumentViewer
             {
                 var text = await Task.Run(() => Adawat.Core.Documents.DocumentOps.ReadText(path)).ConfigureAwait(true);
                 var flow = MarkdownFlow.LooksLikeMarkdown(text)
-                    ? await MarkdownFlow.FromMarkdownAsync(text, folder, OpenTarget, 13, yieldForUi: true).ConfigureAwait(true)
-                    : await MarkdownFlow.FromPlainAsync(text, folder, 13, yieldForUi: true).ConfigureAwait(true);
+                    ? await MarkdownFlow.FromMarkdownAsync(text, folder, OpenTarget, 13, yieldForUi: true, initialBlocks, ShowFirst).ConfigureAwait(true)
+                    : await MarkdownFlow.FromPlainAsync(text, folder, 13, yieldForUi: true, initialBlocks, ShowFirst).ConfigureAwait(true);
                 return (MakeFlowView(flow, zoom), text);
             }
 
@@ -893,12 +930,13 @@ public static class DocumentViewer
                 var source = await Task.Run(() => Adawat.Core.Documents.DocumentOps.ReadText(path)).ConfigureAwait(true);
                 var flow = TexFlow.FromLatex(source, folder, OpenTarget);
                 var plain = new TextRange(flow.ContentStart, flow.ContentEnd).Text;
-                await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background);
+                await Dispatcher.Yield(DispatcherPriority.Background);
+                ShowFirst(flow);
                 return (MakeFlowView(flow, zoom), plain);
             }
 
             var document = await Adawat.Core.Documents.DocumentOps.Load(path).ConfigureAwait(true);
-            var flowDoc = await DocFlow.FromDocAsync(document, folder, OpenTarget, 13, yieldForUi: true).ConfigureAwait(true);
+            var flowDoc = await DocFlow.FromDocAsync(document, folder, OpenTarget, 13, yieldForUi: true, initialBlocks, ShowFirst).ConfigureAwait(true);
             return (MakeFlowView(flowDoc, zoom), document.PlainText);
         }
 

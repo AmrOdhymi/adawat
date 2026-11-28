@@ -97,6 +97,7 @@ public static class MarkdownViewer
         private readonly string _heading;
         private string _source = "";
         private TextRange? _findRange;
+        private bool _fullyLoaded;
 
         public PreviewWindow(string heading, string text, Window? owner) : base($"Preview: {heading}", 880)
         {
@@ -283,38 +284,69 @@ public static class MarkdownViewer
             _source = text;
             ClearFind();
             _loading.Visibility = Visibility.Visible;
+            _fullyLoaded = false;
             try
             {
                 var flow = await BuildFlowAsync(text);
                 if (WindowLifecycle.IsClosingOrClosed(this)) return;
-                _viewer.Document = flow;
+                // The first batch was already shown through onFirstBatch; this only waits for
+                // the background completion. It keeps the loading bar until fully searchable.
+                if (_viewer.Document == null) _viewer.Document = flow;
             }
             catch (Exception ex)
             {
                 Log.Write($"Preview render error: {ex}");
                 if (WindowLifecycle.IsClosingOrClosed(this)) return;
                 _viewer.Document = MarkdownFlow.FromPlain(text);
+                _fullyLoaded = true;
             }
             _viewer.Zoom = 100;
             _zoom.Text = "100%";
             _findStatus.Text = "";
             _loading.Visibility = Visibility.Collapsed;
+            BuildLeading();
+        }
+
+        private void ShowFirstBatch(FlowDocument flow)
+        {
+            if (WindowLifecycle.IsClosingOrClosed(this)) return;
+            _viewer.Document = flow;
+            _viewer.Zoom = 100;
+            _zoom.Text = "100%";
             ScrollToTop();
             BuildLeading();
         }
 
+        private async Task EnsureFullyLoadedAsync()
+        {
+            while (!_fullyLoaded && !WindowLifecycle.IsClosingOrClosed(this))
+                await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background);
+        }
+
         private async Task<FlowDocument> BuildFlowAsync(string text)
         {
+            const int initialBlocks = 40;
+            void OnFirst(FlowDocument d) => Dispatcher.InvokeAsync(() => ShowFirstBatch(d), System.Windows.Threading.DispatcherPriority.Loaded);
+            FlowDocument flow;
             if (TexFlow.LooksLikeLatex(text))
-                return TexFlow.FromLatex(text, null, OpenTarget);
+            {
+                flow = TexFlow.FromLatex(text, null, OpenTarget);
+                OnFirst(flow);
+                _fullyLoaded = true;
+                return flow;
+            }
             if (LooksLikeHtml(text))
             {
                 var doc = await Task.Run(() => Adawat.Core.Documents.HtmlReader.Read(text, _heading)).ConfigureAwait(true);
-                return await DocFlow.FromDocAsync(doc, null, OpenTarget, 13, yieldForUi: true).ConfigureAwait(true);
+                flow = await DocFlow.FromDocAsync(doc, null, OpenTarget, 13, yieldForUi: true, initialBlocks, OnFirst).ConfigureAwait(true);
+                _fullyLoaded = true;
+                return flow;
             }
-            return MarkdownFlow.LooksLikeMarkdown(text)
-                ? await MarkdownFlow.FromMarkdownAsync(text, null, OpenTarget, 13, yieldForUi: true).ConfigureAwait(true)
-                : await MarkdownFlow.FromPlainAsync(text, null, 13, yieldForUi: true).ConfigureAwait(true);
+            flow = MarkdownFlow.LooksLikeMarkdown(text)
+                ? await MarkdownFlow.FromMarkdownAsync(text, null, OpenTarget, 13, yieldForUi: true, initialBlocks, OnFirst).ConfigureAwait(true)
+                : await MarkdownFlow.FromPlainAsync(text, null, 13, yieldForUi: true, initialBlocks, OnFirst).ConfigureAwait(true);
+            _fullyLoaded = true;
+            return flow;
         }
 
         /// <summary>FlowDocumentScrollViewer has no ScrollToHome, so the template's scroller is used.</summary>
@@ -346,7 +378,7 @@ public static class MarkdownViewer
             ClearFind();
         }
 
-        private void FindNext(bool forward)
+        private async void FindNext(bool forward)
         {
             var query = _findBox.Text;
             if (query.Trim().Length == 0)
@@ -357,6 +389,13 @@ public static class MarkdownViewer
             }
 
             ClearFind();
+            if (!_fullyLoaded)
+            {
+                _findStatus.Text = L10n.T("Loading document...");
+                await EnsureFullyLoadedAsync();
+                if (WindowLifecycle.IsClosingOrClosed(this)) return;
+                if (_findBox.Text != query) return;
+            }
             if (_viewer.Document is not { } document) return;
 
             var content = new TextRange(document.ContentStart, document.ContentEnd).Text;
